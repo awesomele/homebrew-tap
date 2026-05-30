@@ -2,17 +2,30 @@
 
 Homebrew tap for **mddiff** — a rendered markdown diff tool.
 
-mddiff renders both versions of a markdown document and diffs the *result*:
-block-aware highlighting (a rewritten paragraph shows as a clean whole-block
-replace instead of a word-salad), with inline and row-aligned side-by-side
-views, opened in your browser. Git-aware (`--staged`, `--unstaged`, revisions).
+mddiff renders both versions of a markdown document and diffs the *result*, then
+highlights changes word-for-word — aligning blocks first, so a heavily rewritten
+paragraph shows as a clean whole-block replace instead of a scrambled word-salad.
+
+- **Block-aware** — unchanged blocks pass through; light edits keep inline
+  green/red word marks; rewritten/added/removed blocks render as clean whole
+  units. Tables diff column-by-column and row-by-row.
+- **Two views** — inline (one merged document) and row-aligned side-by-side
+  (old left, new right, matching blocks lined up). Toggle in the page.
+- **Diff minimap** — a right-edge ruler with a tick per change; click or drag to
+  jump.
+- **Git-aware** — working tree, index (`--staged`), unstaged (`--unstaged`),
+  arbitrary revisions, or two files on disk.
+- **Zero runtime** — a self-contained `bun`-compiled binary; nothing else to
+  install.
 
 ## Install
 
 ```sh
-brew tap awesomele/tap
-brew install mddiff
+brew install awesomele/tap/mddiff
 ```
+
+See the [releases](https://github.com/awesomele/homebrew-tap/releases) for the
+version history and notes.
 
 ## Usage
 
