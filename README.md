@@ -1,84 +1,45 @@
-# homebrew-tap
+# awesomele's Homebrew tap
 
-Homebrew tap for **mddiff** — a rendered markdown diff tool.
+A [Homebrew](https://brew.sh) tap for the command-line tools published by
+**awesomele**. Install any of them with one command:
 
-mddiff renders both versions of a markdown document and diffs the *result*, then
-highlights changes word-for-word — aligning blocks first, so a heavily rewritten
-paragraph shows as a clean whole-block replace instead of a scrambled word-salad.
+```sh
+brew install awesomele/tap/<tool>
+```
 
-> **macOS only** (Apple Silicon and Intel). No Windows or Linux build yet.
+…or tap once and install by short name:
 
-- **Block-aware** — unchanged blocks pass through; light edits keep inline
-  green/red word marks; rewritten/added/removed blocks render as clean whole
-  units. Tables diff column-by-column and row-by-row.
-- **Two views** — inline (one merged document) and row-aligned side-by-side
-  (old left, new right, matching blocks lined up). Toggle in the page.
-- **Diff minimap** — a right-edge ruler with a tick per change; click or drag to
-  jump.
-- **Git-aware** — working tree, index (`--staged`), unstaged (`--unstaged`),
-  arbitrary revisions, or two files on disk.
-- **Zero runtime** — a self-contained `bun`-compiled binary; nothing else to
-  install.
+```sh
+brew tap awesomele/tap
+brew install <tool>
+```
 
-## See it in action
+## Tools
 
-Light edits keep inline green/red word marks; a rewritten paragraph replaces as a
-clean block, and unchanged text passes through untouched:
+### [mddiff](docs/mddiff/) — rendered markdown diff
 
-![mddiff — inline view](docs/inline.png)
-
-Side by side: old on the left, new on the right, with matching blocks row-aligned
-(and a change minimap down the right edge):
-
-![mddiff — row-aligned side-by-side view](docs/side-by-side.png)
-
-<details>
-<summary><b>How each kind of change renders</b> — a container × edit-size matrix</summary>
-
-<br>
-
-mddiff takes the finest readable rendering for each change — an inline word-diff
-for small edits, a whole-block replace once a change is too big to read inline —
-across paragraphs, sentences, lists, tables, and tables of contents. Every cell
-below is a real rendered diff.
-
-**Inline**
-
-![mddiff — diff use-case matrix, inline](docs/change-matrix.png)
-
-**Side by side** — not derivable from the inline view: each side projects to its
-own column and the matching blocks are row-aligned.
-
-![mddiff — diff use-case matrix, side by side](docs/change-matrix-split.png)
-
-</details>
-
-## Install
+Renders both versions of a markdown document and diffs the *result*, then shows it
+inline or row-aligned side-by-side in your browser. Block-aware, so a rewritten
+paragraph reads as a clean whole-block replace instead of scrambled word-salad.
+**macOS only.**
 
 ```sh
 brew install awesomele/tap/mddiff
 ```
 
-See the [releases](https://github.com/awesomele/homebrew-tap/releases) for the
-version history and notes.
+[**Screenshots & usage →**](docs/mddiff/)
 
-## Usage
+<!-- Add a new tool as its own `### [<tool>](docs/<tool>/) — <one-liner>` section
+     here, with a page + screenshots under docs/<tool>/. -->
 
-```sh
-mddiff file.md              # HEAD vs working tree
-mddiff file.md --staged     # staged changes (--cached too)
-mddiff file.md --unstaged   # not-yet-staged changes
-mddiff file.md REV          # REV vs working tree
-mddiff old.md new.md        # two files on disk
-mddiff file.md -s           # open directly in side-by-side
-```
+## How this tap is organized
 
-The diff opens in your browser, served by a small background daemon that exits
-once you close the last tab.
+- `Formula/<tool>.rb` — the install recipe Homebrew reads for each tool.
+- `docs/<tool>/` — that tool's page and screenshots.
+- [Releases](https://github.com/awesomele/homebrew-tap/releases) — each tool ships
+  as a self-contained binary attached to a GitHub release here; `brew upgrade`
+  picks up new versions, and each release carries that version's notes.
 
-## Notes
+## License
 
-- **macOS only** for now (the binary is a self-contained `bun`-compiled
-  executable for `darwin-arm64` / `darwin-x64`; it uses `open` to launch the
-  browser). No runtime is required — bun and the dependencies are embedded.
-- License: MIT.
+MIT (per tool; see each tool's page).
