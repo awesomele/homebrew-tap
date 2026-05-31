@@ -20,6 +20,37 @@ paragraph shows as a clean whole-block replace instead of a scrambled word-salad
 - **Zero runtime** — a self-contained `bun`-compiled binary; nothing else to
   install.
 
+## See it in action
+
+Light edits keep inline green/red word marks; a rewritten paragraph replaces as a
+clean block, and unchanged text passes through untouched:
+
+![mddiff — inline view](docs/inline.png)
+
+Side by side: old on the left, new on the right, with matching blocks row-aligned
+(and a change minimap down the right edge):
+
+![mddiff — row-aligned side-by-side view](docs/side-by-side.png)
+
+<details>
+<summary><b>How each kind of change renders</b> — a container × edit-size matrix</summary>
+
+mddiff takes the finest readable rendering for each change — an inline word-diff
+for small edits, a whole-block replace once a change is too big to read inline —
+across paragraphs, sentences, lists, tables, and tables of contents. Every cell
+below is a real rendered diff.
+
+**Inline**
+
+![mddiff — diff use-case matrix, inline](docs/change-matrix.png)
+
+**Side by side** — not derivable from the inline view: each side projects to its
+own column and the matching blocks are row-aligned.
+
+![mddiff — diff use-case matrix, side by side](docs/change-matrix-split.png)
+
+</details>
+
 ## Install
 
 ```sh
