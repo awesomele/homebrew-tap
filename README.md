@@ -35,6 +35,8 @@ Side by side: old on the left, new on the right, with matching blocks row-aligne
 <details>
 <summary><b>How each kind of change renders</b> — a container × edit-size matrix</summary>
 
+<br>
+
 mddiff takes the finest readable rendering for each change — an inline word-diff
 for small edits, a whole-block replace once a change is too big to read inline —
 across paragraphs, sentences, lists, tables, and tables of contents. Every cell
