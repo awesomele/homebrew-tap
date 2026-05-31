@@ -1,6 +1,6 @@
 class Mddiff < Formula
   desc "Rendered markdown diff — block-aware, inline + side-by-side, in your browser"
-  homepage "https://github.com/awesomele/homebrew-tap"
+  homepage "https://github.com/awesomele/homebrew-tap/tree/main/docs/mddiff"
   version "0.1.8"
   license "MIT"
 
