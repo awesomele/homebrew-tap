@@ -52,10 +52,20 @@
   .sec { margin-top: 40px; border-top:1px solid #30363d; padding-top:10px; }
   .sec > h2 { font-size:19px; margin:0; } .sec > .secblurb { color:#8b949e; font-size:13px; margin:2px 0 0; }
   .case { margin: 20px 0 28px; scroll-margin-top: 14px; }
-  .case h3 { font-size:15px; margin:0 0 4px; } .case h3 .cid{ color:#6e7681; font-weight:400; font-size:12px; }
+  /* The title + tags + blurb collapse into an expander so the page is visual-first;
+     the before/after diff is always shown. The summary (the case title) stays
+     visible as the expander handle and the case's anchor target. */
+  .case > .meta { margin: 0; }
+  .case > .meta > summary { font-size:15px; font-weight:600; color:#c9d1d9; cursor:pointer; list-style:none; }
+  .case > .meta > summary::-webkit-details-marker { display:none; }
+  .case > .meta > summary::before { content:"\25B8"; color:#6e7681; font-size:11px; margin-right:7px; }
+  .case > .meta[open] > summary::before { content:"\25BE"; }
+  .case > .meta > summary:hover { color:#fff; }
+  .case > .meta > summary .cid { color:#6e7681; font-weight:400; font-size:12px; }
   .case .coord { display:inline-block; font-family:ui-monospace,Menlo,monospace; font-size:11px; color:#8b949e;
-    background:#161b22; border:1px solid #30363d; border-radius:5px; padding:1px 7px; margin:0 0 8px; }
-  .case .blurb { color:#8b949e; font-size:13px; margin:0 0 10px; }
+    background:#161b22; border:1px solid #30363d; border-radius:5px; padding:1px 7px; margin:8px 0 0; }
+  .case .blurb { color:#8b949e; font-size:13px; margin:6px 0 0; }
+  .case .split { margin-top:10px; }
   .split { display:flex; gap:22px; align-items:flex-start; }
   .split .col { flex:1 1 0; min-width:0; border:1px solid #21262d; border-radius:8px; padding:8px 14px 12px; }
   .split .col-head { font-size:11px; text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px; }
@@ -97,9 +107,11 @@
     <p class="secblurb">A single-character change marks just that word inline; the rest of the line stays clean.</p>
     
     <div class="case" id="character-edit">
-      <h3>One-character fix inside a word <span class="cid">#character-edit</span></h3>
-      <p class="coord">character · word · edit · consecutive</p>
-      <p class="blurb">Dropping a letter (colour → color) word-diffs in place — no whole-line rewrite.</p>
+      <details class="meta">
+        <summary>One character changed in a word <span class="cid">#character-edit</span></summary>
+        <p class="coord">character · word · edit · consecutive</p>
+        <p class="blurb">Dropping a letter (colour → color) word-diffs in place — no whole-line rewrite.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><p data-align="1">the <del data-operation-index="1">colour</del><ins data-operation-index="1">color</ins> of the sky</p>
 </div>
@@ -108,9 +120,11 @@
       </div>
     </div>
     <div class="case" id="character-edit-nonconsecutive">
-      <h3>Scattered character fixes → clean whole-block <span class="cid">#character-edit-nonconsecutive</span></h3>
-      <p class="coord">character · sentence · edit · non-consecutive</p>
-      <p class="blurb">Typos fixed all over a line jump unchanged↔changed too many times to read inline, so it safely whole-blocks instead of scrambling.</p>
+      <details class="meta">
+        <summary>Scattered single-character changes → whole-block replace <span class="cid">#character-edit-nonconsecutive</span></summary>
+        <p class="coord">character · sentence · edit · non-consecutive</p>
+        <p class="blurb">Typos fixed all over a line jump unchanged↔changed too many times to read inline, so it safely whole-blocks instead of scrambling.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><del data-align="1" class="mdblock"><p>teh cat aet teh fihs and teh dog rann home</p>
 </del><ins data-align="1" class="mdblock"><p>the cat ate the fish and the dog ran home</p>
@@ -121,9 +135,11 @@
       </div>
     </div>
     <div class="case" id="character-add">
-      <h3>A character added to a word <span class="cid">#character-add</span></h3>
-      <p class="coord">character · word · add</p>
-      <p class="blurb">Inserting one letter (cat → cart). Listed standalone in the spec — though it renders identically to a character delete/edit, because htmldiff is word-level so any single-character change re-marks the whole word. The visual shows that expected sameness.</p>
+      <details class="meta">
+        <summary>One character added to a word <span class="cid">#character-add</span></summary>
+        <p class="coord">character · word · add</p>
+        <p class="blurb">Inserting one letter (cat → cart). Listed standalone in the spec — though it renders identically to a character delete/edit, because htmldiff is word-level so any single-character change re-marks the whole word. The visual shows that expected sameness.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><p data-align="1">the <del data-operation-index="1">cat</del><ins data-operation-index="1">cart</ins> sat on the mat</p>
 </div>
@@ -132,9 +148,11 @@
       </div>
     </div>
     <div class="case" id="character-delete">
-      <h3>A character removed from a word <span class="cid">#character-delete</span></h3>
-      <p class="coord">character · word · delete</p>
-      <p class="blurb">Removing one letter (cart → cat). The mirror of the add, and — by the same word-level mechanism — the same whole-word re-mark. A deliberate matrix entry: the behaviour is uniform at the character level, and the visual proves it.</p>
+      <details class="meta">
+        <summary>One character removed from a word <span class="cid">#character-delete</span></summary>
+        <p class="coord">character · word · delete</p>
+        <p class="blurb">Removing one letter (cart → cat). The mirror of the add, and — by the same word-level mechanism — the same whole-word re-mark. A deliberate matrix entry: the behaviour is uniform at the character level, and the visual proves it.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><p data-align="1">the <del data-operation-index="1">cart</del><ins data-operation-index="1">cat</ins> sat on the mat</p>
 </div>
@@ -148,9 +166,11 @@
     <p class="secblurb">A whole-word swap is marked inline; surrounding words are untouched.</p>
     
     <div class="case" id="word-swap">
-      <h3>Word swapped inside emphasis <span class="cid">#word-swap</span></h3>
-      <p class="coord">word · sentence · edit</p>
-      <p class="blurb">workspace → project, inside **bold** — only the word is marked.</p>
+      <details class="meta">
+        <summary>One word swapped inside bold text <span class="cid">#word-swap</span></summary>
+        <p class="coord">word · sentence · edit</p>
+        <p class="blurb">workspace → project, inside **bold** — only the word is marked.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><p data-align="1">assumes the <strong><del data-operation-index="1">workspace</del><ins data-operation-index="1">project</ins> root</strong> here</p>
 </div>
@@ -159,9 +179,11 @@
       </div>
     </div>
     <div class="case" id="word-add">
-      <h3>A word inserted into a sentence <span class="cid">#word-add</span></h3>
-      <p class="coord">word · sentence · add</p>
-      <p class="blurb">Inserting a word marks just the new word inline; the rest of the sentence is untouched.</p>
+      <details class="meta">
+        <summary>A word added to a sentence <span class="cid">#word-add</span></summary>
+        <p class="coord">word · sentence · add</p>
+        <p class="blurb">Inserting a word marks just the new word inline; the rest of the sentence is untouched.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><p data-align="1">the<ins data-operation-index="1"> black</ins> cat sat on the mat</p>
 </div>
@@ -170,9 +192,11 @@
       </div>
     </div>
     <div class="case" id="word-delete">
-      <h3>A word removed from a sentence <span class="cid">#word-delete</span></h3>
-      <p class="coord">word · sentence · delete</p>
-      <p class="blurb">Removing a word marks just that word inline; the rest stays clean.</p>
+      <details class="meta">
+        <summary>A word removed from a sentence <span class="cid">#word-delete</span></summary>
+        <p class="coord">word · sentence · delete</p>
+        <p class="blurb">Removing a word marks just that word inline; the rest stays clean.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><p data-align="1">the<del data-operation-index="1"> black</del> cat sat on the mat</p>
 </div>
@@ -186,9 +210,11 @@
     <p class="secblurb">A reworded phrase keeps its identical lead-in unmarked even when the new text is much longer.</p>
     
     <div class="case" id="phrase-edit-common-leadin">
-      <h3>Expanded phrase keeps the common lead-in <span class="cid">#phrase-edit-common-leadin</span></h3>
-      <p class="coord">phrase · paragraph · edit · consecutive</p>
-      <p class="blurb">The bold label and path prefix stay unmarked; only the divergent tail is shown.</p>
+      <details class="meta">
+        <summary>Reworded phrase keeps its shared opening <span class="cid">#phrase-edit-common-leadin</span></summary>
+        <p class="coord">phrase · paragraph · edit · consecutive</p>
+        <p class="blurb">The bold label and path prefix stay unmarked; only the divergent tail is shown.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><p data-align="1"><strong>Assumed directory</strong> — <code>~/dev/awesomele/yi-yi-kitchen-<del data-operation-index="1">strategy/</del><ins data-operation-index="1">strategy</ins></code><ins data-operation-index="1"> (the project root). The server bun scripts live in </ins><code>delivery/server</code><ins data-operation-index="3">; baked in with </ins><code data-diff-node="ins" data-operation-index="3"><ins data-operation-index="3">--cwd</ins></code><ins data-operation-index="3">.</ins></p>
 </div>
@@ -197,9 +223,11 @@
       </div>
     </div>
     <div class="case" id="phrase-edit-nonconsecutive">
-      <h3>Scattered phrase rewrite → clean whole-block <span class="cid">#phrase-edit-nonconsecutive</span></h3>
-      <p class="coord">phrase · sentence · edit · non-consecutive</p>
-      <p class="blurb">When changes are spread across the line with little shared text, an inline word-diff would scramble — so it whole-blocks instead.</p>
+      <details class="meta">
+        <summary>Scattered phrase changes → whole-block replace <span class="cid">#phrase-edit-nonconsecutive</span></summary>
+        <p class="coord">phrase · sentence · edit · non-consecutive</p>
+        <p class="blurb">When changes are spread across the line with little shared text, an inline word-diff would scramble — so it whole-blocks instead.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><del class="mdblock"><p>The fast red car drove quietly down the long winding road</p>
 </del><ins class="mdblock"><p>The slow blue truck rolled loudly along the short straight street</p>
@@ -215,9 +243,11 @@
     <p class="secblurb">When one sentence in a paragraph changes, the others stay clean.</p>
     
     <div class="case" id="sentence-edit-in-paragraph">
-      <h3>One sentence reworded in a two-sentence paragraph <span class="cid">#sentence-edit-in-paragraph</span></h3>
-      <p class="coord">sentence · paragraph · edit</p>
-      <p class="blurb">The first sentence is untouched; only the second sentence’s tail is marked.</p>
+      <details class="meta">
+        <summary>One sentence changed; the other stays clean <span class="cid">#sentence-edit-in-paragraph</span></summary>
+        <p class="coord">sentence · paragraph · edit</p>
+        <p class="blurb">The first sentence is untouched; only the second sentence’s tail is marked.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><p data-align="1">The server runs locally. Deploys happen <del data-operation-index="1">nightly.</del><ins data-operation-index="1">on every merge.</ins></p>
 </div>
@@ -226,9 +256,11 @@
       </div>
     </div>
     <div class="case" id="sentence-add">
-      <h3>A sentence added to a paragraph <span class="cid">#sentence-add</span></h3>
-      <p class="coord">sentence · paragraph · add</p>
-      <p class="blurb">A new trailing sentence is marked inline; the existing sentence stays clean.</p>
+      <details class="meta">
+        <summary>A sentence added to a paragraph <span class="cid">#sentence-add</span></summary>
+        <p class="coord">sentence · paragraph · add</p>
+        <p class="blurb">A new trailing sentence is marked inline; the existing sentence stays clean.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><p data-align="1">Deploys run nightly.<ins data-operation-index="1"> Rollbacks are automatic.</ins></p>
 </div>
@@ -237,9 +269,11 @@
       </div>
     </div>
     <div class="case" id="sentence-delete">
-      <h3>A sentence removed from a paragraph <span class="cid">#sentence-delete</span></h3>
-      <p class="coord">sentence · paragraph · delete</p>
-      <p class="blurb">A dropped trailing sentence is struck inline; the remaining sentence stays clean.</p>
+      <details class="meta">
+        <summary>A sentence removed from a paragraph <span class="cid">#sentence-delete</span></summary>
+        <p class="coord">sentence · paragraph · delete</p>
+        <p class="blurb">A dropped trailing sentence is struck inline; the remaining sentence stays clean.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><p data-align="1">Deploys run nightly.<del data-operation-index="1"> Rollbacks are automatic.</del></p>
 </div>
@@ -253,9 +287,11 @@
     <p class="secblurb">Whole paragraphs add/delete/replace with row-aligned gaps; a near-total rewrite is a clean whole-block swap, never a scramble.</p>
     
     <div class="case" id="paragraph-rewrite-whole">
-      <h3>Heavy rewrite → clean whole-block replace <span class="cid">#paragraph-rewrite-whole</span></h3>
-      <p class="coord">paragraph · page · edit</p>
-      <p class="blurb">When almost every word changes, mddiff replaces the whole paragraph instead of scrambling it.</p>
+      <details class="meta">
+        <summary>Near-total rewrite → whole-block replace <span class="cid">#paragraph-rewrite-whole</span></summary>
+        <p class="coord">paragraph · page · edit</p>
+        <p class="blurb">When almost every word changes, mddiff replaces the whole paragraph instead of scrambling it.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><del data-align="1" class="mdblock"><p>Every path inside command_body MUST be relative to the workspace root. No cd is ever permitted, and absolute paths to interpreters are forbidden everywhere.</p>
 </del><ins data-align="1" class="mdblock"><p>It MUST be runnable as-is from the project root, with the location baked in so the operator never has to cd. There are exactly two cases for how it finds its work.</p>
@@ -266,9 +302,11 @@
       </div>
     </div>
     <div class="case" id="paragraph-edit-prefix-suffix">
-      <h3>Reworded middle keeps identical edges <span class="cid">#paragraph-edit-prefix-suffix</span></h3>
-      <p class="coord">paragraph · page · edit</p>
-      <p class="blurb">A heavily edited paragraph that shares a long prefix and suffix keeps both ends unmarked.</p>
+      <details class="meta">
+        <summary>Edited middle, unchanged start and end <span class="cid">#paragraph-edit-prefix-suffix</span></summary>
+        <p class="coord">paragraph · page · edit</p>
+        <p class="blurb">A heavily edited paragraph that shares a long prefix and suffix keeps both ends unmarked.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><p data-align="1">Tell the operator, in plain language, that the command assumes the <del>workspace root as the working directory. Do NOT bake the absolute path into the command — keep all paths relative to the workspace root so</del><ins>project root as the working directory. The command must run as-is from there with the location baked in — a script path relative to the root or the runner option, per Inputs. Never put a cd before it;</ins> the shell stays there after it finishes.</p>
 </div>
@@ -277,9 +315,11 @@
       </div>
     </div>
     <div class="case" id="paragraph-add-gap">
-      <h3>Added paragraph leaves an aligned gap <span class="cid">#paragraph-add-gap</span></h3>
-      <p class="coord">paragraph · page · add</p>
-      <p class="blurb">An inserted paragraph is a gap (no anchor); the shared heading below stays row-aligned across columns.</p>
+      <details class="meta">
+        <summary>Added paragraph leaves an aligned gap <span class="cid">#paragraph-add-gap</span></summary>
+        <p class="coord">paragraph · page · add</p>
+        <p class="blurb">An inserted paragraph is a gap (no anchor); the shared heading below stays row-aligned across columns.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><h1 data-align="1">H</h1>
 <p data-align="2">intro</p>
@@ -294,9 +334,11 @@
       </div>
     </div>
     <div class="case" id="paragraph-delete-gap">
-      <h3>Deleted paragraph: red strikethrough + aligned gap <span class="cid">#paragraph-delete-gap</span></h3>
-      <p class="coord">paragraph · page · delete</p>
-      <p class="blurb">A removed paragraph renders struck-through on the left and leaves an empty slot on the right.</p>
+      <details class="meta">
+        <summary>Deleted paragraph: struck out, with an aligned gap <span class="cid">#paragraph-delete-gap</span></summary>
+        <p class="coord">paragraph · page · delete</p>
+        <p class="blurb">A removed paragraph renders struck-through on the left and leaves an empty slot on the right.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><p data-align="1">keep</p>
 <del class="mdblock"><p>DELETE THIS whole paragraph</p>
@@ -314,9 +356,11 @@
     <p class="secblurb">A documented exception. A link has two parts — displayed text and embedded URL — and node-htmldiff keys links by URL, so we cannot diff them elegantly. We fall back to a safe whole-block/whole-item replace so nothing is ever silently lost. See docs/design.md §3.</p>
     
     <div class="case" id="hyperlink-text-change-paragraph">
-      <h3>Link text changed, URL unchanged (in prose) <span class="cid">#hyperlink-text-change-paragraph</span></h3>
-      <p class="coord">hyperlink · paragraph · edit</p>
-      <p class="blurb">Same href, new visible text: htmldiff returns no marks, so the safe floor whole-blocks it — the old text survives instead of being silently replaced.</p>
+      <details class="meta">
+        <summary>Link text changed, URL unchanged (in prose) <span class="cid">#hyperlink-text-change-paragraph</span></summary>
+        <p class="coord">hyperlink · paragraph · edit</p>
+        <p class="blurb">Same href, new visible text: htmldiff returns no marks, so the safe floor whole-blocks it — the old text survives instead of being silently replaced.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><del data-align="1" class="mdblock"><p>See <a href="#cfg">Configuration</a> for details.</p>
 </del><ins data-align="1" class="mdblock"><p>See <a href="#cfg">Settings</a> for details.</p>
@@ -327,18 +371,22 @@
       </div>
     </div>
     <div class="case" id="hyperlink-text-change-toc">
-      <h3>Link text changed, URL unchanged (in a TOC) <span class="cid">#hyperlink-text-change-toc</span></h3>
-      <p class="coord">hyperlink · toc · edit</p>
-      <p class="blurb">Inside a list the same rename becomes a removed + added item, keeping the old link text.</p>
+      <details class="meta">
+        <summary>Link text changed, URL unchanged (in a TOC) <span class="cid">#hyperlink-text-change-toc</span></summary>
+        <p class="coord">hyperlink · toc · edit</p>
+        <p class="blurb">Inside a list the same rename becomes a removed + added item, keeping the old link text.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#cfg">Configuration</a></li><li class="li-ins" data-align="2"><a href="#cfg">Settings</a></li><li data-align="3"><a href="#help">Help</a></li></ol></div>
         <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#cfg">Configuration</a></li><li class="li-ins" data-align="2"><a href="#cfg">Settings</a></li><li data-align="3"><a href="#help">Help</a></li></ol></div>
       </div>
     </div>
     <div class="case" id="hyperlink-url-change">
-      <h3>URL changed, link text unchanged <span class="cid">#hyperlink-url-change</span></h3>
-      <p class="coord">hyperlink · paragraph · edit</p>
-      <p class="blurb">The honest limit: the link is flagged (struck + re-added), but because only the invisible href changed, both sides read identically — the change is signalled, not legible.</p>
+      <details class="meta">
+        <summary>URL changed, link text unchanged <span class="cid">#hyperlink-url-change</span></summary>
+        <p class="coord">hyperlink · paragraph · edit</p>
+        <p class="blurb">The honest limit: the link is flagged (struck + re-added), but because only the invisible href changed, both sides read identically — the change is signalled, not legible.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><p data-align="1">See the <del data-operation-index="1"><a href="https://a.example">docs</a></del><ins data-operation-index="1"><a href="https://b.example">docs</a></ins> page.</p>
 </div>
@@ -347,9 +395,11 @@
       </div>
     </div>
     <div class="case" id="hyperlink-both-change">
-      <h3>Both text and URL changed <span class="cid">#hyperlink-both-change</span></h3>
-      <p class="coord">hyperlink · paragraph · edit</p>
-      <p class="blurb">When the URL also changes, htmldiff sees a different link and marks it cleanly — the readable case, in contrast to the text-only rename above.</p>
+      <details class="meta">
+        <summary>Link text and URL both changed <span class="cid">#hyperlink-both-change</span></summary>
+        <p class="coord">hyperlink · paragraph · edit</p>
+        <p class="blurb">When the URL also changes, htmldiff sees a different link and marks it cleanly — the readable case, in contrast to the text-only rename above.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><p data-align="1">See <del data-operation-index="1"><a href="#cfg-a">Configuration</a></del><ins data-operation-index="1"><a href="#cfg-b">Settings</a></ins> now.</p>
 </div>
@@ -358,9 +408,11 @@
       </div>
     </div>
     <div class="case" id="hyperlink-add">
-      <h3>Plain text turned into a link <span class="cid">#hyperlink-add</span></h3>
-      <p class="coord">hyperlink · paragraph · add</p>
-      <p class="blurb">Wrapping a word in a link is marked inline: the bare word is struck, the linked word added.</p>
+      <details class="meta">
+        <summary>Plain text turned into a link <span class="cid">#hyperlink-add</span></summary>
+        <p class="coord">hyperlink · paragraph · add</p>
+        <p class="blurb">Wrapping a word in a link is marked inline: the bare word is struck, the linked word added.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><p data-align="1">See the <del data-operation-index="1">docs</del><ins data-operation-index="1"><a href="https://x.example">docs</a></ins> page for setup.</p>
 </div>
@@ -369,9 +421,11 @@
       </div>
     </div>
     <div class="case" id="hyperlink-delete">
-      <h3>A link reduced to plain text <span class="cid">#hyperlink-delete</span></h3>
-      <p class="coord">hyperlink · paragraph · delete</p>
-      <p class="blurb">Unwrapping a link is the mirror: the linked word is struck, the bare word added.</p>
+      <details class="meta">
+        <summary>A link turned back into plain text <span class="cid">#hyperlink-delete</span></summary>
+        <p class="coord">hyperlink · paragraph · delete</p>
+        <p class="blurb">Unwrapping a link is the mirror: the linked word is struck, the bare word added.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><p data-align="1">See the <del data-operation-index="1"><a href="https://x.example">docs</a></del><ins data-operation-index="1">docs</ins> page for setup.</p>
 </div>
@@ -385,9 +439,11 @@
     <p class="secblurb">A heading is a container: editing its text word-diffs in place, and a whole heading added/removed is a clean block change with an aligned gap.</p>
     
     <div class="case" id="heading-edit-text">
-      <h3>Heading text edited <span class="cid">#heading-edit-text</span></h3>
-      <p class="coord">word · heading · edit</p>
-      <p class="blurb">A reworded heading keeps its shared words; only the changed word is marked.</p>
+      <details class="meta">
+        <summary>Heading text changed <span class="cid">#heading-edit-text</span></summary>
+        <p class="coord">word · heading · edit</p>
+        <p class="blurb">A reworded heading keeps its shared words; only the changed word is marked.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><h1 data-align="1">Deployment <del data-operation-index="1">guide</del><ins data-operation-index="1">runbook</ins></h1>
 <p data-align="2">body stays</p>
@@ -398,9 +454,11 @@
       </div>
     </div>
     <div class="case" id="heading-add">
-      <h3>Heading added <span class="cid">#heading-add</span></h3>
-      <p class="coord">block · heading · add</p>
-      <p class="blurb">A new heading is a whole-block addition; the heading kept on both sides stays row-aligned.</p>
+      <details class="meta">
+        <summary>Heading added <span class="cid">#heading-add</span></summary>
+        <p class="coord">block · heading · add</p>
+        <p class="blurb">A new heading is a whole-block addition; the heading kept on both sides stays row-aligned.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><p data-align="1">Intro paragraph here.</p>
 <ins class="mdblock"><h2>New Section</h2>
@@ -413,9 +471,11 @@
       </div>
     </div>
     <div class="case" id="heading-delete">
-      <h3>Heading removed <span class="cid">#heading-delete</span></h3>
-      <p class="coord">block · heading · delete</p>
-      <p class="blurb">A removed heading renders struck-through and leaves an aligned gap on the right.</p>
+      <details class="meta">
+        <summary>Heading removed <span class="cid">#heading-delete</span></summary>
+        <p class="coord">block · heading · delete</p>
+        <p class="blurb">A removed heading renders struck-through and leaves an aligned gap on the right.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><p data-align="1">Intro paragraph here.</p>
 <del class="mdblock"><h2>New Section</h2>
@@ -433,9 +493,11 @@
     <p class="secblurb">Text inside a blockquote word-diffs in place; a whole blockquote added/removed is a clean block change with an aligned gap.</p>
     
     <div class="case" id="blockquote-edit-text">
-      <h3>Text edited inside a blockquote <span class="cid">#blockquote-edit-text</span></h3>
-      <p class="coord">word · blockquote · edit</p>
-      <p class="blurb">The quote is word-diffed in place — only the changed word is marked, the rest of the quote stays clean.</p>
+      <details class="meta">
+        <summary>Text changed inside a blockquote <span class="cid">#blockquote-edit-text</span></summary>
+        <p class="coord">word · blockquote · edit</p>
+        <p class="blurb">The quote is word-diffed in place — only the changed word is marked, the rest of the quote stays clean.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><blockquote data-align="1">
 <p>The <del data-operation-index="1">original</del><ins data-operation-index="1">revised</ins> note about deploys.</p>
@@ -450,9 +512,11 @@
       </div>
     </div>
     <div class="case" id="blockquote-add">
-      <h3>Blockquote added <span class="cid">#blockquote-add</span></h3>
-      <p class="coord">block · blockquote · add</p>
-      <p class="blurb">A new callout is a whole-block addition; surrounding paragraphs stay aligned.</p>
+      <details class="meta">
+        <summary>Blockquote added <span class="cid">#blockquote-add</span></summary>
+        <p class="coord">block · blockquote · add</p>
+        <p class="blurb">A new callout is a whole-block addition; surrounding paragraphs stay aligned.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><p data-align="1">A normal paragraph.</p>
 <ins class="mdblock"><blockquote>
@@ -469,9 +533,11 @@
       </div>
     </div>
     <div class="case" id="blockquote-delete">
-      <h3>Blockquote removed <span class="cid">#blockquote-delete</span></h3>
-      <p class="coord">block · blockquote · delete</p>
-      <p class="blurb">A removed callout renders struck-through and leaves an aligned gap on the right.</p>
+      <details class="meta">
+        <summary>Blockquote removed <span class="cid">#blockquote-delete</span></summary>
+        <p class="coord">block · blockquote · delete</p>
+        <p class="blurb">A removed callout renders struck-through and leaves an aligned gap on the right.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><p data-align="1">A normal paragraph.</p>
 <del class="mdblock"><blockquote>
@@ -493,9 +559,11 @@
     <p class="secblurb">Code is literal, so changes are line-level: an edited, added, or removed line word-diffs in place (unchanged lines stay clean), and a whole code block added/removed is a clean block change.</p>
     
     <div class="case" id="code-line-edit">
-      <h3>One line edited <span class="cid">#code-line-edit</span></h3>
-      <p class="coord">word · codeblock · edit</p>
-      <p class="blurb">Only the changed token on the changed line is marked; the other lines stay clean.</p>
+      <details class="meta">
+        <summary>One code line changed <span class="cid">#code-line-edit</span></summary>
+        <p class="coord">word · codeblock · edit</p>
+        <p class="blurb">Only the changed token on the changed line is marked; the other lines stay clean.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><pre data-align="1"><code class="language-js">const a = 1;
 const b = <del data-operation-index="1">2;</del><ins data-operation-index="1">3;</ins>
@@ -508,9 +576,11 @@ const b = <del data-operation-index="1">2;</del><ins data-operation-index="1">3;
       </div>
     </div>
     <div class="case" id="code-line-add">
-      <h3>A line added <span class="cid">#code-line-add</span></h3>
-      <p class="coord">phrase · codeblock · add</p>
-      <p class="blurb">A new line is marked inline inside the code block; existing lines stay clean.</p>
+      <details class="meta">
+        <summary>A line added to a code block <span class="cid">#code-line-add</span></summary>
+        <p class="coord">phrase · codeblock · add</p>
+        <p class="blurb">A new line is marked inline inside the code block; existing lines stay clean.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><pre data-align="1"><code class="language-js">const a = 1;
 <ins data-operation-index="1">const b = 2;
@@ -523,9 +593,11 @@ const b = <del data-operation-index="1">2;</del><ins data-operation-index="1">3;
       </div>
     </div>
     <div class="case" id="code-line-delete">
-      <h3>A line removed <span class="cid">#code-line-delete</span></h3>
-      <p class="coord">phrase · codeblock · delete</p>
-      <p class="blurb">A removed line is struck inline inside the code block; remaining lines stay clean.</p>
+      <details class="meta">
+        <summary>A line removed from a code block <span class="cid">#code-line-delete</span></summary>
+        <p class="coord">phrase · codeblock · delete</p>
+        <p class="blurb">A removed line is struck inline inside the code block; remaining lines stay clean.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><pre data-align="1"><code class="language-js">const a = 1;
 <del data-operation-index="1">const b = 2;
@@ -538,9 +610,11 @@ const b = <del data-operation-index="1">2;</del><ins data-operation-index="1">3;
       </div>
     </div>
     <div class="case" id="code-block-add">
-      <h3>A whole code block added <span class="cid">#code-block-add</span></h3>
-      <p class="coord">block · codeblock · add</p>
-      <p class="blurb">A new fenced block is a whole-block addition; surrounding paragraphs stay aligned.</p>
+      <details class="meta">
+        <summary>A whole code block added <span class="cid">#code-block-add</span></summary>
+        <p class="coord">block · codeblock · add</p>
+        <p class="blurb">A new fenced block is a whole-block addition; surrounding paragraphs stay aligned.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><p data-align="1">Run it:</p>
 <ins class="mdblock"><pre><code class="language-sh">npm start
@@ -555,9 +629,11 @@ const b = <del data-operation-index="1">2;</del><ins data-operation-index="1">3;
       </div>
     </div>
     <div class="case" id="code-block-delete">
-      <h3>A whole code block removed <span class="cid">#code-block-delete</span></h3>
-      <p class="coord">block · codeblock · delete</p>
-      <p class="blurb">A removed fenced block renders struck-through and leaves an aligned gap on the right.</p>
+      <details class="meta">
+        <summary>A whole code block removed <span class="cid">#code-block-delete</span></summary>
+        <p class="coord">block · codeblock · delete</p>
+        <p class="blurb">A removed fenced block renders struck-through and leaves an aligned gap on the right.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><p data-align="1">Run it:</p>
 <del class="mdblock"><pre><code class="language-sh">npm start
@@ -577,45 +653,55 @@ const b = <del data-operation-index="1">2;</del><ins data-operation-index="1">3;
     <p class="secblurb">Items diff at item level: a light edit stays inline, a heavy rewrite splits cleanly, and an added/removed item leaves an aligned gap with numbering preserved.</p>
     
     <div class="case" id="list-item-edit-light">
-      <h3>Lightly edited item stays inline <span class="cid">#list-item-edit-light</span></h3>
-      <p class="coord">word · list · edit</p>
-      <p class="blurb">A small wording change is a word-diff inside the bullet, not a removed + added pair.</p>
+      <details class="meta">
+        <summary>Small edit to a list item stays inline <span class="cid">#list-item-edit-light</span></summary>
+        <p class="coord">word · list · edit</p>
+        <p class="blurb">A small wording change is a word-diff inside the bullet, not a removed + added pair.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><ul data-align="1"><li data-align="2">Use the <del data-operation-index="1">workspace</del><ins data-operation-index="1">project</ins> root here</li></ul></div>
         <div class="col col-new"><div class="col-head">after</div><ul data-align="1"><li data-align="2">Use the <del data-operation-index="1">workspace</del><ins data-operation-index="1">project</ins> root here</li></ul></div>
       </div>
     </div>
     <div class="case" id="list-item-rewrite-scramble">
-      <h3>Heavily rewritten item → removed + added <span class="cid">#list-item-rewrite-scramble</span></h3>
-      <p class="coord">paragraph · list · edit</p>
-      <p class="blurb">Scattered shared vocabulary would scramble a word-diff, so the item becomes a clean removed + added pair; neighbours survive.</p>
+      <details class="meta">
+        <summary>Heavily rewritten item → shown as removed + added <span class="cid">#list-item-rewrite-scramble</span></summary>
+        <p class="coord">paragraph · list · edit</p>
+        <p class="blurb">Scattered shared vocabulary would scramble a word-diff, so the item becomes a clean removed + added pair; neighbours survive.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><ul data-align="1"><li data-align="2">alpha</li><li class="li-del" data-align="3">Every path inside command_body MUST be relative to the workspace root and no cd is ever permitted there</li><li class="li-ins" data-align="3">It MUST be runnable as-is from the project root with the location baked in so cd is never needed at all</li><li data-align="4">omega</li></ul></div>
         <div class="col col-new"><div class="col-head">after</div><ul data-align="1"><li data-align="2">alpha</li><li class="li-del" data-align="3">Every path inside command_body MUST be relative to the workspace root and no cd is ever permitted there</li><li class="li-ins" data-align="3">It MUST be runnable as-is from the project root with the location baked in so cd is never needed at all</li><li data-align="4">omega</li></ul></div>
       </div>
     </div>
     <div class="case" id="list-item-expand-prefix">
-      <h3>Expanded item keeps its common prefix (one bullet) <span class="cid">#list-item-expand-prefix</span></h3>
-      <p class="coord">phrase · list · edit</p>
-      <p class="blurb">An item that roughly tripled in length keeps its shared lead-in unmarked and stays a single bullet.</p>
+      <details class="meta">
+        <summary>Expanded item keeps its shared opening (stays one bullet) <span class="cid">#list-item-expand-prefix</span></summary>
+        <p class="coord">phrase · list · edit</p>
+        <p class="blurb">An item that roughly tripled in length keeps its shared lead-in unmarked and stays a single bullet.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><ul data-align="1"><li data-align="2">alpha</li><li data-align="3"><strong>command_body</strong> (required) — the actual command path, <del>kept relative to the workspace root with no absolute paths allowed anywhere.</del><ins>which must run as-is from the project root with its location baked in, using either a relative path or the runner cwd option, where absolute paths stay forbidden because they break portability across machines, and there are exactly two distinct mechanisms to choose between here.</ins></li><li data-align="4">omega</li></ul></div>
         <div class="col col-new"><div class="col-head">after</div><ul data-align="1"><li data-align="2">alpha</li><li data-align="3"><strong>command_body</strong> (required) — the actual command path, <del>kept relative to the workspace root with no absolute paths allowed anywhere.</del><ins>which must run as-is from the project root with its location baked in, using either a relative path or the runner cwd option, where absolute paths stay forbidden because they break portability across machines, and there are exactly two distinct mechanisms to choose between here.</ins></li><li data-align="4">omega</li></ul></div>
       </div>
     </div>
     <div class="case" id="list-item-delete-gap">
-      <h3>Deleted item leaves an aligned gap; numbering preserved <span class="cid">#list-item-delete-gap</span></h3>
-      <p class="coord">paragraph · list · delete</p>
-      <p class="blurb">A removed bullet shows an empty slot at the matching row in the new column; the ordered list still reads 1, 2.</p>
+      <details class="meta">
+        <summary>Removed item leaves an aligned gap; numbering preserved <span class="cid">#list-item-delete-gap</span></summary>
+        <p class="coord">paragraph · list · delete</p>
+        <p class="blurb">A removed bullet shows an empty slot at the matching row in the new column; the ordered list still reads 1, 2.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li data-align="2">keep one</li><li class="li-del">DROP ME</li><li data-align="3">keep two</li></ol></div>
         <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li data-align="2">keep one</li><li class="li-del">DROP ME</li><li data-align="3">keep two</li></ol></div>
       </div>
     </div>
     <div class="case" id="list-item-add-gap">
-      <h3>Added item leaves an aligned gap on the left <span class="cid">#list-item-add-gap</span></h3>
-      <p class="coord">paragraph · list · add</p>
-      <p class="blurb">A new bullet shows on the right; the old column gets an aligned empty slot. Mirror of the deletion case, numbering preserved.</p>
+      <details class="meta">
+        <summary>Added item leaves an aligned gap on the left <span class="cid">#list-item-add-gap</span></summary>
+        <p class="coord">paragraph · list · add</p>
+        <p class="blurb">A new bullet shows on the right; the old column gets an aligned empty slot. Mirror of the deletion case, numbering preserved.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li data-align="2">keep one</li><li class="li-ins">NEW MIDDLE</li><li data-align="3">keep two</li></ol></div>
         <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li data-align="2">keep one</li><li class="li-ins">NEW MIDDLE</li><li data-align="3">keep two</li></ol></div>
@@ -627,27 +713,33 @@ const b = <del data-operation-index="1">2;</del><ins data-operation-index="1">3;
     <p class="secblurb">A TOC is a list of links: an added or removed entry leaves an aligned gap so it is clear where the section was inserted or dropped.</p>
     
     <div class="case" id="toc-entry-add-gap">
-      <h3>Added TOC entry leaves a gap on the left <span class="cid">#toc-entry-add-gap</span></h3>
-      <p class="coord">hyperlink · toc · add</p>
-      <p class="blurb">A new link is inserted on the right; the old column gets an aligned empty slot, and the entries below stay row-aligned.</p>
+      <details class="meta">
+        <summary>Added TOC entry leaves a gap on the left <span class="cid">#toc-entry-add-gap</span></summary>
+        <p class="coord">hyperlink · toc · add</p>
+        <p class="blurb">A new link is inserted on the right; the old column gets an aligned empty slot, and the entries below stay row-aligned.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><ul data-align="1"><li data-align="2"><a href="#local">Local development</a></li><li class="li-ins"><a href="#prefs">Driver preferences storage</a></li><li data-align="3"><a href="#backups">Backups</a></li></ul></div>
         <div class="col col-new"><div class="col-head">after</div><ul data-align="1"><li data-align="2"><a href="#local">Local development</a></li><li class="li-ins"><a href="#prefs">Driver preferences storage</a></li><li data-align="3"><a href="#backups">Backups</a></li></ul></div>
       </div>
     </div>
     <div class="case" id="toc-entry-delete-gap">
-      <h3>Removed TOC entry leaves a gap on the right <span class="cid">#toc-entry-delete-gap</span></h3>
-      <p class="coord">hyperlink · toc · delete</p>
-      <p class="blurb">A dropped link is struck on the left; the new column gets an aligned empty slot, and entries below stay aligned.</p>
+      <details class="meta">
+        <summary>Removed TOC entry leaves a gap on the right <span class="cid">#toc-entry-delete-gap</span></summary>
+        <p class="coord">hyperlink · toc · delete</p>
+        <p class="blurb">A dropped link is struck on the left; the new column gets an aligned empty slot, and entries below stay aligned.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><ul data-align="1"><li data-align="2"><a href="#a">Alpha</a></li><li class="li-del"><a href="#b">Beta</a></li><li data-align="3"><a href="#c">Gamma</a></li></ul></div>
         <div class="col col-new"><div class="col-head">after</div><ul data-align="1"><li data-align="2"><a href="#a">Alpha</a></li><li class="li-del"><a href="#b">Beta</a></li><li data-align="3"><a href="#c">Gamma</a></li></ul></div>
       </div>
     </div>
     <div class="case" id="toc-reorder">
-      <h3>Reordered entries (moves are not detected) <span class="cid">#toc-reorder</span></h3>
-      <p class="coord">hyperlink · toc · edit</p>
-      <p class="blurb">An honest limitation: mddiff does not detect a move, so swapping two entries shows as each position’s link changing in place rather than a clean reorder.</p>
+      <details class="meta">
+        <summary>Reordered entries (moves aren't detected) <span class="cid">#toc-reorder</span></summary>
+        <p class="coord">hyperlink · toc · edit</p>
+        <p class="blurb">An honest limitation: mddiff does not detect a move, so swapping two entries shows as each position’s link changing in place rather than a clean reorder.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li data-align="2"><del data-operation-index="0"><a href="#a">Alpha</a></del><ins data-operation-index="0"><a href="#b">Beta</a></ins></li><li data-align="3"><del data-operation-index="0"><a href="#b">Beta</a></del><ins data-operation-index="0"><a href="#a">Alpha</a></ins></li><li data-align="4"><a href="#c">Gamma</a></li></ol></div>
         <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li data-align="2"><del data-operation-index="0"><a href="#a">Alpha</a></del><ins data-operation-index="0"><a href="#b">Beta</a></ins></li><li data-align="3"><del data-operation-index="0"><a href="#b">Beta</a></del><ins data-operation-index="0"><a href="#a">Alpha</a></ins></li><li data-align="4"><a href="#c">Gamma</a></li></ol></div>
@@ -659,9 +751,11 @@ const b = <del data-operation-index="1">2;</del><ins data-operation-index="1">3;
     <p class="secblurb">Tables diff structurally (columns / rows / cells). Each projected side-by-side column stays rectangular — no phantom empty cells, the way a naive HTML word-diff produces.</p>
     
     <div class="case" id="table-add-column">
-      <h3>Added column stays rectangular <span class="cid">#table-add-column</span></h3>
-      <p class="coord">column · table · add</p>
-      <p class="blurb">A new column is marked added; the old column keeps its original width with no phantom cell.</p>
+      <details class="meta">
+        <summary>Added column; table stays rectangular <span class="cid">#table-add-column</span></summary>
+        <p class="coord">column · table · add</p>
+        <p class="blurb">A new column is marked added; the old column keeps its original width with no phantom cell.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><table data-align="1">
 <thead>
@@ -698,9 +792,11 @@ const b = <del data-operation-index="1">2;</del><ins data-operation-index="1">3;
       </div>
     </div>
     <div class="case" id="table-add-row">
-      <h3>Added row, dropped cleanly from the old column <span class="cid">#table-add-row</span></h3>
-      <p class="coord">row · table · add</p>
-      <p class="blurb">The new row is highlighted and present only in the new column; no phantom blank row on the old side.</p>
+      <details class="meta">
+        <summary>Added row appears only on the new side <span class="cid">#table-add-row</span></summary>
+        <p class="coord">row · table · add</p>
+        <p class="blurb">The new row is highlighted and present only in the new column; no phantom blank row on the old side.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><table data-align="1">
 <thead>
@@ -737,9 +833,11 @@ const b = <del data-operation-index="1">2;</del><ins data-operation-index="1">3;
       </div>
     </div>
     <div class="case" id="table-remove-row">
-      <h3>Removed row, dropped from the new column <span class="cid">#table-remove-row</span></h3>
-      <p class="coord">row · table · delete</p>
-      <p class="blurb">A deleted row is marked and present only on the old side; the new column has no phantom row.</p>
+      <details class="meta">
+        <summary>Removed row appears only on the old side <span class="cid">#table-remove-row</span></summary>
+        <p class="coord">row · table · delete</p>
+        <p class="blurb">A deleted row is marked and present only on the old side; the new column has no phantom row.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><table data-align="1">
 <thead>
@@ -776,9 +874,11 @@ const b = <del data-operation-index="1">2;</del><ins data-operation-index="1">3;
       </div>
     </div>
     <div class="case" id="table-remove-column">
-      <h3>Removed column, dropped from the new column <span class="cid">#table-remove-column</span></h3>
-      <p class="coord">column · table · delete</p>
-      <p class="blurb">A deleted column is marked; the new column shows only the surviving column and stays rectangular.</p>
+      <details class="meta">
+        <summary>Removed column; table stays rectangular <span class="cid">#table-remove-column</span></summary>
+        <p class="coord">column · table · delete</p>
+        <p class="blurb">A deleted column is marked; the new column shows only the surviving column and stays rectangular.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><table data-align="1">
 <thead>
@@ -809,9 +909,11 @@ const b = <del data-operation-index="1">2;</del><ins data-operation-index="1">3;
       </div>
     </div>
     <div class="case" id="table-change-cell">
-      <h3>Changed cell word-diffs in place <span class="cid">#table-change-cell</span></h3>
-      <p class="coord">word · table · edit</p>
-      <p class="blurb">A single changed cell is a word-diff inside the cell — no structural row/column change, columns stay rectangular.</p>
+      <details class="meta">
+        <summary>One cell changed, marked in place <span class="cid">#table-change-cell</span></summary>
+        <p class="coord">word · table · edit</p>
+        <p class="blurb">A single changed cell is a word-diff inside the cell — no structural row/column change, columns stay rectangular.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><table data-align="1">
 <thead>
@@ -842,9 +944,11 @@ const b = <del data-operation-index="1">2;</del><ins data-operation-index="1">3;
       </div>
     </div>
     <div class="case" id="table-rename-header">
-      <h3>Renamed header keeps the column <span class="cid">#table-rename-header</span></h3>
-      <p class="coord">word · table · edit</p>
-      <p class="blurb">A renamed header is a cell edit, not an add + remove — the column is kept and its rows stay aligned.</p>
+      <details class="meta">
+        <summary>Renamed header keeps its column <span class="cid">#table-rename-header</span></summary>
+        <p class="coord">word · table · edit</p>
+        <p class="blurb">A renamed header is a cell edit, not an add + remove — the column is kept and its rows stay aligned.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><table data-align="1">
 <thead>
@@ -875,9 +979,11 @@ const b = <del data-operation-index="1">2;</del><ins data-operation-index="1">3;
       </div>
     </div>
     <div class="case" id="table-cell-content">
-      <h3>Cell content renders (inline markdown + links) <span class="cid">#table-cell-content</span></h3>
-      <p class="coord">phrase · table · edit</p>
-      <p class="blurb">Cells render their markdown — bold, links — not raw source.</p>
+      <details class="meta">
+        <summary>Cells render their markdown (bold, links) <span class="cid">#table-cell-content</span></summary>
+        <p class="coord">phrase · table · edit</p>
+        <p class="blurb">Cells render their markdown — bold, links — not raw source.</p>
+      </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><table data-align="1">
 <thead>
