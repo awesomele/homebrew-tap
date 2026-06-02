@@ -4,6 +4,8 @@
 
 mddiff renders both versions of a markdown document and diffs the *result*, then highlights changes word-for-word — aligning blocks first, so a heavily rewritten paragraph shows as a clean whole-block replace instead of a scrambled word-salad.
 
+👉 **[View the live change matrix](https://awesomele.github.io/homebrew-tap/mddiff/change-matrix.html)** — rendered in your browser. (Browsing this repo shows only the page *source*, which GitHub doesn't render.)
+
 > **macOS only** (Apple Silicon and Intel). No Windows or Linux build yet.
 
 - **Block-aware** — light edits keep inline green/red word marks; rewritten/added/removed blocks render as clean whole units. Tables diff column-by-column and row-by-row.
