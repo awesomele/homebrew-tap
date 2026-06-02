@@ -39,6 +39,13 @@ mddiff file.md -s           # open directly in side-by-side
 
 The diff opens in your browser, served by a small background daemon that exits once you close the last tab.
 
+## Refreshing the diff
+
+Edit the files and refresh — mddiff diffs the **current** versions, never a stale snapshot:
+
+- **In the browser:** press `Cmd+R`. The reload re-reads both files from disk and re-renders.
+- **In the [VS Code extension](https://github.com/awesomele/homebrew-tap/releases):** **save** the file. The diff re-renders automatically for working-tree, unstaged, and revision comparisons (a staged comparison is git-only, so re-run the action to refresh it).
+
 ## Notes
 
 - **macOS only** for now (a self-contained `bun`-compiled binary for `darwin-arm64` / `darwin-x64`; it uses `open` to launch the browser). No runtime required.
