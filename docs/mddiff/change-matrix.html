@@ -24,10 +24,16 @@
   del.mdblock, del.mdblock * { color:#f85149; text-decoration:line-through; }
   /* added/removed list items — no LEFT padding (the colored box paints it, which
      would indent the text past the sibling bullets / drag the marker if cancelled
-     with a negative margin); mirror src/page.js. */
-  li.li-del, li.li-ins { border-radius:6px; padding:0 8px 0 0; margin:2px 0; }
+     with a negative margin); the left accent bar is an absolutely-positioned
+     ::before in the bullet gutter, so a changed bullet gets the same prominence as
+     a changed paragraph without shifting the bullet/text. Mirror src/page.js. */
+  li.li-del, li.li-ins { position:relative; border-radius:6px; padding:4px 8px 4px 0; margin:2px 0; }
   li.li-ins { background: rgba(63,185,80,.10); }
   li.li-del, li.li-del * { background: rgba(248,81,73,.06); color:#f85149; text-decoration:line-through; }
+  li.li-ins::before, li.li-del::before { content:""; position:absolute; top:0; bottom:0; left:-.4em; width:3px; border-radius:2px; }
+  li.li-ins::before { background:#3fb950; } li.li-del::before { background:#f85149; }
+  li.li-ins > :first-child, li.li-del > :first-child { margin-top:0; }
+  li.li-ins > :last-child, li.li-del > :last-child { margin-bottom:0; }
   /* index */
   .nav-h { font-size:18px; margin: 30px 0 2px; }
   .nav-sub { color:#8b949e; font-size:13px; margin: 0 0 8px; }
