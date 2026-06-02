@@ -1,0 +1,934 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>mddiff — change matrix</title>
+<style>
+  :root { color-scheme: dark; }
+  body { max-width: 1180px; margin: 0 auto; padding: 24px 28px 80px;
+    font: 15px/1.6 -apple-system,"Segoe UI",Helvetica,Arial,sans-serif; color:#c9d1d9; background:#0d1117; }
+  h1 { font-size: 23px; margin: 0 0 4px; }
+  .lead { color:#8b949e; margin: 0 0 6px; }
+  .legend { font-size:13px; color:#8b949e; } .legend b.add{color:#3fb950;} .legend b.del{color:#f85149;}
+  a { color:#58a6ff; text-decoration:none; } a:hover{ text-decoration:underline; }
+  code { background:#161b22; padding:.15em .4em; border-radius:6px; font-size:85%; font-family:ui-monospace,Menlo,monospace; }
+  pre { background:#161b22; padding:12px; border-radius:8px; overflow:auto; } pre code{ background:none; padding:0; }
+  table { display:block; width:max-content; max-width:100%; overflow-x:auto; border-collapse:collapse; }
+  th,td { border:1px solid #30363d; padding:5px 10px; }
+  /* inline marks */
+  ins, ins * { background: rgba(63,185,80,.30); color:#56d364; text-decoration:none; border-radius:3px; }
+  del, del * { background: rgba(248,81,73,.28); color:#f85149; text-decoration:line-through; border-radius:3px; }
+  /* whole-block changes */
+  ins.mdblock, del.mdblock { display:block; border-radius:6px; padding:2px 12px; margin:6px 0; }
+  ins.mdblock { background: rgba(63,185,80,.10); border-left:3px solid #3fb950; }
+  del.mdblock { background: rgba(248,81,73,.10); border-left:3px solid #f85149; }
+  ins.mdblock *, del.mdblock * { background:none; border-radius:0; }
+  ins.mdblock, ins.mdblock * { color:#c9d1d9; text-decoration:none; }
+  del.mdblock, del.mdblock * { color:#f85149; text-decoration:line-through; }
+  /* added/removed list items */
+  li.li-del, li.li-ins { border-radius:6px; padding:0 8px; margin:2px 0; }
+  li.li-ins { background: rgba(63,185,80,.10); }
+  li.li-del, li.li-del * { background: rgba(248,81,73,.06); color:#f85149; text-decoration:line-through; }
+  /* index */
+  .nav-h { font-size:18px; margin: 30px 0 2px; }
+  .nav-sub { color:#8b949e; font-size:13px; margin: 0 0 8px; }
+  .nav { columns: 3; gap:24px; font-size:13px; margin: 0 0 30px; padding:14px 18px;
+    background:#161b22; border:1px solid #30363d; border-radius:8px; }
+  .nav a { display:block; padding:1px 0; break-inside:avoid; }
+  /* sections + cases */
+  .sec { margin-top: 40px; border-top:1px solid #30363d; padding-top:10px; }
+  .sec > h2 { font-size:19px; margin:0; } .sec > .secblurb { color:#8b949e; font-size:13px; margin:2px 0 0; }
+  .case { margin: 20px 0 28px; scroll-margin-top: 14px; }
+  .case h3 { font-size:15px; margin:0 0 4px; } .case h3 .cid{ color:#6e7681; font-weight:400; font-size:12px; }
+  .case .coord { display:inline-block; font-family:ui-monospace,Menlo,monospace; font-size:11px; color:#8b949e;
+    background:#161b22; border:1px solid #30363d; border-radius:5px; padding:1px 7px; margin:0 0 8px; }
+  .case .blurb { color:#8b949e; font-size:13px; margin:0 0 10px; }
+  .split { display:flex; gap:22px; align-items:flex-start; }
+  .split .col { flex:1 1 0; min-width:0; border:1px solid #21262d; border-radius:8px; padding:8px 14px 12px; }
+  .split .col-head { font-size:11px; text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px; }
+  .col-old .col-head { color:#f85149; } .col-new .col-head { color:#3fb950; }
+  .col > :first-child.col-head + * { margin-top:0; }
+  /* per-side projection — hide the side that doesn't apply (mirrors the app) */
+  .col-old ins, .col-old li.li-ins, .col-old .col-ins, .col-old tr.tr-ins { display:none; }
+  .col-new del, .col-new li.li-del, .col-new .col-del, .col-new tr.tr-del { display:none; }
+  /* coverage grid (generated from the axes) */
+  .coverage { margin: 8px 0 30px; }
+  .coverage h2 { font-size:18px; }
+  .coverage table { font-size:12px; }
+  .coverage th, .coverage td { text-align:center; font-family:ui-monospace,Menlo,monospace; }
+  .coverage th:first-child, .coverage td:first-child { text-align:left; font-family:inherit; color:#8b949e; white-space:nowrap; }
+  .cov-grid td span { padding:0 1.5px; font-weight:700; }
+  .cov-grid .cov, .cov-legend .cov { color:#3fb950; font-weight:700; }
+  .cov-grid .gap, .cov-legend .gap { color:#f85149; font-weight:700; }
+  .cov-grid .inv, .cov-legend .inv { color:#6e7681; }
+  .cov-grid .eq, .cov-legend .eq { color:#58a6ff; font-weight:700; }
+  .cov-legend { font-size:13px; color:#8b949e; margin:6px 0 2px; }
+  .cov-struct { font-size:13px; color:#8b949e; margin:4px 0 0; } .cov-struct code { color:#c9d1d9; }
+</style></head>
+<body>
+<h1>mddiff — change matrix</h1>
+<p class="lead">Every case mddiff renders, shown as a real before/after diff. Each case is also a CI test in <code>spec/matrix.js</code>, so what you see here is what the suite asserts.</p>
+<p class="legend"><b class="del">■ removed</b> &nbsp; <b class="add">■ added</b> &nbsp;·&nbsp; 12 sections, 48 cases</p>
+<section class="coverage">
+<h2>Coverage — entity × container (generated from the axes in spec/matrix.js)</h2>
+<table class="cov-grid"><thead><tr><th>entity \ container</th><th>word</th><th>sentence</th><th>paragraph</th><th>page</th><th>heading</th><th>blockquote</th><th>code block</th><th>list</th><th>TOC</th><th>table</th></tr></thead><tbody><tr><th>Character</th><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="eq">✓</span></td><td><span class="eq">✓</span></td><td><span class="eq">✓</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td></tr><tr><th>Word</th><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="eq">✓</span></td><td><span class="eq">✓</span></td><td><span class="cov">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="cov">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="cov">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="cov">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="cov">e</span><span class="gap">a</span><span class="gap">d</span></td></tr><tr><th>Phrase</th><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="eq">✓</span></td><td><span class="eq">✓</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="gap">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="cov">e</span><span class="gap">a</span><span class="gap">d</span></td></tr><tr><th>Sentence</th><td><span class="inv">—</span></td><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="eq">✓</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="inv">—</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="inv">—</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td></tr><tr><th>Paragraph</th><td><span class="inv">—</span></td><td><span class="inv">—</span></td><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="inv">—</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="inv">—</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td></tr><tr><th>Hyperlink</th><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="eq">✓</span></td><td><span class="eq">✓</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="inv">—</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td></tr></tbody></table>
+<p class="cov-legend"><code>ead</code> = <b>e</b>dit · <b>a</b>dd · <b>d</b>elete: <span class="cov">green</span> = covered by a case · <span class="gap">red</span> = valid but no case yet.</p>
+<p class="cov-legend"><span class="eq">✓</span> = equivalent class — renders the same as this entity's representative cell (its smallest container in the prose chain word→sentence→paragraph→page), so no separate test is needed. <span class="inv">—</span> = invalid (entity can't nest in this container).</p>
+</section>
+<h2 class="nav-h">Jump to a section</h2>
+<p class="nav-sub">Each entry links to that section's before/after examples below; <code>· N</code> is its number of cases.</p>
+<nav class="nav"><a href="#sec-character"><b>Character</b> · 4</a><a href="#sec-word"><b>Word</b> · 3</a><a href="#sec-phrase"><b>Phrase</b> · 2</a><a href="#sec-sentence"><b>Sentence</b> · 3</a><a href="#sec-paragraph"><b>Paragraph</b> · 4</a><a href="#sec-hyperlink"><b>Hyperlink</b> · 6</a><a href="#sec-heading"><b>Heading</b> · 3</a><a href="#sec-blockquote"><b>Blockquote</b> · 3</a><a href="#sec-codeblock"><b>Code block</b> · 5</a><a href="#sec-list"><b>List</b> · 5</a><a href="#sec-toc"><b>Table of contents</b> · 3</a><a href="#sec-table"><b>Table</b> · 7</a></nav>
+
+  <section class="sec" id="sec-character">
+    <h2>Character</h2>
+    <p class="secblurb">A single-character change marks just that word inline; the rest of the line stays clean.</p>
+    
+    <div class="case" id="character-edit">
+      <h3>One-character fix inside a word <span class="cid">#character-edit</span></h3>
+      <p class="coord">character · word · edit · consecutive</p>
+      <p class="blurb">Dropping a letter (colour → color) word-diffs in place — no whole-line rewrite.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><p data-align="1">the <del data-operation-index="1">colour</del><ins data-operation-index="1">color</ins> of the sky</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><p data-align="1">the <del data-operation-index="1">colour</del><ins data-operation-index="1">color</ins> of the sky</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="character-edit-nonconsecutive">
+      <h3>Scattered character fixes → clean whole-block <span class="cid">#character-edit-nonconsecutive</span></h3>
+      <p class="coord">character · sentence · edit · non-consecutive</p>
+      <p class="blurb">Typos fixed all over a line jump unchanged↔changed too many times to read inline, so it safely whole-blocks instead of scrambling.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><del data-align="1" class="mdblock"><p>teh cat aet teh fihs and teh dog rann home</p>
+</del><ins data-align="1" class="mdblock"><p>the cat ate the fish and the dog ran home</p>
+</ins></div>
+        <div class="col col-new"><div class="col-head">after</div><del data-align="1" class="mdblock"><p>teh cat aet teh fihs and teh dog rann home</p>
+</del><ins data-align="1" class="mdblock"><p>the cat ate the fish and the dog ran home</p>
+</ins></div>
+      </div>
+    </div>
+    <div class="case" id="character-add">
+      <h3>A character added to a word <span class="cid">#character-add</span></h3>
+      <p class="coord">character · word · add</p>
+      <p class="blurb">Inserting one letter (cat → cart). Listed standalone in the spec — though it renders identically to a character delete/edit, because htmldiff is word-level so any single-character change re-marks the whole word. The visual shows that expected sameness.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><p data-align="1">the <del data-operation-index="1">cat</del><ins data-operation-index="1">cart</ins> sat on the mat</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><p data-align="1">the <del data-operation-index="1">cat</del><ins data-operation-index="1">cart</ins> sat on the mat</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="character-delete">
+      <h3>A character removed from a word <span class="cid">#character-delete</span></h3>
+      <p class="coord">character · word · delete</p>
+      <p class="blurb">Removing one letter (cart → cat). The mirror of the add, and — by the same word-level mechanism — the same whole-word re-mark. A deliberate matrix entry: the behaviour is uniform at the character level, and the visual proves it.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><p data-align="1">the <del data-operation-index="1">cart</del><ins data-operation-index="1">cat</ins> sat on the mat</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><p data-align="1">the <del data-operation-index="1">cart</del><ins data-operation-index="1">cat</ins> sat on the mat</p>
+</div>
+      </div>
+    </div>
+  </section>
+  <section class="sec" id="sec-word">
+    <h2>Word</h2>
+    <p class="secblurb">A whole-word swap is marked inline; surrounding words are untouched.</p>
+    
+    <div class="case" id="word-swap">
+      <h3>Word swapped inside emphasis <span class="cid">#word-swap</span></h3>
+      <p class="coord">word · sentence · edit</p>
+      <p class="blurb">workspace → project, inside **bold** — only the word is marked.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><p data-align="1">assumes the <strong><del data-operation-index="1">workspace</del><ins data-operation-index="1">project</ins> root</strong> here</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><p data-align="1">assumes the <strong><del data-operation-index="1">workspace</del><ins data-operation-index="1">project</ins> root</strong> here</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="word-add">
+      <h3>A word inserted into a sentence <span class="cid">#word-add</span></h3>
+      <p class="coord">word · sentence · add</p>
+      <p class="blurb">Inserting a word marks just the new word inline; the rest of the sentence is untouched.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><p data-align="1">the<ins data-operation-index="1"> black</ins> cat sat on the mat</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><p data-align="1">the<ins data-operation-index="1"> black</ins> cat sat on the mat</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="word-delete">
+      <h3>A word removed from a sentence <span class="cid">#word-delete</span></h3>
+      <p class="coord">word · sentence · delete</p>
+      <p class="blurb">Removing a word marks just that word inline; the rest stays clean.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><p data-align="1">the<del data-operation-index="1"> black</del> cat sat on the mat</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><p data-align="1">the<del data-operation-index="1"> black</del> cat sat on the mat</p>
+</div>
+      </div>
+    </div>
+  </section>
+  <section class="sec" id="sec-phrase">
+    <h2>Phrase</h2>
+    <p class="secblurb">A reworded phrase keeps its identical lead-in unmarked even when the new text is much longer.</p>
+    
+    <div class="case" id="phrase-edit-common-leadin">
+      <h3>Expanded phrase keeps the common lead-in <span class="cid">#phrase-edit-common-leadin</span></h3>
+      <p class="coord">phrase · paragraph · edit · consecutive</p>
+      <p class="blurb">The bold label and path prefix stay unmarked; only the divergent tail is shown.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><p data-align="1"><strong>Assumed directory</strong> — <code>~/dev/awesomele/yi-yi-kitchen-<del data-operation-index="1">strategy/</del><ins data-operation-index="1">strategy</ins></code><ins data-operation-index="1"> (the project root). The server bun scripts live in </ins><code>delivery/server</code><ins data-operation-index="3">; baked in with </ins><code data-diff-node="ins" data-operation-index="3"><ins data-operation-index="3">--cwd</ins></code><ins data-operation-index="3">.</ins></p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><p data-align="1"><strong>Assumed directory</strong> — <code>~/dev/awesomele/yi-yi-kitchen-<del data-operation-index="1">strategy/</del><ins data-operation-index="1">strategy</ins></code><ins data-operation-index="1"> (the project root). The server bun scripts live in </ins><code>delivery/server</code><ins data-operation-index="3">; baked in with </ins><code data-diff-node="ins" data-operation-index="3"><ins data-operation-index="3">--cwd</ins></code><ins data-operation-index="3">.</ins></p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="phrase-edit-nonconsecutive">
+      <h3>Scattered phrase rewrite → clean whole-block <span class="cid">#phrase-edit-nonconsecutive</span></h3>
+      <p class="coord">phrase · sentence · edit · non-consecutive</p>
+      <p class="blurb">When changes are spread across the line with little shared text, an inline word-diff would scramble — so it whole-blocks instead.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><del class="mdblock"><p>The fast red car drove quietly down the long winding road</p>
+</del><ins class="mdblock"><p>The slow blue truck rolled loudly along the short straight street</p>
+</ins></div>
+        <div class="col col-new"><div class="col-head">after</div><del class="mdblock"><p>The fast red car drove quietly down the long winding road</p>
+</del><ins class="mdblock"><p>The slow blue truck rolled loudly along the short straight street</p>
+</ins></div>
+      </div>
+    </div>
+  </section>
+  <section class="sec" id="sec-sentence">
+    <h2>Sentence</h2>
+    <p class="secblurb">When one sentence in a paragraph changes, the others stay clean.</p>
+    
+    <div class="case" id="sentence-edit-in-paragraph">
+      <h3>One sentence reworded in a two-sentence paragraph <span class="cid">#sentence-edit-in-paragraph</span></h3>
+      <p class="coord">sentence · paragraph · edit</p>
+      <p class="blurb">The first sentence is untouched; only the second sentence’s tail is marked.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><p data-align="1">The server runs locally. Deploys happen <del data-operation-index="1">nightly.</del><ins data-operation-index="1">on every merge.</ins></p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><p data-align="1">The server runs locally. Deploys happen <del data-operation-index="1">nightly.</del><ins data-operation-index="1">on every merge.</ins></p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="sentence-add">
+      <h3>A sentence added to a paragraph <span class="cid">#sentence-add</span></h3>
+      <p class="coord">sentence · paragraph · add</p>
+      <p class="blurb">A new trailing sentence is marked inline; the existing sentence stays clean.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><p data-align="1">Deploys run nightly.<ins data-operation-index="1"> Rollbacks are automatic.</ins></p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><p data-align="1">Deploys run nightly.<ins data-operation-index="1"> Rollbacks are automatic.</ins></p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="sentence-delete">
+      <h3>A sentence removed from a paragraph <span class="cid">#sentence-delete</span></h3>
+      <p class="coord">sentence · paragraph · delete</p>
+      <p class="blurb">A dropped trailing sentence is struck inline; the remaining sentence stays clean.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><p data-align="1">Deploys run nightly.<del data-operation-index="1"> Rollbacks are automatic.</del></p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><p data-align="1">Deploys run nightly.<del data-operation-index="1"> Rollbacks are automatic.</del></p>
+</div>
+      </div>
+    </div>
+  </section>
+  <section class="sec" id="sec-paragraph">
+    <h2>Paragraph</h2>
+    <p class="secblurb">Whole paragraphs add/delete/replace with row-aligned gaps; a near-total rewrite is a clean whole-block swap, never a scramble.</p>
+    
+    <div class="case" id="paragraph-rewrite-whole">
+      <h3>Heavy rewrite → clean whole-block replace <span class="cid">#paragraph-rewrite-whole</span></h3>
+      <p class="coord">paragraph · page · edit</p>
+      <p class="blurb">When almost every word changes, mddiff replaces the whole paragraph instead of scrambling it.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><del data-align="1" class="mdblock"><p>Every path inside command_body MUST be relative to the workspace root. No cd is ever permitted, and absolute paths to interpreters are forbidden everywhere.</p>
+</del><ins data-align="1" class="mdblock"><p>It MUST be runnable as-is from the project root, with the location baked in so the operator never has to cd. There are exactly two cases for how it finds its work.</p>
+</ins></div>
+        <div class="col col-new"><div class="col-head">after</div><del data-align="1" class="mdblock"><p>Every path inside command_body MUST be relative to the workspace root. No cd is ever permitted, and absolute paths to interpreters are forbidden everywhere.</p>
+</del><ins data-align="1" class="mdblock"><p>It MUST be runnable as-is from the project root, with the location baked in so the operator never has to cd. There are exactly two cases for how it finds its work.</p>
+</ins></div>
+      </div>
+    </div>
+    <div class="case" id="paragraph-edit-prefix-suffix">
+      <h3>Reworded middle keeps identical edges <span class="cid">#paragraph-edit-prefix-suffix</span></h3>
+      <p class="coord">paragraph · page · edit</p>
+      <p class="blurb">A heavily edited paragraph that shares a long prefix and suffix keeps both ends unmarked.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><p data-align="1">Tell the operator, in plain language, that the command assumes the <del>workspace root as the working directory. Do NOT bake the absolute path into the command — keep all paths relative to the workspace root so</del><ins>project root as the working directory. The command must run as-is from there with the location baked in — a script path relative to the root or the runner option, per Inputs. Never put a cd before it;</ins> the shell stays there after it finishes.</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><p data-align="1">Tell the operator, in plain language, that the command assumes the <del>workspace root as the working directory. Do NOT bake the absolute path into the command — keep all paths relative to the workspace root so</del><ins>project root as the working directory. The command must run as-is from there with the location baked in — a script path relative to the root or the runner option, per Inputs. Never put a cd before it;</ins> the shell stays there after it finishes.</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="paragraph-add-gap">
+      <h3>Added paragraph leaves an aligned gap <span class="cid">#paragraph-add-gap</span></h3>
+      <p class="coord">paragraph · page · add</p>
+      <p class="blurb">An inserted paragraph is a gap (no anchor); the shared heading below stays row-aligned across columns.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1">H</h1>
+<p data-align="2">intro</p>
+<ins class="mdblock"><p>INSERTED</p>
+</ins><h2 data-align="3">Steps</h2>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1">H</h1>
+<p data-align="2">intro</p>
+<ins class="mdblock"><p>INSERTED</p>
+</ins><h2 data-align="3">Steps</h2>
+</div>
+      </div>
+    </div>
+    <div class="case" id="paragraph-delete-gap">
+      <h3>Deleted paragraph: red strikethrough + aligned gap <span class="cid">#paragraph-delete-gap</span></h3>
+      <p class="coord">paragraph · page · delete</p>
+      <p class="blurb">A removed paragraph renders struck-through on the left and leaves an empty slot on the right.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><p data-align="1">keep</p>
+<del class="mdblock"><p>DELETE THIS whole paragraph</p>
+</del><p data-align="2">tail</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><p data-align="1">keep</p>
+<del class="mdblock"><p>DELETE THIS whole paragraph</p>
+</del><p data-align="2">tail</p>
+</div>
+      </div>
+    </div>
+  </section>
+  <section class="sec" id="sec-hyperlink">
+    <h2>Hyperlink</h2>
+    <p class="secblurb">A documented exception. A link has two parts — displayed text and embedded URL — and node-htmldiff keys links by URL, so we cannot diff them elegantly. We fall back to a safe whole-block/whole-item replace so nothing is ever silently lost. See docs/design.md §3.</p>
+    
+    <div class="case" id="hyperlink-text-change-paragraph">
+      <h3>Link text changed, URL unchanged (in prose) <span class="cid">#hyperlink-text-change-paragraph</span></h3>
+      <p class="coord">hyperlink · paragraph · edit</p>
+      <p class="blurb">Same href, new visible text: htmldiff returns no marks, so the safe floor whole-blocks it — the old text survives instead of being silently replaced.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><del data-align="1" class="mdblock"><p>See <a href="#cfg">Configuration</a> for details.</p>
+</del><ins data-align="1" class="mdblock"><p>See <a href="#cfg">Settings</a> for details.</p>
+</ins></div>
+        <div class="col col-new"><div class="col-head">after</div><del data-align="1" class="mdblock"><p>See <a href="#cfg">Configuration</a> for details.</p>
+</del><ins data-align="1" class="mdblock"><p>See <a href="#cfg">Settings</a> for details.</p>
+</ins></div>
+      </div>
+    </div>
+    <div class="case" id="hyperlink-text-change-toc">
+      <h3>Link text changed, URL unchanged (in a TOC) <span class="cid">#hyperlink-text-change-toc</span></h3>
+      <p class="coord">hyperlink · toc · edit</p>
+      <p class="blurb">Inside a list the same rename becomes a removed + added item, keeping the old link text.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#cfg">Configuration</a></li><li class="li-ins" data-align="2"><a href="#cfg">Settings</a></li><li data-align="3"><a href="#help">Help</a></li></ol></div>
+        <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#cfg">Configuration</a></li><li class="li-ins" data-align="2"><a href="#cfg">Settings</a></li><li data-align="3"><a href="#help">Help</a></li></ol></div>
+      </div>
+    </div>
+    <div class="case" id="hyperlink-url-change">
+      <h3>URL changed, link text unchanged <span class="cid">#hyperlink-url-change</span></h3>
+      <p class="coord">hyperlink · paragraph · edit</p>
+      <p class="blurb">The honest limit: the link is flagged (struck + re-added), but because only the invisible href changed, both sides read identically — the change is signalled, not legible.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><p data-align="1">See the <del data-operation-index="1"><a href="https://a.example">docs</a></del><ins data-operation-index="1"><a href="https://b.example">docs</a></ins> page.</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><p data-align="1">See the <del data-operation-index="1"><a href="https://a.example">docs</a></del><ins data-operation-index="1"><a href="https://b.example">docs</a></ins> page.</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="hyperlink-both-change">
+      <h3>Both text and URL changed <span class="cid">#hyperlink-both-change</span></h3>
+      <p class="coord">hyperlink · paragraph · edit</p>
+      <p class="blurb">When the URL also changes, htmldiff sees a different link and marks it cleanly — the readable case, in contrast to the text-only rename above.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><p data-align="1">See <del data-operation-index="1"><a href="#cfg-a">Configuration</a></del><ins data-operation-index="1"><a href="#cfg-b">Settings</a></ins> now.</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><p data-align="1">See <del data-operation-index="1"><a href="#cfg-a">Configuration</a></del><ins data-operation-index="1"><a href="#cfg-b">Settings</a></ins> now.</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="hyperlink-add">
+      <h3>Plain text turned into a link <span class="cid">#hyperlink-add</span></h3>
+      <p class="coord">hyperlink · paragraph · add</p>
+      <p class="blurb">Wrapping a word in a link is marked inline: the bare word is struck, the linked word added.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><p data-align="1">See the <del data-operation-index="1">docs</del><ins data-operation-index="1"><a href="https://x.example">docs</a></ins> page for setup.</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><p data-align="1">See the <del data-operation-index="1">docs</del><ins data-operation-index="1"><a href="https://x.example">docs</a></ins> page for setup.</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="hyperlink-delete">
+      <h3>A link reduced to plain text <span class="cid">#hyperlink-delete</span></h3>
+      <p class="coord">hyperlink · paragraph · delete</p>
+      <p class="blurb">Unwrapping a link is the mirror: the linked word is struck, the bare word added.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><p data-align="1">See the <del data-operation-index="1"><a href="https://x.example">docs</a></del><ins data-operation-index="1">docs</ins> page for setup.</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><p data-align="1">See the <del data-operation-index="1"><a href="https://x.example">docs</a></del><ins data-operation-index="1">docs</ins> page for setup.</p>
+</div>
+      </div>
+    </div>
+  </section>
+  <section class="sec" id="sec-heading">
+    <h2>Heading</h2>
+    <p class="secblurb">A heading is a container: editing its text word-diffs in place, and a whole heading added/removed is a clean block change with an aligned gap.</p>
+    
+    <div class="case" id="heading-edit-text">
+      <h3>Heading text edited <span class="cid">#heading-edit-text</span></h3>
+      <p class="coord">word · heading · edit</p>
+      <p class="blurb">A reworded heading keeps its shared words; only the changed word is marked.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1">Deployment <del data-operation-index="1">guide</del><ins data-operation-index="1">runbook</ins></h1>
+<p data-align="2">body stays</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1">Deployment <del data-operation-index="1">guide</del><ins data-operation-index="1">runbook</ins></h1>
+<p data-align="2">body stays</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="heading-add">
+      <h3>Heading added <span class="cid">#heading-add</span></h3>
+      <p class="coord">block · heading · add</p>
+      <p class="blurb">A new heading is a whole-block addition; the heading kept on both sides stays row-aligned.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><p data-align="1">Intro paragraph here.</p>
+<ins class="mdblock"><h2>New Section</h2>
+</ins><h2 data-align="2">Section A</h2>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><p data-align="1">Intro paragraph here.</p>
+<ins class="mdblock"><h2>New Section</h2>
+</ins><h2 data-align="2">Section A</h2>
+</div>
+      </div>
+    </div>
+    <div class="case" id="heading-delete">
+      <h3>Heading removed <span class="cid">#heading-delete</span></h3>
+      <p class="coord">block · heading · delete</p>
+      <p class="blurb">A removed heading renders struck-through and leaves an aligned gap on the right.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><p data-align="1">Intro paragraph here.</p>
+<del class="mdblock"><h2>New Section</h2>
+</del><h2 data-align="2">Section A</h2>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><p data-align="1">Intro paragraph here.</p>
+<del class="mdblock"><h2>New Section</h2>
+</del><h2 data-align="2">Section A</h2>
+</div>
+      </div>
+    </div>
+  </section>
+  <section class="sec" id="sec-blockquote">
+    <h2>Blockquote</h2>
+    <p class="secblurb">Text inside a blockquote word-diffs in place; a whole blockquote added/removed is a clean block change with an aligned gap.</p>
+    
+    <div class="case" id="blockquote-edit-text">
+      <h3>Text edited inside a blockquote <span class="cid">#blockquote-edit-text</span></h3>
+      <p class="coord">word · blockquote · edit</p>
+      <p class="blurb">The quote is word-diffed in place — only the changed word is marked, the rest of the quote stays clean.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><blockquote data-align="1">
+<p>The <del data-operation-index="1">original</del><ins data-operation-index="1">revised</ins> note about deploys.</p>
+</blockquote>
+<p data-align="2">after</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><blockquote data-align="1">
+<p>The <del data-operation-index="1">original</del><ins data-operation-index="1">revised</ins> note about deploys.</p>
+</blockquote>
+<p data-align="2">after</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="blockquote-add">
+      <h3>Blockquote added <span class="cid">#blockquote-add</span></h3>
+      <p class="coord">block · blockquote · add</p>
+      <p class="blurb">A new callout is a whole-block addition; surrounding paragraphs stay aligned.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><p data-align="1">A normal paragraph.</p>
+<ins class="mdblock"><blockquote>
+<p>A new callout to read.</p>
+</blockquote>
+</ins><p data-align="2">after</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><p data-align="1">A normal paragraph.</p>
+<ins class="mdblock"><blockquote>
+<p>A new callout to read.</p>
+</blockquote>
+</ins><p data-align="2">after</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="blockquote-delete">
+      <h3>Blockquote removed <span class="cid">#blockquote-delete</span></h3>
+      <p class="coord">block · blockquote · delete</p>
+      <p class="blurb">A removed callout renders struck-through and leaves an aligned gap on the right.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><p data-align="1">A normal paragraph.</p>
+<del class="mdblock"><blockquote>
+<p>A new callout to read.</p>
+</blockquote>
+</del><p data-align="2">after</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><p data-align="1">A normal paragraph.</p>
+<del class="mdblock"><blockquote>
+<p>A new callout to read.</p>
+</blockquote>
+</del><p data-align="2">after</p>
+</div>
+      </div>
+    </div>
+  </section>
+  <section class="sec" id="sec-codeblock">
+    <h2>Code block</h2>
+    <p class="secblurb">Code is literal, so changes are line-level: an edited, added, or removed line word-diffs in place (unchanged lines stay clean), and a whole code block added/removed is a clean block change.</p>
+    
+    <div class="case" id="code-line-edit">
+      <h3>One line edited <span class="cid">#code-line-edit</span></h3>
+      <p class="coord">word · codeblock · edit</p>
+      <p class="blurb">Only the changed token on the changed line is marked; the other lines stay clean.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><pre data-align="1"><code class="language-js">const a = 1;
+const b = <del data-operation-index="1">2;</del><ins data-operation-index="1">3;</ins>
+</code></pre>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><pre data-align="1"><code class="language-js">const a = 1;
+const b = <del data-operation-index="1">2;</del><ins data-operation-index="1">3;</ins>
+</code></pre>
+</div>
+      </div>
+    </div>
+    <div class="case" id="code-line-add">
+      <h3>A line added <span class="cid">#code-line-add</span></h3>
+      <p class="coord">phrase · codeblock · add</p>
+      <p class="blurb">A new line is marked inline inside the code block; existing lines stay clean.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><pre data-align="1"><code class="language-js">const a = 1;
+<ins data-operation-index="1">const b = 2;
+</ins></code></pre>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><pre data-align="1"><code class="language-js">const a = 1;
+<ins data-operation-index="1">const b = 2;
+</ins></code></pre>
+</div>
+      </div>
+    </div>
+    <div class="case" id="code-line-delete">
+      <h3>A line removed <span class="cid">#code-line-delete</span></h3>
+      <p class="coord">phrase · codeblock · delete</p>
+      <p class="blurb">A removed line is struck inline inside the code block; remaining lines stay clean.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><pre data-align="1"><code class="language-js">const a = 1;
+<del data-operation-index="1">const b = 2;
+</del></code></pre>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><pre data-align="1"><code class="language-js">const a = 1;
+<del data-operation-index="1">const b = 2;
+</del></code></pre>
+</div>
+      </div>
+    </div>
+    <div class="case" id="code-block-add">
+      <h3>A whole code block added <span class="cid">#code-block-add</span></h3>
+      <p class="coord">block · codeblock · add</p>
+      <p class="blurb">A new fenced block is a whole-block addition; surrounding paragraphs stay aligned.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><p data-align="1">Run it:</p>
+<ins class="mdblock"><pre><code class="language-sh">npm start
+</code></pre>
+</ins><p data-align="2">after</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><p data-align="1">Run it:</p>
+<ins class="mdblock"><pre><code class="language-sh">npm start
+</code></pre>
+</ins><p data-align="2">after</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="code-block-delete">
+      <h3>A whole code block removed <span class="cid">#code-block-delete</span></h3>
+      <p class="coord">block · codeblock · delete</p>
+      <p class="blurb">A removed fenced block renders struck-through and leaves an aligned gap on the right.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><p data-align="1">Run it:</p>
+<del class="mdblock"><pre><code class="language-sh">npm start
+</code></pre>
+</del><p data-align="2">after</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><p data-align="1">Run it:</p>
+<del class="mdblock"><pre><code class="language-sh">npm start
+</code></pre>
+</del><p data-align="2">after</p>
+</div>
+      </div>
+    </div>
+  </section>
+  <section class="sec" id="sec-list">
+    <h2>List</h2>
+    <p class="secblurb">Items diff at item level: a light edit stays inline, a heavy rewrite splits cleanly, and an added/removed item leaves an aligned gap with numbering preserved.</p>
+    
+    <div class="case" id="list-item-edit-light">
+      <h3>Lightly edited item stays inline <span class="cid">#list-item-edit-light</span></h3>
+      <p class="coord">word · list · edit</p>
+      <p class="blurb">A small wording change is a word-diff inside the bullet, not a removed + added pair.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><ul data-align="1"><li data-align="2">Use the <del data-operation-index="1">workspace</del><ins data-operation-index="1">project</ins> root here</li></ul></div>
+        <div class="col col-new"><div class="col-head">after</div><ul data-align="1"><li data-align="2">Use the <del data-operation-index="1">workspace</del><ins data-operation-index="1">project</ins> root here</li></ul></div>
+      </div>
+    </div>
+    <div class="case" id="list-item-rewrite-scramble">
+      <h3>Heavily rewritten item → removed + added <span class="cid">#list-item-rewrite-scramble</span></h3>
+      <p class="coord">paragraph · list · edit</p>
+      <p class="blurb">Scattered shared vocabulary would scramble a word-diff, so the item becomes a clean removed + added pair; neighbours survive.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><ul data-align="1"><li data-align="2">alpha</li><li class="li-del" data-align="3">Every path inside command_body MUST be relative to the workspace root and no cd is ever permitted there</li><li class="li-ins" data-align="3">It MUST be runnable as-is from the project root with the location baked in so cd is never needed at all</li><li data-align="4">omega</li></ul></div>
+        <div class="col col-new"><div class="col-head">after</div><ul data-align="1"><li data-align="2">alpha</li><li class="li-del" data-align="3">Every path inside command_body MUST be relative to the workspace root and no cd is ever permitted there</li><li class="li-ins" data-align="3">It MUST be runnable as-is from the project root with the location baked in so cd is never needed at all</li><li data-align="4">omega</li></ul></div>
+      </div>
+    </div>
+    <div class="case" id="list-item-expand-prefix">
+      <h3>Expanded item keeps its common prefix (one bullet) <span class="cid">#list-item-expand-prefix</span></h3>
+      <p class="coord">phrase · list · edit</p>
+      <p class="blurb">An item that roughly tripled in length keeps its shared lead-in unmarked and stays a single bullet.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><ul data-align="1"><li data-align="2">alpha</li><li data-align="3"><strong>command_body</strong> (required) — the actual command path, <del>kept relative to the workspace root with no absolute paths allowed anywhere.</del><ins>which must run as-is from the project root with its location baked in, using either a relative path or the runner cwd option, where absolute paths stay forbidden because they break portability across machines, and there are exactly two distinct mechanisms to choose between here.</ins></li><li data-align="4">omega</li></ul></div>
+        <div class="col col-new"><div class="col-head">after</div><ul data-align="1"><li data-align="2">alpha</li><li data-align="3"><strong>command_body</strong> (required) — the actual command path, <del>kept relative to the workspace root with no absolute paths allowed anywhere.</del><ins>which must run as-is from the project root with its location baked in, using either a relative path or the runner cwd option, where absolute paths stay forbidden because they break portability across machines, and there are exactly two distinct mechanisms to choose between here.</ins></li><li data-align="4">omega</li></ul></div>
+      </div>
+    </div>
+    <div class="case" id="list-item-delete-gap">
+      <h3>Deleted item leaves an aligned gap; numbering preserved <span class="cid">#list-item-delete-gap</span></h3>
+      <p class="coord">paragraph · list · delete</p>
+      <p class="blurb">A removed bullet shows an empty slot at the matching row in the new column; the ordered list still reads 1, 2.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li data-align="2">keep one</li><li class="li-del">DROP ME</li><li data-align="3">keep two</li></ol></div>
+        <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li data-align="2">keep one</li><li class="li-del">DROP ME</li><li data-align="3">keep two</li></ol></div>
+      </div>
+    </div>
+    <div class="case" id="list-item-add-gap">
+      <h3>Added item leaves an aligned gap on the left <span class="cid">#list-item-add-gap</span></h3>
+      <p class="coord">paragraph · list · add</p>
+      <p class="blurb">A new bullet shows on the right; the old column gets an aligned empty slot. Mirror of the deletion case, numbering preserved.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li data-align="2">keep one</li><li class="li-ins">NEW MIDDLE</li><li data-align="3">keep two</li></ol></div>
+        <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li data-align="2">keep one</li><li class="li-ins">NEW MIDDLE</li><li data-align="3">keep two</li></ol></div>
+      </div>
+    </div>
+  </section>
+  <section class="sec" id="sec-toc">
+    <h2>Table of contents</h2>
+    <p class="secblurb">A TOC is a list of links: an added or removed entry leaves an aligned gap so it is clear where the section was inserted or dropped.</p>
+    
+    <div class="case" id="toc-entry-add-gap">
+      <h3>Added TOC entry leaves a gap on the left <span class="cid">#toc-entry-add-gap</span></h3>
+      <p class="coord">hyperlink · toc · add</p>
+      <p class="blurb">A new link is inserted on the right; the old column gets an aligned empty slot, and the entries below stay row-aligned.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><ul data-align="1"><li data-align="2"><a href="#local">Local development</a></li><li class="li-ins"><a href="#prefs">Driver preferences storage</a></li><li data-align="3"><a href="#backups">Backups</a></li></ul></div>
+        <div class="col col-new"><div class="col-head">after</div><ul data-align="1"><li data-align="2"><a href="#local">Local development</a></li><li class="li-ins"><a href="#prefs">Driver preferences storage</a></li><li data-align="3"><a href="#backups">Backups</a></li></ul></div>
+      </div>
+    </div>
+    <div class="case" id="toc-entry-delete-gap">
+      <h3>Removed TOC entry leaves a gap on the right <span class="cid">#toc-entry-delete-gap</span></h3>
+      <p class="coord">hyperlink · toc · delete</p>
+      <p class="blurb">A dropped link is struck on the left; the new column gets an aligned empty slot, and entries below stay aligned.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><ul data-align="1"><li data-align="2"><a href="#a">Alpha</a></li><li class="li-del"><a href="#b">Beta</a></li><li data-align="3"><a href="#c">Gamma</a></li></ul></div>
+        <div class="col col-new"><div class="col-head">after</div><ul data-align="1"><li data-align="2"><a href="#a">Alpha</a></li><li class="li-del"><a href="#b">Beta</a></li><li data-align="3"><a href="#c">Gamma</a></li></ul></div>
+      </div>
+    </div>
+    <div class="case" id="toc-reorder">
+      <h3>Reordered entries (moves are not detected) <span class="cid">#toc-reorder</span></h3>
+      <p class="coord">hyperlink · toc · edit</p>
+      <p class="blurb">An honest limitation: mddiff does not detect a move, so swapping two entries shows as each position’s link changing in place rather than a clean reorder.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li data-align="2"><del data-operation-index="0"><a href="#a">Alpha</a></del><ins data-operation-index="0"><a href="#b">Beta</a></ins></li><li data-align="3"><del data-operation-index="0"><a href="#b">Beta</a></del><ins data-operation-index="0"><a href="#a">Alpha</a></ins></li><li data-align="4"><a href="#c">Gamma</a></li></ol></div>
+        <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li data-align="2"><del data-operation-index="0"><a href="#a">Alpha</a></del><ins data-operation-index="0"><a href="#b">Beta</a></ins></li><li data-align="3"><del data-operation-index="0"><a href="#b">Beta</a></del><ins data-operation-index="0"><a href="#a">Alpha</a></ins></li><li data-align="4"><a href="#c">Gamma</a></li></ol></div>
+      </div>
+    </div>
+  </section>
+  <section class="sec" id="sec-table">
+    <h2>Table</h2>
+    <p class="secblurb">Tables diff structurally (columns / rows / cells). Each projected side-by-side column stays rectangular — no phantom empty cells, the way a naive HTML word-diff produces.</p>
+    
+    <div class="case" id="table-add-column">
+      <h3>Added column stays rectangular <span class="cid">#table-add-column</span></h3>
+      <p class="coord">column · table · add</p>
+      <p class="blurb">A new column is marked added; the old column keeps its original width with no phantom cell.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><table data-align="1">
+<thead>
+<tr>
+<th>A</th><th>B</th><th class="col-ins"><ins>Note</ins></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td><td>2</td><td class="col-ins"></td>
+</tr>
+<tr>
+<td>3</td><td>4</td><td class="col-ins"><ins>hi</ins></td>
+</tr>
+</tbody>
+</table>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><table data-align="1">
+<thead>
+<tr>
+<th>A</th><th>B</th><th class="col-ins"><ins>Note</ins></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td><td>2</td><td class="col-ins"></td>
+</tr>
+<tr>
+<td>3</td><td>4</td><td class="col-ins"><ins>hi</ins></td>
+</tr>
+</tbody>
+</table>
+</div>
+      </div>
+    </div>
+    <div class="case" id="table-add-row">
+      <h3>Added row, dropped cleanly from the old column <span class="cid">#table-add-row</span></h3>
+      <p class="coord">row · table · add</p>
+      <p class="blurb">The new row is highlighted and present only in the new column; no phantom blank row on the old side.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><table data-align="1">
+<thead>
+<tr>
+<th>A</th><th>B</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td><td>2</td>
+</tr>
+<tr class="tr-ins">
+<td><ins>3</ins></td><td><ins>4</ins></td>
+</tr>
+</tbody>
+</table>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><table data-align="1">
+<thead>
+<tr>
+<th>A</th><th>B</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td><td>2</td>
+</tr>
+<tr class="tr-ins">
+<td><ins>3</ins></td><td><ins>4</ins></td>
+</tr>
+</tbody>
+</table>
+</div>
+      </div>
+    </div>
+    <div class="case" id="table-remove-row">
+      <h3>Removed row, dropped from the new column <span class="cid">#table-remove-row</span></h3>
+      <p class="coord">row · table · delete</p>
+      <p class="blurb">A deleted row is marked and present only on the old side; the new column has no phantom row.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><table data-align="1">
+<thead>
+<tr>
+<th>A</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+</tr>
+<tr class="tr-del">
+<td><del>2</del></td>
+</tr>
+</tbody>
+</table>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><table data-align="1">
+<thead>
+<tr>
+<th>A</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+</tr>
+<tr class="tr-del">
+<td><del>2</del></td>
+</tr>
+</tbody>
+</table>
+</div>
+      </div>
+    </div>
+    <div class="case" id="table-remove-column">
+      <h3>Removed column, dropped from the new column <span class="cid">#table-remove-column</span></h3>
+      <p class="coord">column · table · delete</p>
+      <p class="blurb">A deleted column is marked; the new column shows only the surviving column and stays rectangular.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><table data-align="1">
+<thead>
+<tr>
+<th>A</th><th class="col-del"><del>B</del></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td><td class="col-del"><del>2</del></td>
+</tr>
+</tbody>
+</table>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><table data-align="1">
+<thead>
+<tr>
+<th>A</th><th class="col-del"><del>B</del></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td><td class="col-del"><del>2</del></td>
+</tr>
+</tbody>
+</table>
+</div>
+      </div>
+    </div>
+    <div class="case" id="table-change-cell">
+      <h3>Changed cell word-diffs in place <span class="cid">#table-change-cell</span></h3>
+      <p class="coord">word · table · edit</p>
+      <p class="blurb">A single changed cell is a word-diff inside the cell — no structural row/column change, columns stay rectangular.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><table data-align="1">
+<thead>
+<tr>
+<th>A</th><th>B</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td><td><del data-operation-index="0">old</del><ins data-operation-index="0">new</ins> value</td>
+</tr>
+</tbody>
+</table>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><table data-align="1">
+<thead>
+<tr>
+<th>A</th><th>B</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td><td><del data-operation-index="0">old</del><ins data-operation-index="0">new</ins> value</td>
+</tr>
+</tbody>
+</table>
+</div>
+      </div>
+    </div>
+    <div class="case" id="table-rename-header">
+      <h3>Renamed header keeps the column <span class="cid">#table-rename-header</span></h3>
+      <p class="coord">word · table · edit</p>
+      <p class="blurb">A renamed header is a cell edit, not an add + remove — the column is kept and its rows stay aligned.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><table data-align="1">
+<thead>
+<tr>
+<th>Date</th><th><del data-operation-index="0">Sz</del><ins data-operation-index="0">Size</ins> score</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>d1</td><td>9</td>
+</tr>
+</tbody>
+</table>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><table data-align="1">
+<thead>
+<tr>
+<th>Date</th><th><del data-operation-index="0">Sz</del><ins data-operation-index="0">Size</ins> score</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>d1</td><td>9</td>
+</tr>
+</tbody>
+</table>
+</div>
+      </div>
+    </div>
+    <div class="case" id="table-cell-content">
+      <h3>Cell content renders (inline markdown + links) <span class="cid">#table-cell-content</span></h3>
+      <p class="coord">phrase · table · edit</p>
+      <p class="blurb">Cells render their markdown — bold, links — not raw source.</p>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><table data-align="1">
+<thead>
+<tr>
+<th>Run</th>
+</tr>
+</thead>
+<tbody>
+<tr class="tr-del">
+<td><del>plain</del></td>
+</tr>
+<tr class="tr-ins">
+<td><ins><strong>bold</strong> and <a href="http://e">x</a></ins></td>
+</tr>
+</tbody>
+</table>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><table data-align="1">
+<thead>
+<tr>
+<th>Run</th>
+</tr>
+</thead>
+<tbody>
+<tr class="tr-del">
+<td><del>plain</del></td>
+</tr>
+<tr class="tr-ins">
+<td><ins><strong>bold</strong> and <a href="http://e">x</a></ins></td>
+</tr>
+</tbody>
+</table>
+</div>
+      </div>
+    </div>
+  </section>
+<script>
+(function () {
+  function visAnchor(col, k) {
+    var els = col.querySelectorAll('[data-align="' + k + '"]');
+    for (var i = 0; i < els.length; i++) if (els[i].offsetParent !== null) return els[i];
+    return null;
+  }
+  function pushDown(el, extra) {
+    var cur = parseFloat(getComputedStyle(el).marginTop) || 0;
+    el.style.marginTop = (cur + extra) + 'px';
+  }
+  function alignCase(cs) {
+    var o = cs.querySelector('.col-old'), n = cs.querySelector('.col-new');
+    if (!o || !n) return;
+    var maxK = 0;
+    o.querySelectorAll('[data-align]').forEach(function (e) {
+      var k = +e.getAttribute('data-align'); if (k > maxK) maxK = k;
+    });
+    for (var pass = 0; pass < 2; pass++)
+      for (var k = 1; k <= maxK; k++) {
+        var l = visAnchor(o, k), r = visAnchor(n, k);
+        if (!l || !r) continue;
+        var d = (l.getBoundingClientRect().top - o.getBoundingClientRect().top)
+              - (r.getBoundingClientRect().top - n.getBoundingClientRect().top);
+        if (d > 0.5) pushDown(r, d); else if (d < -0.5) pushDown(l, -d);
+      }
+  }
+  function alignAll() { document.querySelectorAll('.case').forEach(alignCase); }
+  function clearAll() { document.querySelectorAll('[data-align]').forEach(function (e) { e.style.marginTop = ''; }); }
+  window.addEventListener('load', alignAll);
+  var rz; window.addEventListener('resize', function () { clearTimeout(rz); rz = setTimeout(function () { clearAll(); alignAll(); }, 120); });
+})();
+</script>
+</body></html>
