@@ -22,8 +22,10 @@
   ins.mdblock *, del.mdblock * { background:none; border-radius:0; }
   ins.mdblock, ins.mdblock * { color:#c9d1d9; text-decoration:none; }
   del.mdblock, del.mdblock * { color:#f85149; text-decoration:line-through; }
-  /* added/removed list items */
-  li.li-del, li.li-ins { border-radius:6px; padding:0 8px; margin:2px 0; }
+  /* added/removed list items — no LEFT padding (the colored box paints it, which
+     would indent the text past the sibling bullets / drag the marker if cancelled
+     with a negative margin); mirror src/page.js. */
+  li.li-del, li.li-ins { border-radius:6px; padding:0 8px 0 0; margin:2px 0; }
   li.li-ins { background: rgba(63,185,80,.10); }
   li.li-del, li.li-del * { background: rgba(248,81,73,.06); color:#f85149; text-decoration:line-through; }
   /* index */
