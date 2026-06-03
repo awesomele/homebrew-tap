@@ -90,13 +90,13 @@
 </style></head>
 <body>
 <h1>mddiff — change matrix</h1>
-<p class="lead">Every case mddiff renders, shown as a real before/after diff. Each case is also a CI test in <code>spec/matrix.js</code>, so what you see here is what the suite asserts.</p>
+<p class="lead">Every case mddiff renders, shown as a real before/after diff.</p>
 <p class="legend"><b class="del">■ removed</b> &nbsp; <b class="add">■ added</b> &nbsp;·&nbsp; 12 sections, 48 cases</p>
 <section class="coverage">
-<h2>Coverage — entity × container (generated from the axes in spec/matrix.js)</h2>
+<h2>Coverage — entity × container</h2>
 <table class="cov-grid"><thead><tr><th>entity \ container</th><th>word</th><th>sentence</th><th>paragraph</th><th>page</th><th>heading</th><th>blockquote</th><th>code block</th><th>list</th><th>TOC</th><th>table</th></tr></thead><tbody><tr><th>Character</th><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="eq">✓</span></td><td><span class="eq">✓</span></td><td><span class="eq">✓</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td></tr><tr><th>Word</th><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="eq">✓</span></td><td><span class="eq">✓</span></td><td><span class="cov">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="cov">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="cov">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="cov">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="cov">e</span><span class="gap">a</span><span class="gap">d</span></td></tr><tr><th>Phrase</th><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="eq">✓</span></td><td><span class="eq">✓</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="gap">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="cov">e</span><span class="gap">a</span><span class="gap">d</span></td></tr><tr><th>Sentence</th><td><span class="inv">—</span></td><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="eq">✓</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="inv">—</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="inv">—</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td></tr><tr><th>Paragraph</th><td><span class="inv">—</span></td><td><span class="inv">—</span></td><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="inv">—</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="inv">—</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td></tr><tr><th>Hyperlink</th><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="eq">✓</span></td><td><span class="eq">✓</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="inv">—</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td></tr></tbody></table>
-<p class="cov-legend"><code>ead</code> = <b>e</b>dit · <b>a</b>dd · <b>d</b>elete: <span class="cov">green</span> = covered by a case · <span class="gap">red</span> = valid but no case yet.</p>
-<p class="cov-legend"><span class="eq">✓</span> = equivalent class — renders the same as this entity's representative cell (its smallest container in the prose chain word→sentence→paragraph→page), so no separate test is needed. <span class="inv">—</span> = invalid (entity can't nest in this container).</p>
+<p class="cov-legend"><code>ead</code> = <b>e</b>dit · <b>a</b>dd · <b>d</b>elete: <span class="cov">green</span> = shown here · <span class="gap">red</span> = valid but no example yet.</p>
+<p class="cov-legend"><span class="eq">✓</span> = equivalent class — renders the same as this entity's representative cell (its smallest container in the prose chain word→sentence→paragraph→page). <span class="inv">—</span> = invalid (entity can't nest in this container).</p>
 </section>
 <h2 class="nav-h">Jump to a section</h2>
 <p class="nav-sub">Each entry links to that section's before/after examples below; <code>· N</code> is its number of cases.</p>
@@ -138,7 +138,7 @@
       <details class="meta">
         <summary>One character added to a word <span class="cid">#character-add</span></summary>
         <p class="coord">character · word · add</p>
-        <p class="blurb">Inserting one letter (cat → cart). Listed standalone in the spec — though it renders identically to a character delete/edit, because htmldiff is word-level so any single-character change re-marks the whole word. The visual shows that expected sameness.</p>
+        <p class="blurb">Inserting one letter (cat → cart). It renders identically to a character delete/edit, because htmldiff is word-level so any single-character change re-marks the whole word. The visual shows that expected sameness.</p>
       </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><p data-align="1">the <del data-operation-index="1">cat</del><ins data-operation-index="1">cart</ins> sat on the mat</p>
@@ -151,7 +151,7 @@
       <details class="meta">
         <summary>One character removed from a word <span class="cid">#character-delete</span></summary>
         <p class="coord">character · word · delete</p>
-        <p class="blurb">Removing one letter (cart → cat). The mirror of the add, and — by the same word-level mechanism — the same whole-word re-mark. A deliberate matrix entry: the behaviour is uniform at the character level, and the visual proves it.</p>
+        <p class="blurb">Removing one letter (cart → cat). The mirror of the add, and — by the same word-level mechanism — the same whole-word re-mark. The behaviour is uniform at the character level, and the visual shows it.</p>
       </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><p data-align="1">the <del data-operation-index="1">cart</del><ins data-operation-index="1">cat</ins> sat on the mat</p>
@@ -353,7 +353,7 @@
   </section>
   <section class="sec" id="sec-hyperlink">
     <h2>Hyperlink</h2>
-    <p class="secblurb">A documented exception. A link has two parts — displayed text and embedded URL — and node-htmldiff keys links by URL, so we cannot diff them elegantly. We fall back to a safe whole-block/whole-item replace so nothing is ever silently lost. See docs/design.md §3.</p>
+    <p class="secblurb">A known exception. A link has two parts — displayed text and embedded URL — and node-htmldiff keys links by URL, so we cannot diff them elegantly. We fall back to a safe whole-block/whole-item replace so nothing is ever silently lost.</p>
     
     <div class="case" id="hyperlink-text-change-paragraph">
       <details class="meta">
