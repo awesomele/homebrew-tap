@@ -1,16 +1,23 @@
-# mddiff
+# mddiff — high-fidelity rendered Markdown diff
 
-*The finest readable diff rendering for markdown files.*
+**Boost Markdown review productivity in the AI age.**
+
+## Why mddiff
+
+Coding agents now generate and modify more Markdown: plans, specs, skills, rules, READMEs, changelogs, and implementation notes.
+
+That makes human review more important, not less. Reviewers need a clear view of what changed, without spending their time and attention decoding Markdown syntax noise or chasing unstable rendered previews.
+
+mddiff boosts Markdown review productivity through clearer diffs, broader Markdown coverage, workflow-native access, and Git-aware comparison support.
 
 ## Highlights
 
-- **Clean visual and exhaustive coverage** 👉 **[See here](https://awesomele.github.io/homebrew-tap/mddiff/change-matrix.html)**
-- **Two views** — inline and row-aligned side-by-side. Toggle in the page.
-- **Auto-refresh** — edits re-render on browser reload (`Cmd+R`) or on save in VS Code.
-- **Diff minimap** — a right-edge ruler with a bar per change; click to jump, drag to scrub.
-- **Git-aware** — working tree, index (`--staged`), unstaged (`--unstaged`), revisions, or two files on disk.
-- **Zero runtime** — a self-contained `bun`-compiled binary; nothing else to install.
-- **CLI + VS Code** — available as a Homebrew CLI and a VS Code extension.
+- **Clear, human-friendly review** — review the rendered document change instead of decoding Markdown syntax or noisy word diffs.  
+- **High-fidelity Markdown coverage** — keeps complex changes clear across inline edits, links, paragraphs, lists, tables, code blocks, rewritten sections, and larger structural changes. 👉 **[See here](https://awesomele.github.io/homebrew-tap/mddiff/change-matrix.html)**
+- **File comparison and Git awareness** — compare selected Markdown files directly and Git-backed changes across working tree edits, staged changes, unstaged changes, revisions, and commit pairs.
+- **Two review modes** — inline diff for document-flow review, and row-aligned side-by-side diff for structured comparison.
+- **Auto-refresh** — edits re-render on browser reload (`Cmd+R`) 
+- **CLI + VS Code** — use the same rendered diff from the editor, terminal, scripts, or coding-agent workflows.
 
 ## Install
 
