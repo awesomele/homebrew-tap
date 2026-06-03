@@ -7,7 +7,7 @@
 - **Clean visual and exhaustive coverage** 👉 **[See here](https://awesomele.github.io/homebrew-tap/mddiff/change-matrix.html)**
 - **Two views** — inline and row-aligned side-by-side. Toggle in the page.
 - **Auto-refresh** — edits re-render on browser reload (`Cmd+R`) or on save in VS Code.
-- **Diff minimap** — a right-edge ruler with a bar per change; click or drag to jump.
+- **Diff minimap** — a right-edge ruler with a bar per change; click to jump, drag to scrub.
 - **Git-aware** — working tree, index (`--staged`), unstaged (`--unstaged`), revisions, or two files on disk.
 - **Zero runtime** — a self-contained `bun`-compiled binary; nothing else to install.
 - **CLI + VS Code** — available as a Homebrew CLI and a VS Code extension.

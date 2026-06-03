@@ -15,6 +15,9 @@
   a { color:#58a6ff; text-decoration:none; } a:hover{ text-decoration:underline; }
   code { background:#161b22; padding:.15em .4em; border-radius:6px; font-size:85%; font-family:ui-monospace,Menlo,monospace; }
   pre { background:#161b22; padding:12px; border-radius:8px; overflow:auto; } pre code{ background:none; padding:0; }
+  /* blockquote — mirror the app (src/page.js): a left bar + muted text, so a
+     quote reads as a quote, distinct from prose and from a code block's grey box. */
+  blockquote { border-left:3px solid #30363d; margin:6px 0; padding:0 1em; color:#8b949e; }
   table { display:block; width:max-content; max-width:100%; overflow-x:auto; border-collapse:collapse; }
   th,td { border:1px solid #30363d; padding:5px 10px; }
   /* inline marks */
@@ -91,16 +94,16 @@
 <body>
 <h1>mddiff — change matrix</h1>
 <p class="lead">Every case mddiff renders, shown as a real before/after diff.</p>
-<p class="legend"><b class="del">■ removed</b> &nbsp; <b class="add">■ added</b> &nbsp;·&nbsp; 12 sections, 48 cases</p>
+<p class="legend"><b class="del">■ removed</b> &nbsp; <b class="add">■ added</b> &nbsp;·&nbsp; 12 sections, 125 cases</p>
 <section class="coverage">
 <h2>Coverage — entity × container</h2>
-<table class="cov-grid"><thead><tr><th>entity \ container</th><th>word</th><th>sentence</th><th>paragraph</th><th>page</th><th>heading</th><th>blockquote</th><th>code block</th><th>list</th><th>TOC</th><th>table</th></tr></thead><tbody><tr><th>Character</th><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="eq">✓</span></td><td><span class="eq">✓</span></td><td><span class="eq">✓</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td></tr><tr><th>Word</th><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="eq">✓</span></td><td><span class="eq">✓</span></td><td><span class="cov">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="cov">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="cov">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="cov">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="cov">e</span><span class="gap">a</span><span class="gap">d</span></td></tr><tr><th>Phrase</th><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="eq">✓</span></td><td><span class="eq">✓</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="gap">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="cov">e</span><span class="gap">a</span><span class="gap">d</span></td></tr><tr><th>Sentence</th><td><span class="inv">—</span></td><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="eq">✓</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="inv">—</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="inv">—</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td></tr><tr><th>Paragraph</th><td><span class="inv">—</span></td><td><span class="inv">—</span></td><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="inv">—</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="inv">—</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td></tr><tr><th>Hyperlink</th><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="eq">✓</span></td><td><span class="eq">✓</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="inv">—</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="gap">e</span><span class="gap">a</span><span class="gap">d</span></td></tr></tbody></table>
+<table class="cov-grid"><thead><tr><th>entity \ container</th><th>word</th><th>sentence</th><th>paragraph</th><th>page</th><th>heading</th><th>blockquote</th><th>code block</th><th>list</th><th>TOC</th><th>table</th></tr></thead><tbody><tr><th>Character</th><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="eq">✓</span></td><td><span class="eq">✓</span></td><td><span class="eq">✓</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td></tr><tr><th>Word</th><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="eq">✓</span></td><td><span class="eq">✓</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td></tr><tr><th>Phrase</th><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="eq">✓</span></td><td><span class="eq">✓</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td></tr><tr><th>Sentence</th><td><span class="inv">—</span></td><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="eq">✓</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td></tr><tr><th>Paragraph</th><td><span class="inv">—</span></td><td><span class="inv">—</span></td><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td></tr><tr><th>Hyperlink</th><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="eq">✓</span></td><td><span class="eq">✓</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td></tr></tbody></table>
 <p class="cov-legend"><code>ead</code> = <b>e</b>dit · <b>a</b>dd · <b>d</b>elete: <span class="cov">green</span> = shown here · <span class="gap">red</span> = valid but no example yet.</p>
 <p class="cov-legend"><span class="eq">✓</span> = equivalent class · <span class="inv">—</span> = invalid</p>
 </section>
 <h2 class="nav-h">Jump to a section</h2>
 <p class="nav-sub">Each entry links to that section's before/after examples below; <code>· N</code> is its number of cases.</p>
-<nav class="nav"><a href="#sec-character"><b>Character</b> · 4</a><a href="#sec-word"><b>Word</b> · 3</a><a href="#sec-phrase"><b>Phrase</b> · 2</a><a href="#sec-sentence"><b>Sentence</b> · 3</a><a href="#sec-paragraph"><b>Paragraph</b> · 4</a><a href="#sec-hyperlink"><b>Hyperlink</b> · 6</a><a href="#sec-heading"><b>Heading</b> · 3</a><a href="#sec-blockquote"><b>Blockquote</b> · 3</a><a href="#sec-codeblock"><b>Code block</b> · 5</a><a href="#sec-list"><b>List</b> · 5</a><a href="#sec-toc"><b>Table of contents</b> · 3</a><a href="#sec-table"><b>Table</b> · 7</a></nav>
+<nav class="nav"><a href="#sec-character"><b>Character</b> · 4</a><a href="#sec-word"><b>Word</b> · 3</a><a href="#sec-phrase"><b>Phrase</b> · 4</a><a href="#sec-sentence"><b>Sentence</b> · 3</a><a href="#sec-paragraph"><b>Paragraph</b> · 4</a><a href="#sec-hyperlink"><b>Hyperlink</b> · 6</a><a href="#sec-heading"><b>Heading</b> · 17</a><a href="#sec-blockquote"><b>Blockquote</b> · 20</a><a href="#sec-codeblock"><b>Code block</b> · 11</a><a href="#sec-list"><b>List</b> · 18</a><a href="#sec-toc"><b>Table of contents</b> · 12</a><a href="#sec-table"><b>Table</b> · 23</a></nav>
 
   <section class="sec" id="sec-character">
     <h2>Character</h2>
@@ -235,6 +238,32 @@
         <div class="col col-new"><div class="col-head">after</div><del class="mdblock"><p>The fast red car drove quietly down the long winding road</p>
 </del><ins class="mdblock"><p>The slow blue truck rolled loudly along the short straight street</p>
 </ins></div>
+      </div>
+    </div>
+    <div class="case" id="sentence-phrase-add">
+      <details class="meta">
+        <summary>A phrase inserted mid-sentence <span class="cid">#sentence-phrase-add</span></summary>
+        <p class="coord">phrase · sentence · add</p>
+        <p class="blurb">An appositive phrase added between the subject and verb is marked inline; the rest of the sentence stays clean.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><p data-align="1">The <del data-operation-index="1">server</del><ins data-operation-index="1">server, our only host,</ins> runs locally.</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><p data-align="1">The <del data-operation-index="1">server</del><ins data-operation-index="1">server, our only host,</ins> runs locally.</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="sentence-phrase-delete">
+      <details class="meta">
+        <summary>A phrase removed from mid-sentence <span class="cid">#sentence-phrase-delete</span></summary>
+        <p class="coord">phrase · sentence · delete</p>
+        <p class="blurb">Dropping the appositive phrase struck inline; the surrounding sentence is untouched.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><p data-align="1">The <del data-operation-index="1">server, our only host,</del><ins data-operation-index="1">server</ins> runs locally.</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><p data-align="1">The <del data-operation-index="1">server, our only host,</del><ins data-operation-index="1">server</ins> runs locally.</p>
+</div>
       </div>
     </div>
   </section>
@@ -487,6 +516,216 @@
 </div>
       </div>
     </div>
+    <div class="case" id="heading-character-edit">
+      <details class="meta">
+        <summary>One character changed in a heading <span class="cid">#heading-character-edit</span></summary>
+        <p class="coord">character · heading · edit · consecutive</p>
+        <p class="blurb">A single-letter fix (colour → color) word-diffs in place inside the heading.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1">the <del data-operation-index="1">colour</del><ins data-operation-index="1">color</ins> guide</h1>
+<p data-align="2">body</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1">the <del data-operation-index="1">colour</del><ins data-operation-index="1">color</ins> guide</h1>
+<p data-align="2">body</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="heading-character-add">
+      <details class="meta">
+        <summary>One character added to a heading word <span class="cid">#heading-character-add</span></summary>
+        <p class="coord">character · heading · add</p>
+        <p class="blurb">Inserting a letter (cat → cart) re-marks the whole word, as htmldiff is word-level.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1">the <del data-operation-index="1">cat</del><ins data-operation-index="1">cart</ins> manual</h1>
+<p data-align="2">body</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1">the <del data-operation-index="1">cat</del><ins data-operation-index="1">cart</ins> manual</h1>
+<p data-align="2">body</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="heading-character-delete">
+      <details class="meta">
+        <summary>One character removed from a heading word <span class="cid">#heading-character-delete</span></summary>
+        <p class="coord">character · heading · delete</p>
+        <p class="blurb">The mirror (cart → cat) — the same whole-word re-mark.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1">the <del data-operation-index="1">cart</del><ins data-operation-index="1">cat</ins> manual</h1>
+<p data-align="2">body</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1">the <del data-operation-index="1">cart</del><ins data-operation-index="1">cat</ins> manual</h1>
+<p data-align="2">body</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="heading-word-add">
+      <details class="meta">
+        <summary>A word added to a heading <span class="cid">#heading-word-add</span></summary>
+        <p class="coord">word · heading · add</p>
+        <p class="blurb">A new word in the heading is marked inline; the surrounding words stay clean.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1">Deployment <ins data-operation-index="1">field </ins>guide</h1>
+<p data-align="2">body</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1">Deployment <ins data-operation-index="1">field </ins>guide</h1>
+<p data-align="2">body</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="heading-word-delete">
+      <details class="meta">
+        <summary>A word removed from a heading <span class="cid">#heading-word-delete</span></summary>
+        <p class="coord">word · heading · delete</p>
+        <p class="blurb">A dropped word is struck inline; the rest of the heading stays clean.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1">Deployment <del data-operation-index="1">field </del>guide</h1>
+<p data-align="2">body</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1">Deployment <del data-operation-index="1">field </del>guide</h1>
+<p data-align="2">body</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="heading-phrase-edit">
+      <details class="meta">
+        <summary>A phrase reworded in a heading <span class="cid">#heading-phrase-edit</span></summary>
+        <p class="coord">phrase · heading · edit · consecutive</p>
+        <p class="blurb">The shared opening of the heading stays unmarked; only the divergent tail is shown.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1">Setup for the <del data-operation-index="1">local server</del><ins data-operation-index="1">production cluster</ins></h1>
+<p data-align="2">body</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1">Setup for the <del data-operation-index="1">local server</del><ins data-operation-index="1">production cluster</ins></h1>
+<p data-align="2">body</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="heading-phrase-add">
+      <details class="meta">
+        <summary>A phrase appended to a heading <span class="cid">#heading-phrase-add</span></summary>
+        <p class="coord">phrase · heading · add</p>
+        <p class="blurb">A trailing phrase is marked inline; the original heading text is untouched.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1">Setup guide<ins data-operation-index="1"> for new contributors</ins></h1>
+<p data-align="2">body</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1">Setup guide<ins data-operation-index="1"> for new contributors</ins></h1>
+<p data-align="2">body</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="heading-phrase-delete">
+      <details class="meta">
+        <summary>A phrase removed from a heading <span class="cid">#heading-phrase-delete</span></summary>
+        <p class="coord">phrase · heading · delete</p>
+        <p class="blurb">A trailing phrase struck inline; the kept heading text stays clean.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1">Setup guide<del data-operation-index="1"> for new contributors</del></h1>
+<p data-align="2">body</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1">Setup guide<del data-operation-index="1"> for new contributors</del></h1>
+<p data-align="2">body</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="heading-sentence-edit">
+      <details class="meta">
+        <summary>A sentence-long heading reworded <span class="cid">#heading-sentence-edit</span></summary>
+        <p class="coord">sentence · heading · edit</p>
+        <p class="blurb">A heading that reads as a full clause keeps its shared opening; only the changed tail is marked.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1">Deploys happen <del data-operation-index="1">nightly</del><ins data-operation-index="1">on every merge</ins></h1>
+<p data-align="2">body</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1">Deploys happen <del data-operation-index="1">nightly</del><ins data-operation-index="1">on every merge</ins></h1>
+<p data-align="2">body</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="heading-sentence-add">
+      <details class="meta">
+        <summary>A clause added to a heading <span class="cid">#heading-sentence-add</span></summary>
+        <p class="coord">sentence · heading · add</p>
+        <p class="blurb">A second clause extends the heading; the new text is marked inline.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1">Install the <del data-operation-index="1">tool</del><ins data-operation-index="1">tool. Then restart the daemon</ins></h1>
+<p data-align="2">body</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1">Install the <del data-operation-index="1">tool</del><ins data-operation-index="1">tool. Then restart the daemon</ins></h1>
+<p data-align="2">body</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="heading-sentence-delete">
+      <details class="meta">
+        <summary>A clause removed from a heading <span class="cid">#heading-sentence-delete</span></summary>
+        <p class="coord">sentence · heading · delete</p>
+        <p class="blurb">The trailing clause is dropped; the old text is preserved struck-through.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1">Install the <del data-operation-index="1">tool. Then restart the daemon</del><ins data-operation-index="1">tool</ins></h1>
+<p data-align="2">body</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1">Install the <del data-operation-index="1">tool. Then restart the daemon</del><ins data-operation-index="1">tool</ins></h1>
+<p data-align="2">body</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="heading-hyperlink-edit">
+      <details class="meta">
+        <summary>A link in a heading changed (text + URL) <span class="cid">#heading-hyperlink-edit</span></summary>
+        <p class="coord">hyperlink · heading · edit</p>
+        <p class="blurb">When both the text and the href change, htmldiff marks the link cleanly inside the heading.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1">See <del data-operation-index="1"><a href="#cfg-a">Config</a></del><ins data-operation-index="1"><a href="#cfg-b">Settings</a></ins> now</h1>
+<p data-align="2">body</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1">See <del data-operation-index="1"><a href="#cfg-a">Config</a></del><ins data-operation-index="1"><a href="#cfg-b">Settings</a></ins> now</h1>
+<p data-align="2">body</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="heading-hyperlink-add">
+      <details class="meta">
+        <summary>A heading word turned into a link <span class="cid">#heading-hyperlink-add</span></summary>
+        <p class="coord">hyperlink · heading · add</p>
+        <p class="blurb">Wrapping a heading word in a link: the bare word struck, the linked word added.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1">See the <del data-operation-index="1">docs</del><ins data-operation-index="1"><a href="https://x.example">docs</a></ins> page</h1>
+<p data-align="2">body</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1">See the <del data-operation-index="1">docs</del><ins data-operation-index="1"><a href="https://x.example">docs</a></ins> page</h1>
+<p data-align="2">body</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="heading-hyperlink-delete">
+      <details class="meta">
+        <summary>A heading link turned back into plain text <span class="cid">#heading-hyperlink-delete</span></summary>
+        <p class="coord">hyperlink · heading · delete</p>
+        <p class="blurb">Unwrapping a heading link is the mirror: the linked word struck, the bare word added.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1">See the <del data-operation-index="1"><a href="https://x.example">docs</a></del><ins data-operation-index="1">docs</ins> page</h1>
+<p data-align="2">body</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1">See the <del data-operation-index="1"><a href="https://x.example">docs</a></del><ins data-operation-index="1">docs</ins> page</h1>
+<p data-align="2">body</p>
+</div>
+      </div>
+    </div>
   </section>
   <section class="sec" id="sec-blockquote">
     <h2>Blockquote</h2>
@@ -550,6 +789,331 @@
 <p>A new callout to read.</p>
 </blockquote>
 </del><p data-align="2">after</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="blockquote-character-edit">
+      <details class="meta">
+        <summary>One character changed inside a blockquote <span class="cid">#blockquote-character-edit</span></summary>
+        <p class="coord">character · blockquote · edit · consecutive</p>
+        <p class="blurb">A single-letter fix word-diffs in place inside the quote.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><blockquote data-align="1">
+<p>the <del data-operation-index="1">colour</del><ins data-operation-index="1">color</ins> of dawn</p>
+</blockquote>
+<p data-align="2">after</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><blockquote data-align="1">
+<p>the <del data-operation-index="1">colour</del><ins data-operation-index="1">color</ins> of dawn</p>
+</blockquote>
+<p data-align="2">after</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="blockquote-character-add">
+      <details class="meta">
+        <summary>One character added inside a blockquote <span class="cid">#blockquote-character-add</span></summary>
+        <p class="coord">character · blockquote · add</p>
+        <p class="blurb">Inserting a letter (cat → cart) re-marks the whole word.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><blockquote data-align="1">
+<p>the <del data-operation-index="1">cat</del><ins data-operation-index="1">cart</ins> naps here</p>
+</blockquote>
+<p data-align="2">after</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><blockquote data-align="1">
+<p>the <del data-operation-index="1">cat</del><ins data-operation-index="1">cart</ins> naps here</p>
+</blockquote>
+<p data-align="2">after</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="blockquote-character-delete">
+      <details class="meta">
+        <summary>One character removed inside a blockquote <span class="cid">#blockquote-character-delete</span></summary>
+        <p class="coord">character · blockquote · delete</p>
+        <p class="blurb">The mirror (cart → cat) — same whole-word re-mark.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><blockquote data-align="1">
+<p>the <del data-operation-index="1">cart</del><ins data-operation-index="1">cat</ins> naps here</p>
+</blockquote>
+<p data-align="2">after</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><blockquote data-align="1">
+<p>the <del data-operation-index="1">cart</del><ins data-operation-index="1">cat</ins> naps here</p>
+</blockquote>
+<p data-align="2">after</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="blockquote-word-add">
+      <details class="meta">
+        <summary>A word added inside a blockquote <span class="cid">#blockquote-word-add</span></summary>
+        <p class="coord">word · blockquote · add</p>
+        <p class="blurb">A new word is marked inline; the rest of the quote stays clean.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><blockquote data-align="1">
+<p>The<ins data-operation-index="1"> short</ins> note about deploys</p>
+</blockquote>
+<p data-align="2">after</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><blockquote data-align="1">
+<p>The<ins data-operation-index="1"> short</ins> note about deploys</p>
+</blockquote>
+<p data-align="2">after</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="blockquote-word-delete">
+      <details class="meta">
+        <summary>A word removed inside a blockquote <span class="cid">#blockquote-word-delete</span></summary>
+        <p class="coord">word · blockquote · delete</p>
+        <p class="blurb">A dropped word is struck inline; the rest stays clean.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><blockquote data-align="1">
+<p>The<del data-operation-index="1"> short</del> note about deploys</p>
+</blockquote>
+<p data-align="2">after</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><blockquote data-align="1">
+<p>The<del data-operation-index="1"> short</del> note about deploys</p>
+</blockquote>
+<p data-align="2">after</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="blockquote-phrase-edit">
+      <details class="meta">
+        <summary>A phrase reworded inside a blockquote <span class="cid">#blockquote-phrase-edit</span></summary>
+        <p class="coord">phrase · blockquote · edit · consecutive</p>
+        <p class="blurb">The shared lead-in stays unmarked; only the changed tail is shown.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><blockquote data-align="1">
+<p>Keep all paths relative to the <del data-operation-index="1">workspace</del><ins data-operation-index="1">project</ins> root<ins data-operation-index="3"> for portability</ins></p>
+</blockquote>
+<p data-align="2">after</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><blockquote data-align="1">
+<p>Keep all paths relative to the <del data-operation-index="1">workspace</del><ins data-operation-index="1">project</ins> root<ins data-operation-index="3"> for portability</ins></p>
+</blockquote>
+<p data-align="2">after</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="blockquote-phrase-add">
+      <details class="meta">
+        <summary>A phrase appended inside a blockquote <span class="cid">#blockquote-phrase-add</span></summary>
+        <p class="coord">phrase · blockquote · add</p>
+        <p class="blurb">A trailing phrase is marked inline; the original text is untouched.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><blockquote data-align="1">
+<p>Read the deployment guide<ins data-operation-index="1"> before you start</ins></p>
+</blockquote>
+<p data-align="2">after</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><blockquote data-align="1">
+<p>Read the deployment guide<ins data-operation-index="1"> before you start</ins></p>
+</blockquote>
+<p data-align="2">after</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="blockquote-phrase-delete">
+      <details class="meta">
+        <summary>A phrase removed inside a blockquote <span class="cid">#blockquote-phrase-delete</span></summary>
+        <p class="coord">phrase · blockquote · delete</p>
+        <p class="blurb">A trailing phrase struck inline; the kept text stays clean.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><blockquote data-align="1">
+<p>Read the deployment guide<del data-operation-index="1"> before you start</del></p>
+</blockquote>
+<p data-align="2">after</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><blockquote data-align="1">
+<p>Read the deployment guide<del data-operation-index="1"> before you start</del></p>
+</blockquote>
+<p data-align="2">after</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="blockquote-sentence-edit">
+      <details class="meta">
+        <summary>One sentence changed inside a blockquote <span class="cid">#blockquote-sentence-edit</span></summary>
+        <p class="coord">sentence · blockquote · edit</p>
+        <p class="blurb">The first sentence stays clean; only the second sentence’s tail is marked.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><blockquote data-align="1">
+<p>The server runs locally. Deploys happen <del data-operation-index="1">nightly.</del><ins data-operation-index="1">on every merge.</ins></p>
+</blockquote>
+<p data-align="2">after</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><blockquote data-align="1">
+<p>The server runs locally. Deploys happen <del data-operation-index="1">nightly.</del><ins data-operation-index="1">on every merge.</ins></p>
+</blockquote>
+<p data-align="2">after</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="blockquote-sentence-add">
+      <details class="meta">
+        <summary>A sentence added inside a blockquote <span class="cid">#blockquote-sentence-add</span></summary>
+        <p class="coord">sentence · blockquote · add</p>
+        <p class="blurb">A new trailing sentence is marked inline; the existing sentence stays clean.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><blockquote data-align="1">
+<p>Deploys run nightly.<ins data-operation-index="1"> Rollbacks are automatic.</ins></p>
+</blockquote>
+<p data-align="2">after</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><blockquote data-align="1">
+<p>Deploys run nightly.<ins data-operation-index="1"> Rollbacks are automatic.</ins></p>
+</blockquote>
+<p data-align="2">after</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="blockquote-sentence-delete">
+      <details class="meta">
+        <summary>A sentence removed inside a blockquote <span class="cid">#blockquote-sentence-delete</span></summary>
+        <p class="coord">sentence · blockquote · delete</p>
+        <p class="blurb">A dropped trailing sentence struck inline; the remaining sentence stays clean.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><blockquote data-align="1">
+<p>Deploys run nightly.<del data-operation-index="1"> Rollbacks are automatic.</del></p>
+</blockquote>
+<p data-align="2">after</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><blockquote data-align="1">
+<p>Deploys run nightly.<del data-operation-index="1"> Rollbacks are automatic.</del></p>
+</blockquote>
+<p data-align="2">after</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="blockquote-paragraph-edit">
+      <details class="meta">
+        <summary>One paragraph rewritten inside a multi-paragraph blockquote <span class="cid">#blockquote-paragraph-edit</span></summary>
+        <p class="coord">paragraph · blockquote · edit</p>
+        <p class="blurb">The blockquote holds two paragraphs; the first stays clean while the second is reworded in place.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><blockquote data-align="1">
+<p>Intro line stays.</p>
+<p><del data-operation-index="1">Every path inside command_body</del><ins data-operation-index="1">It</ins> MUST be <del data-operation-index="3">relative to</del><ins data-operation-index="3">runnable as-is from</ins> the <del data-operation-index="5">workspace root.</del><ins data-operation-index="5">project root with the location baked in.</ins></p>
+</blockquote>
+<p data-align="2">after</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><blockquote data-align="1">
+<p>Intro line stays.</p>
+<p><del data-operation-index="1">Every path inside command_body</del><ins data-operation-index="1">It</ins> MUST be <del data-operation-index="3">relative to</del><ins data-operation-index="3">runnable as-is from</ins> the <del data-operation-index="5">workspace root.</del><ins data-operation-index="5">project root with the location baked in.</ins></p>
+</blockquote>
+<p data-align="2">after</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="blockquote-paragraph-add">
+      <details class="meta">
+        <summary>A paragraph added inside a blockquote <span class="cid">#blockquote-paragraph-add</span></summary>
+        <p class="coord">paragraph · blockquote · add</p>
+        <p class="blurb">A second paragraph appended to the callout is marked added; the first stays clean.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><blockquote data-align="1">
+<p>First paragraph stays.</p>
+<p data-diff-node="ins" data-operation-index="1"><ins data-operation-index="1">A second paragraph was added to the callout.</ins></p></blockquote>
+<p data-align="2">after</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><blockquote data-align="1">
+<p>First paragraph stays.</p>
+<p data-diff-node="ins" data-operation-index="1"><ins data-operation-index="1">A second paragraph was added to the callout.</ins></p></blockquote>
+<p data-align="2">after</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="blockquote-paragraph-delete">
+      <details class="meta">
+        <summary>A paragraph removed inside a blockquote <span class="cid">#blockquote-paragraph-delete</span></summary>
+        <p class="coord">paragraph · blockquote · delete</p>
+        <p class="blurb">A dropped second paragraph struck inside the callout; the first stays clean and the old text is preserved.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><blockquote data-align="1">
+<p>First paragraph stays.</p>
+<p data-diff-node="del" data-operation-index="1"><del data-operation-index="1">A second paragraph was added to the callout.</del></p></blockquote>
+<p data-align="2">after</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><blockquote data-align="1">
+<p>First paragraph stays.</p>
+<p data-diff-node="del" data-operation-index="1"><del data-operation-index="1">A second paragraph was added to the callout.</del></p></blockquote>
+<p data-align="2">after</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="blockquote-hyperlink-edit">
+      <details class="meta">
+        <summary>A link in a blockquote changed (text + URL) <span class="cid">#blockquote-hyperlink-edit</span></summary>
+        <p class="coord">hyperlink · blockquote · edit</p>
+        <p class="blurb">Both the text and the href change, so htmldiff marks the link cleanly inside the quote.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><blockquote data-align="1">
+<p>See <del data-operation-index="1"><a href="#cfg-a">Config</a></del><ins data-operation-index="1"><a href="#cfg-b">Settings</a></ins> for details</p>
+</blockquote>
+<p data-align="2">after</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><blockquote data-align="1">
+<p>See <del data-operation-index="1"><a href="#cfg-a">Config</a></del><ins data-operation-index="1"><a href="#cfg-b">Settings</a></ins> for details</p>
+</blockquote>
+<p data-align="2">after</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="blockquote-hyperlink-add">
+      <details class="meta">
+        <summary>A blockquote word turned into a link <span class="cid">#blockquote-hyperlink-add</span></summary>
+        <p class="coord">hyperlink · blockquote · add</p>
+        <p class="blurb">Wrapping a word in a link: the bare word struck, the linked word added.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><blockquote data-align="1">
+<p>See the <del data-operation-index="1">docs</del><ins data-operation-index="1"><a href="https://x.example">docs</a></ins> page for setup</p>
+</blockquote>
+<p data-align="2">after</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><blockquote data-align="1">
+<p>See the <del data-operation-index="1">docs</del><ins data-operation-index="1"><a href="https://x.example">docs</a></ins> page for setup</p>
+</blockquote>
+<p data-align="2">after</p>
+</div>
+      </div>
+    </div>
+    <div class="case" id="blockquote-hyperlink-delete">
+      <details class="meta">
+        <summary>A blockquote link turned back into plain text <span class="cid">#blockquote-hyperlink-delete</span></summary>
+        <p class="coord">hyperlink · blockquote · delete</p>
+        <p class="blurb">Unwrapping a link is the mirror: the linked word struck, the bare word added.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><blockquote data-align="1">
+<p>See the <del data-operation-index="1"><a href="https://x.example">docs</a></del><ins data-operation-index="1">docs</ins> page for setup</p>
+</blockquote>
+<p data-align="2">after</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><blockquote data-align="1">
+<p>See the <del data-operation-index="1"><a href="https://x.example">docs</a></del><ins data-operation-index="1">docs</ins> page for setup</p>
+</blockquote>
+<p data-align="2">after</p>
 </div>
       </div>
     </div>
@@ -647,6 +1211,98 @@ const b = <del data-operation-index="1">2;</del><ins data-operation-index="1">3;
 </div>
       </div>
     </div>
+    <div class="case" id="code-character-edit">
+      <details class="meta">
+        <summary>One character changed on a code line <span class="cid">#code-character-edit</span></summary>
+        <p class="coord">character · codeblock · edit · consecutive</p>
+        <p class="blurb">A single-digit change is word-diffed in place; the rest of the line stays clean.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><pre data-align="1"><code class="language-ini">port = <del data-operation-index="1">8080</del><ins data-operation-index="1">8081</ins>
+</code></pre>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><pre data-align="1"><code class="language-ini">port = <del data-operation-index="1">8080</del><ins data-operation-index="1">8081</ins>
+</code></pre>
+</div>
+      </div>
+    </div>
+    <div class="case" id="code-character-add">
+      <details class="meta">
+        <summary>One character added to a code token <span class="cid">#code-character-add</span></summary>
+        <p class="coord">character · codeblock · add</p>
+        <p class="blurb">Inserting a letter (x → xs) re-marks the whole token; the rest of the line stays clean.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><pre data-align="1"><code class="language-js">let <del data-operation-index="1">x</del><ins data-operation-index="1">xs</ins> = 1;
+</code></pre>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><pre data-align="1"><code class="language-js">let <del data-operation-index="1">x</del><ins data-operation-index="1">xs</ins> = 1;
+</code></pre>
+</div>
+      </div>
+    </div>
+    <div class="case" id="code-character-delete">
+      <details class="meta">
+        <summary>One character removed from a code token <span class="cid">#code-character-delete</span></summary>
+        <p class="coord">character · codeblock · delete</p>
+        <p class="blurb">The mirror (xs → x) — the same whole-token re-mark.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><pre data-align="1"><code class="language-js">let <del data-operation-index="1">xs</del><ins data-operation-index="1">x</ins> = 1;
+</code></pre>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><pre data-align="1"><code class="language-js">let <del data-operation-index="1">xs</del><ins data-operation-index="1">x</ins> = 1;
+</code></pre>
+</div>
+      </div>
+    </div>
+    <div class="case" id="code-word-add">
+      <details class="meta">
+        <summary>A token added to a code line <span class="cid">#code-word-add</span></summary>
+        <p class="coord">word · codeblock · add</p>
+        <p class="blurb">A trailing comment appended to the line is marked added; the code before it stays clean.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><pre data-align="1"><code class="language-js">const a = 1; <ins data-operation-index="1">// ok
+</ins></code></pre>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><pre data-align="1"><code class="language-js">const a = 1; <ins data-operation-index="1">// ok
+</ins></code></pre>
+</div>
+      </div>
+    </div>
+    <div class="case" id="code-word-delete">
+      <details class="meta">
+        <summary>A token removed from a code line <span class="cid">#code-word-delete</span></summary>
+        <p class="coord">word · codeblock · delete</p>
+        <p class="blurb">A dropped trailing comment is struck; the code before it stays clean.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><pre data-align="1"><code class="language-js">const a = 1;
+<del data-operation-index="1">// ok
+</del></code></pre>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><pre data-align="1"><code class="language-js">const a = 1;
+<del data-operation-index="1">// ok
+</del></code></pre>
+</div>
+      </div>
+    </div>
+    <div class="case" id="code-phrase-edit">
+      <details class="meta">
+        <summary>A phrase reworked within a code line <span class="cid">#code-phrase-edit</span></summary>
+        <p class="coord">phrase · codeblock · edit · consecutive</p>
+        <p class="blurb">Several tokens of a string literal change at once; each changed run is word-diffed in place, the line stays inline.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><pre data-align="1"><code class="language-js">const url = &quot;<del data-operation-index="1">http:</del><ins data-operation-index="1">https:</ins>//<del data-operation-index="3">a.</del><ins data-operation-index="3">b.</ins>example/<del data-operation-index="5">v1</del><ins data-operation-index="5">v2</ins>&quot;;
+</code></pre>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><pre data-align="1"><code class="language-js">const url = &quot;<del data-operation-index="1">http:</del><ins data-operation-index="1">https:</ins>//<del data-operation-index="3">a.</del><ins data-operation-index="3">b.</ins>example/<del data-operation-index="5">v1</del><ins data-operation-index="5">v2</ins>&quot;;
+</code></pre>
+</div>
+      </div>
+    </div>
   </section>
   <section class="sec" id="sec-list">
     <h2>List</h2>
@@ -707,6 +1363,149 @@ const b = <del data-operation-index="1">2;</del><ins data-operation-index="1">3;
         <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li data-align="2">keep one</li><li class="li-ins">NEW MIDDLE</li><li data-align="3">keep two</li></ol></div>
       </div>
     </div>
+    <div class="case" id="list-character-edit">
+      <details class="meta">
+        <summary>One character changed in a list item <span class="cid">#list-character-edit</span></summary>
+        <p class="coord">character · list · edit · consecutive</p>
+        <p class="blurb">A single-letter fix word-diffs in place inside the bullet.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><ul data-align="1"><li data-align="2">the <del data-operation-index="1">colour</del><ins data-operation-index="1">color</ins> swatch here</li></ul></div>
+        <div class="col col-new"><div class="col-head">after</div><ul data-align="1"><li data-align="2">the <del data-operation-index="1">colour</del><ins data-operation-index="1">color</ins> swatch here</li></ul></div>
+      </div>
+    </div>
+    <div class="case" id="list-character-add">
+      <details class="meta">
+        <summary>One character added in a list item <span class="cid">#list-character-add</span></summary>
+        <p class="coord">character · list · add</p>
+        <p class="blurb">Inserting a letter (cat → cart) re-marks the whole word; the bullet stays one item.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><ul data-align="1"><li data-align="2">the <del data-operation-index="1">cat</del><ins data-operation-index="1">cart</ins> naps here</li></ul></div>
+        <div class="col col-new"><div class="col-head">after</div><ul data-align="1"><li data-align="2">the <del data-operation-index="1">cat</del><ins data-operation-index="1">cart</ins> naps here</li></ul></div>
+      </div>
+    </div>
+    <div class="case" id="list-character-delete">
+      <details class="meta">
+        <summary>One character removed in a list item <span class="cid">#list-character-delete</span></summary>
+        <p class="coord">character · list · delete</p>
+        <p class="blurb">The mirror (cart → cat) — same whole-word re-mark.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><ul data-align="1"><li data-align="2">the <del data-operation-index="1">cart</del><ins data-operation-index="1">cat</ins> naps here</li></ul></div>
+        <div class="col col-new"><div class="col-head">after</div><ul data-align="1"><li data-align="2">the <del data-operation-index="1">cart</del><ins data-operation-index="1">cat</ins> naps here</li></ul></div>
+      </div>
+    </div>
+    <div class="case" id="list-word-add">
+      <details class="meta">
+        <summary>A word added to a list item <span class="cid">#list-word-add</span></summary>
+        <p class="coord">word · list · add</p>
+        <p class="blurb">A new word is marked inline inside the bullet; the rest stays clean.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><ul data-align="1"><li data-align="2">Use the <ins data-operation-index="1">project </ins>root here</li></ul></div>
+        <div class="col col-new"><div class="col-head">after</div><ul data-align="1"><li data-align="2">Use the <ins data-operation-index="1">project </ins>root here</li></ul></div>
+      </div>
+    </div>
+    <div class="case" id="list-word-delete">
+      <details class="meta">
+        <summary>A word removed from a list item <span class="cid">#list-word-delete</span></summary>
+        <p class="coord">word · list · delete</p>
+        <p class="blurb">A dropped word is struck inline; the rest of the bullet stays clean.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><ul data-align="1"><li data-align="2">Use the <del data-operation-index="1">project </del>root here</li></ul></div>
+        <div class="col col-new"><div class="col-head">after</div><ul data-align="1"><li data-align="2">Use the <del data-operation-index="1">project </del>root here</li></ul></div>
+      </div>
+    </div>
+    <div class="case" id="list-phrase-add">
+      <details class="meta">
+        <summary>A phrase appended to a list item <span class="cid">#list-phrase-add</span></summary>
+        <p class="coord">phrase · list · add</p>
+        <p class="blurb">A trailing phrase is marked inline; the item stays one bullet.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><ul data-align="1"><li data-align="2">Keep all paths relative<ins data-operation-index="1"> to the project root</ins></li></ul></div>
+        <div class="col col-new"><div class="col-head">after</div><ul data-align="1"><li data-align="2">Keep all paths relative<ins data-operation-index="1"> to the project root</ins></li></ul></div>
+      </div>
+    </div>
+    <div class="case" id="list-phrase-delete">
+      <details class="meta">
+        <summary>A phrase removed from a list item <span class="cid">#list-phrase-delete</span></summary>
+        <p class="coord">phrase · list · delete</p>
+        <p class="blurb">A trailing phrase struck inline; the kept text stays clean.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><ul data-align="1"><li data-align="2">Keep all paths relative<del data-operation-index="1"> to the project root</del></li></ul></div>
+        <div class="col col-new"><div class="col-head">after</div><ul data-align="1"><li data-align="2">Keep all paths relative<del data-operation-index="1"> to the project root</del></li></ul></div>
+      </div>
+    </div>
+    <div class="case" id="list-sentence-edit">
+      <details class="meta">
+        <summary>One sentence changed in a list item <span class="cid">#list-sentence-edit</span></summary>
+        <p class="coord">sentence · list · edit</p>
+        <p class="blurb">The first sentence stays clean; only the second sentence’s tail is marked.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><ul data-align="1"><li data-align="2">The server runs locally. Deploys happen <del data-operation-index="1">nightly.</del><ins data-operation-index="1">on every merge.</ins></li></ul></div>
+        <div class="col col-new"><div class="col-head">after</div><ul data-align="1"><li data-align="2">The server runs locally. Deploys happen <del data-operation-index="1">nightly.</del><ins data-operation-index="1">on every merge.</ins></li></ul></div>
+      </div>
+    </div>
+    <div class="case" id="list-sentence-add">
+      <details class="meta">
+        <summary>A sentence added to a list item <span class="cid">#list-sentence-add</span></summary>
+        <p class="coord">sentence · list · add</p>
+        <p class="blurb">A new trailing sentence is marked inline; the existing sentence stays clean.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><ul data-align="1"><li data-align="2">Deploys run nightly.<ins data-operation-index="1"> Rollbacks are automatic.</ins></li></ul></div>
+        <div class="col col-new"><div class="col-head">after</div><ul data-align="1"><li data-align="2">Deploys run nightly.<ins data-operation-index="1"> Rollbacks are automatic.</ins></li></ul></div>
+      </div>
+    </div>
+    <div class="case" id="list-sentence-delete">
+      <details class="meta">
+        <summary>A sentence removed from a list item <span class="cid">#list-sentence-delete</span></summary>
+        <p class="coord">sentence · list · delete</p>
+        <p class="blurb">A dropped trailing sentence struck inline; the remaining sentence stays clean.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><ul data-align="1"><li data-align="2">Deploys run nightly.<del data-operation-index="1"> Rollbacks are automatic.</del></li></ul></div>
+        <div class="col col-new"><div class="col-head">after</div><ul data-align="1"><li data-align="2">Deploys run nightly.<del data-operation-index="1"> Rollbacks are automatic.</del></li></ul></div>
+      </div>
+    </div>
+    <div class="case" id="list-hyperlink-edit">
+      <details class="meta">
+        <summary>A link in a list item changed (text + URL) <span class="cid">#list-hyperlink-edit</span></summary>
+        <p class="coord">hyperlink · list · edit</p>
+        <p class="blurb">Both the text and the href change, so htmldiff marks the link cleanly inside the bullet — it stays one item.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><ul data-align="1"><li data-align="2">See <del data-operation-index="1"><a href="#cfg-a">Config</a></del><ins data-operation-index="1"><a href="#cfg-b">Settings</a></ins> for the steps</li></ul></div>
+        <div class="col col-new"><div class="col-head">after</div><ul data-align="1"><li data-align="2">See <del data-operation-index="1"><a href="#cfg-a">Config</a></del><ins data-operation-index="1"><a href="#cfg-b">Settings</a></ins> for the steps</li></ul></div>
+      </div>
+    </div>
+    <div class="case" id="list-hyperlink-add">
+      <details class="meta">
+        <summary>A list-item word turned into a link <span class="cid">#list-hyperlink-add</span></summary>
+        <p class="coord">hyperlink · list · add</p>
+        <p class="blurb">Wrapping a word in a link: the bare word struck, the linked word added; the bullet stays one item.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><ul data-align="1"><li data-align="2">See the <del data-operation-index="1">docs</del><ins data-operation-index="1"><a href="https://x.example">docs</a></ins> page for setup</li></ul></div>
+        <div class="col col-new"><div class="col-head">after</div><ul data-align="1"><li data-align="2">See the <del data-operation-index="1">docs</del><ins data-operation-index="1"><a href="https://x.example">docs</a></ins> page for setup</li></ul></div>
+      </div>
+    </div>
+    <div class="case" id="list-hyperlink-delete">
+      <details class="meta">
+        <summary>A list-item link turned back into plain text <span class="cid">#list-hyperlink-delete</span></summary>
+        <p class="coord">hyperlink · list · delete</p>
+        <p class="blurb">Unwrapping a link is the mirror: the linked word struck, the bare word added.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><ul data-align="1"><li data-align="2">See the <del data-operation-index="1"><a href="https://x.example">docs</a></del><ins data-operation-index="1">docs</ins> page for setup</li></ul></div>
+        <div class="col col-new"><div class="col-head">after</div><ul data-align="1"><li data-align="2">See the <del data-operation-index="1"><a href="https://x.example">docs</a></del><ins data-operation-index="1">docs</ins> page for setup</li></ul></div>
+      </div>
+    </div>
   </section>
   <section class="sec" id="sec-toc">
     <h2>Table of contents</h2>
@@ -743,6 +1542,105 @@ const b = <del data-operation-index="1">2;</del><ins data-operation-index="1">3;
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li data-align="2"><del data-operation-index="0"><a href="#a">Alpha</a></del><ins data-operation-index="0"><a href="#b">Beta</a></ins></li><li data-align="3"><del data-operation-index="0"><a href="#b">Beta</a></del><ins data-operation-index="0"><a href="#a">Alpha</a></ins></li><li data-align="4"><a href="#c">Gamma</a></li></ol></div>
         <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li data-align="2"><del data-operation-index="0"><a href="#a">Alpha</a></del><ins data-operation-index="0"><a href="#b">Beta</a></ins></li><li data-align="3"><del data-operation-index="0"><a href="#b">Beta</a></del><ins data-operation-index="0"><a href="#a">Alpha</a></ins></li><li data-align="4"><a href="#c">Gamma</a></li></ol></div>
+      </div>
+    </div>
+    <div class="case" id="toc-character-edit">
+      <details class="meta">
+        <summary>One character changed in a TOC entry <span class="cid">#toc-character-edit</span></summary>
+        <p class="coord">character · toc · edit · consecutive</p>
+        <p class="blurb">A TOC entry is a link, so a same-href text fix returns no marks from htmldiff — the safe floor swaps the whole entry, keeping the old text.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#cfg">Configuration</a></li><li class="li-ins" data-align="2"><a href="#cfg">Configurations</a></li><li data-align="3"><a href="#help">Help</a></li></ol></div>
+        <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#cfg">Configuration</a></li><li class="li-ins" data-align="2"><a href="#cfg">Configurations</a></li><li data-align="3"><a href="#help">Help</a></li></ol></div>
+      </div>
+    </div>
+    <div class="case" id="toc-character-add">
+      <details class="meta">
+        <summary>One character added to a TOC entry <span class="cid">#toc-character-add</span></summary>
+        <p class="coord">character · toc · add</p>
+        <p class="blurb">Adding a letter to the entry text (Setup → Setups) is still a same-href text change, so the whole entry is swapped.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#s">Setup</a></li><li class="li-ins" data-align="2"><a href="#s">Setups</a></li><li data-align="3"><a href="#help">Help</a></li></ol></div>
+        <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#s">Setup</a></li><li class="li-ins" data-align="2"><a href="#s">Setups</a></li><li data-align="3"><a href="#help">Help</a></li></ol></div>
+      </div>
+    </div>
+    <div class="case" id="toc-character-delete">
+      <details class="meta">
+        <summary>One character removed from a TOC entry <span class="cid">#toc-character-delete</span></summary>
+        <p class="coord">character · toc · delete</p>
+        <p class="blurb">The mirror (Setups → Setup) — the whole entry is swapped, old text kept.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#s">Setups</a></li><li class="li-ins" data-align="2"><a href="#s">Setup</a></li><li data-align="3"><a href="#help">Help</a></li></ol></div>
+        <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#s">Setups</a></li><li class="li-ins" data-align="2"><a href="#s">Setup</a></li><li data-align="3"><a href="#help">Help</a></li></ol></div>
+      </div>
+    </div>
+    <div class="case" id="toc-word-edit">
+      <details class="meta">
+        <summary>A word changed in a TOC entry <span class="cid">#toc-word-edit</span></summary>
+        <p class="coord">word · toc · edit</p>
+        <p class="blurb">Renaming one word of the entry text (development → deployment), same href — the whole entry is swapped, old text kept.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#local">Local development</a></li><li class="li-ins" data-align="2"><a href="#local">Local deployment</a></li><li data-align="3"><a href="#backups">Backups</a></li></ol></div>
+        <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#local">Local development</a></li><li class="li-ins" data-align="2"><a href="#local">Local deployment</a></li><li data-align="3"><a href="#backups">Backups</a></li></ol></div>
+      </div>
+    </div>
+    <div class="case" id="toc-word-add">
+      <details class="meta">
+        <summary>A word added to a TOC entry <span class="cid">#toc-word-add</span></summary>
+        <p class="coord">word · toc · add</p>
+        <p class="blurb">Inserting a word into the entry text, same href — the whole entry is swapped.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#local">Local setup</a></li><li class="li-ins" data-align="2"><a href="#local">Local machine setup</a></li><li data-align="3"><a href="#backups">Backups</a></li></ol></div>
+        <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#local">Local setup</a></li><li class="li-ins" data-align="2"><a href="#local">Local machine setup</a></li><li data-align="3"><a href="#backups">Backups</a></li></ol></div>
+      </div>
+    </div>
+    <div class="case" id="toc-word-delete">
+      <details class="meta">
+        <summary>A word removed from a TOC entry <span class="cid">#toc-word-delete</span></summary>
+        <p class="coord">word · toc · delete</p>
+        <p class="blurb">The mirror — dropping a word from the entry text swaps the whole entry, old text kept.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#local">Local machine setup</a></li><li class="li-ins" data-align="2"><a href="#local">Local setup</a></li><li data-align="3"><a href="#backups">Backups</a></li></ol></div>
+        <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#local">Local machine setup</a></li><li class="li-ins" data-align="2"><a href="#local">Local setup</a></li><li data-align="3"><a href="#backups">Backups</a></li></ol></div>
+      </div>
+    </div>
+    <div class="case" id="toc-phrase-edit">
+      <details class="meta">
+        <summary>A phrase reworded in a TOC entry <span class="cid">#toc-phrase-edit</span></summary>
+        <p class="coord">phrase · toc · edit · consecutive</p>
+        <p class="blurb">Rewording the whole entry label, same href — the entry is swapped, old label kept.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#prefs">Driver preference storage</a></li><li class="li-ins" data-align="2"><a href="#prefs">Where the driver settings live</a></li><li data-align="3"><a href="#backups">Backups</a></li></ol></div>
+        <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#prefs">Driver preference storage</a></li><li class="li-ins" data-align="2"><a href="#prefs">Where the driver settings live</a></li><li data-align="3"><a href="#backups">Backups</a></li></ol></div>
+      </div>
+    </div>
+    <div class="case" id="toc-phrase-add">
+      <details class="meta">
+        <summary>A phrase appended to a TOC entry <span class="cid">#toc-phrase-add</span></summary>
+        <p class="coord">phrase · toc · add</p>
+        <p class="blurb">Extending the entry label, same href — the entry is swapped.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#backups">Backups</a></li><li class="li-ins" data-align="2"><a href="#backups">Backups and restore</a></li><li data-align="3"><a href="#help">Help</a></li></ol></div>
+        <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#backups">Backups</a></li><li class="li-ins" data-align="2"><a href="#backups">Backups and restore</a></li><li data-align="3"><a href="#help">Help</a></li></ol></div>
+      </div>
+    </div>
+    <div class="case" id="toc-phrase-delete">
+      <details class="meta">
+        <summary>A phrase removed from a TOC entry <span class="cid">#toc-phrase-delete</span></summary>
+        <p class="coord">phrase · toc · delete</p>
+        <p class="blurb">The mirror — shortening the entry label swaps the whole entry, old label kept.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#backups">Backups and restore</a></li><li class="li-ins" data-align="2"><a href="#backups">Backups</a></li><li data-align="3"><a href="#help">Help</a></li></ol></div>
+        <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#backups">Backups and restore</a></li><li class="li-ins" data-align="2"><a href="#backups">Backups</a></li><li data-align="3"><a href="#help">Help</a></li></ol></div>
       </div>
     </div>
   </section>
@@ -1013,6 +1911,566 @@ const b = <del data-operation-index="1">2;</del><ins data-operation-index="1">3;
 </tr>
 <tr class="tr-ins">
 <td><ins><strong>bold</strong> and <a href="http://e">x</a></ins></td>
+</tr>
+</tbody>
+</table>
+</div>
+      </div>
+    </div>
+    <div class="case" id="table-character-edit">
+      <details class="meta">
+        <summary>One character changed in a cell <span class="cid">#table-character-edit</span></summary>
+        <p class="coord">character · table · edit · consecutive</p>
+        <p class="blurb">A single-letter fix word-diffs in place inside the cell; the table stays rectangular.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><table data-align="1">
+<thead>
+<tr>
+<th>Name</th><th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>api</td><td><del data-operation-index="0">colour</del><ins data-operation-index="0">color</ins></td>
+</tr>
+</tbody>
+</table>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><table data-align="1">
+<thead>
+<tr>
+<th>Name</th><th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>api</td><td><del data-operation-index="0">colour</del><ins data-operation-index="0">color</ins></td>
+</tr>
+</tbody>
+</table>
+</div>
+      </div>
+    </div>
+    <div class="case" id="table-character-add">
+      <details class="meta">
+        <summary>One character added in a cell <span class="cid">#table-character-add</span></summary>
+        <p class="coord">character · table · add</p>
+        <p class="blurb">Inserting a letter (cat → cart) re-marks the whole cell word; the table stays rectangular.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><table data-align="1">
+<thead>
+<tr>
+<th>Name</th><th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>api</td><td><del data-operation-index="0">cat</del><ins data-operation-index="0">cart</ins></td>
+</tr>
+</tbody>
+</table>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><table data-align="1">
+<thead>
+<tr>
+<th>Name</th><th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>api</td><td><del data-operation-index="0">cat</del><ins data-operation-index="0">cart</ins></td>
+</tr>
+</tbody>
+</table>
+</div>
+      </div>
+    </div>
+    <div class="case" id="table-character-delete">
+      <details class="meta">
+        <summary>One character removed in a cell <span class="cid">#table-character-delete</span></summary>
+        <p class="coord">character · table · delete</p>
+        <p class="blurb">The mirror (cart → cat) — same whole-word re-mark inside the cell.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><table data-align="1">
+<thead>
+<tr>
+<th>Name</th><th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>api</td><td><del data-operation-index="0">cart</del><ins data-operation-index="0">cat</ins></td>
+</tr>
+</tbody>
+</table>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><table data-align="1">
+<thead>
+<tr>
+<th>Name</th><th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>api</td><td><del data-operation-index="0">cart</del><ins data-operation-index="0">cat</ins></td>
+</tr>
+</tbody>
+</table>
+</div>
+      </div>
+    </div>
+    <div class="case" id="table-word-add">
+      <details class="meta">
+        <summary>A word added in a cell <span class="cid">#table-word-add</span></summary>
+        <p class="coord">word · table · add</p>
+        <p class="blurb">A new word inside the cell is marked inline; the surrounding cell text stays clean.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><table data-align="1">
+<thead>
+<tr>
+<th>Key</th><th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>mode</td><td>old <ins data-operation-index="1">default </ins>value</td>
+</tr>
+</tbody>
+</table>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><table data-align="1">
+<thead>
+<tr>
+<th>Key</th><th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>mode</td><td>old <ins data-operation-index="1">default </ins>value</td>
+</tr>
+</tbody>
+</table>
+</div>
+      </div>
+    </div>
+    <div class="case" id="table-word-delete">
+      <details class="meta">
+        <summary>A word removed in a cell <span class="cid">#table-word-delete</span></summary>
+        <p class="coord">word · table · delete</p>
+        <p class="blurb">A dropped word is struck inline; the rest of the cell stays clean.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><table data-align="1">
+<thead>
+<tr>
+<th>Key</th><th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>mode</td><td>old <del data-operation-index="1">default </del>value</td>
+</tr>
+</tbody>
+</table>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><table data-align="1">
+<thead>
+<tr>
+<th>Key</th><th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>mode</td><td>old <del data-operation-index="1">default </del>value</td>
+</tr>
+</tbody>
+</table>
+</div>
+      </div>
+    </div>
+    <div class="case" id="table-phrase-add">
+      <details class="meta">
+        <summary>A phrase appended in a cell <span class="cid">#table-phrase-add</span></summary>
+        <p class="coord">phrase · table · add</p>
+        <p class="blurb">A trailing phrase inside the cell is marked inline; the cell stays one cell.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><table data-align="1">
+<thead>
+<tr>
+<th>Step</th><th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>build</td><td>keep paths relative<ins data-operation-index="1"> to the root</ins></td>
+</tr>
+</tbody>
+</table>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><table data-align="1">
+<thead>
+<tr>
+<th>Step</th><th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>build</td><td>keep paths relative<ins data-operation-index="1"> to the root</ins></td>
+</tr>
+</tbody>
+</table>
+</div>
+      </div>
+    </div>
+    <div class="case" id="table-phrase-delete">
+      <details class="meta">
+        <summary>A phrase removed in a cell <span class="cid">#table-phrase-delete</span></summary>
+        <p class="coord">phrase · table · delete</p>
+        <p class="blurb">A trailing phrase struck inline; the kept cell text stays clean.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><table data-align="1">
+<thead>
+<tr>
+<th>Step</th><th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>build</td><td>keep paths relative<del data-operation-index="1"> to the root</del></td>
+</tr>
+</tbody>
+</table>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><table data-align="1">
+<thead>
+<tr>
+<th>Step</th><th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>build</td><td>keep paths relative<del data-operation-index="1"> to the root</del></td>
+</tr>
+</tbody>
+</table>
+</div>
+      </div>
+    </div>
+    <div class="case" id="table-sentence-edit">
+      <details class="meta">
+        <summary>One sentence changed in a cell <span class="cid">#table-sentence-edit</span></summary>
+        <p class="coord">sentence · table · edit</p>
+        <p class="blurb">The first sentence in the cell stays clean; only the second sentence’s tail is marked.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><table data-align="1">
+<thead>
+<tr>
+<th>Topic</th><th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>deploy</td><td>Runs locally. Ships <del data-operation-index="1">nightly.</del><ins data-operation-index="1">on merge.</ins></td>
+</tr>
+</tbody>
+</table>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><table data-align="1">
+<thead>
+<tr>
+<th>Topic</th><th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>deploy</td><td>Runs locally. Ships <del data-operation-index="1">nightly.</del><ins data-operation-index="1">on merge.</ins></td>
+</tr>
+</tbody>
+</table>
+</div>
+      </div>
+    </div>
+    <div class="case" id="table-sentence-add">
+      <details class="meta">
+        <summary>A sentence added in a cell <span class="cid">#table-sentence-add</span></summary>
+        <p class="coord">sentence · table · add</p>
+        <p class="blurb">A new trailing sentence inside the cell is marked inline; the existing sentence stays clean.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><table data-align="1">
+<thead>
+<tr>
+<th>Topic</th><th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>deploy</td><td>Ships nightly.<ins data-operation-index="1"> Rollbacks are automatic.</ins></td>
+</tr>
+</tbody>
+</table>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><table data-align="1">
+<thead>
+<tr>
+<th>Topic</th><th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>deploy</td><td>Ships nightly.<ins data-operation-index="1"> Rollbacks are automatic.</ins></td>
+</tr>
+</tbody>
+</table>
+</div>
+      </div>
+    </div>
+    <div class="case" id="table-sentence-delete">
+      <details class="meta">
+        <summary>A sentence removed in a cell <span class="cid">#table-sentence-delete</span></summary>
+        <p class="coord">sentence · table · delete</p>
+        <p class="blurb">A dropped trailing sentence struck inline; the remaining sentence stays clean.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><table data-align="1">
+<thead>
+<tr>
+<th>Topic</th><th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>deploy</td><td>Ships nightly.<del data-operation-index="1"> Rollbacks are automatic.</del></td>
+</tr>
+</tbody>
+</table>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><table data-align="1">
+<thead>
+<tr>
+<th>Topic</th><th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>deploy</td><td>Ships nightly.<del data-operation-index="1"> Rollbacks are automatic.</del></td>
+</tr>
+</tbody>
+</table>
+</div>
+      </div>
+    </div>
+    <div class="case" id="table-paragraph-edit">
+      <details class="meta">
+        <summary>A whole cell reworded <span class="cid">#table-paragraph-edit</span></summary>
+        <p class="coord">paragraph · table · edit</p>
+        <p class="blurb">A paragraph-length cell rewritten in place; each changed run is word-diffed and the table stays rectangular.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><table data-align="1">
+<thead>
+<tr>
+<th>Field</th><th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>body</td><td><del data-operation-index="0">Every path inside command_body</del><ins data-operation-index="0">It</ins> MUST be <del data-operation-index="2">relative to</del><ins data-operation-index="2">runnable as-is from</ins> the <del data-operation-index="4">workspace root.</del><ins data-operation-index="4">project root with its location baked in.</ins></td>
+</tr>
+</tbody>
+</table>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><table data-align="1">
+<thead>
+<tr>
+<th>Field</th><th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>body</td><td><del data-operation-index="0">Every path inside command_body</del><ins data-operation-index="0">It</ins> MUST be <del data-operation-index="2">relative to</del><ins data-operation-index="2">runnable as-is from</ins> the <del data-operation-index="4">workspace root.</del><ins data-operation-index="4">project root with its location baked in.</ins></td>
+</tr>
+</tbody>
+</table>
+</div>
+      </div>
+    </div>
+    <div class="case" id="table-paragraph-add">
+      <details class="meta">
+        <summary>A line added inside a cell <span class="cid">#table-paragraph-add</span></summary>
+        <p class="coord">paragraph · table · add</p>
+        <p class="blurb">A cell with a hard line break (`&lt;br&gt;`) gains a second line; it is marked added and the table stays rectangular.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><table data-align="1">
+<thead>
+<tr>
+<th>Field</th><th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>body</td><td>First line of the note.<br><ins data-operation-index="1">A second line was added below it.</ins></td>
+</tr>
+</tbody>
+</table>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><table data-align="1">
+<thead>
+<tr>
+<th>Field</th><th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>body</td><td>First line of the note.<br><ins data-operation-index="1">A second line was added below it.</ins></td>
+</tr>
+</tbody>
+</table>
+</div>
+      </div>
+    </div>
+    <div class="case" id="table-paragraph-delete">
+      <details class="meta">
+        <summary>A line removed inside a cell <span class="cid">#table-paragraph-delete</span></summary>
+        <p class="coord">paragraph · table · delete</p>
+        <p class="blurb">The second line of a `&lt;br&gt;`-split cell is struck; the first stays clean and the table stays rectangular.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><table data-align="1">
+<thead>
+<tr>
+<th>Field</th><th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>body</td><td>First line of the note.<br><del data-operation-index="1">A second line was added below it.</del></td>
+</tr>
+</tbody>
+</table>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><table data-align="1">
+<thead>
+<tr>
+<th>Field</th><th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>body</td><td>First line of the note.<br><del data-operation-index="1">A second line was added below it.</del></td>
+</tr>
+</tbody>
+</table>
+</div>
+      </div>
+    </div>
+    <div class="case" id="table-hyperlink-edit">
+      <details class="meta">
+        <summary>A link in a cell changed (text + URL) <span class="cid">#table-hyperlink-edit</span></summary>
+        <p class="coord">hyperlink · table · edit</p>
+        <p class="blurb">Both the text and the href change, so htmldiff marks the link cleanly inside the cell.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><table data-align="1">
+<thead>
+<tr>
+<th>Item</th><th>Link</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>cfg</td><td><del data-operation-index="0"><a href="#cfg-a">Config</a></del><ins data-operation-index="0"><a href="#cfg-b">Settings</a></ins></td>
+</tr>
+</tbody>
+</table>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><table data-align="1">
+<thead>
+<tr>
+<th>Item</th><th>Link</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>cfg</td><td><del data-operation-index="0"><a href="#cfg-a">Config</a></del><ins data-operation-index="0"><a href="#cfg-b">Settings</a></ins></td>
+</tr>
+</tbody>
+</table>
+</div>
+      </div>
+    </div>
+    <div class="case" id="table-hyperlink-add">
+      <details class="meta">
+        <summary>A cell word turned into a link <span class="cid">#table-hyperlink-add</span></summary>
+        <p class="coord">hyperlink · table · add</p>
+        <p class="blurb">Wrapping the cell text in a link: the bare word struck, the linked word added.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><table data-align="1">
+<thead>
+<tr>
+<th>Item</th><th>Link</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>cfg</td><td><del data-operation-index="0">docs</del><ins data-operation-index="0"><a href="https://x.example">docs</a></ins></td>
+</tr>
+</tbody>
+</table>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><table data-align="1">
+<thead>
+<tr>
+<th>Item</th><th>Link</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>cfg</td><td><del data-operation-index="0">docs</del><ins data-operation-index="0"><a href="https://x.example">docs</a></ins></td>
+</tr>
+</tbody>
+</table>
+</div>
+      </div>
+    </div>
+    <div class="case" id="table-hyperlink-delete">
+      <details class="meta">
+        <summary>A cell link turned back into plain text <span class="cid">#table-hyperlink-delete</span></summary>
+        <p class="coord">hyperlink · table · delete</p>
+        <p class="blurb">Unwrapping the cell link is the mirror: the linked word struck, the bare word added.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><table data-align="1">
+<thead>
+<tr>
+<th>Item</th><th>Link</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>cfg</td><td><del data-operation-index="0"><a href="https://x.example">docs</a></del><ins data-operation-index="0">docs</ins></td>
+</tr>
+</tbody>
+</table>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><table data-align="1">
+<thead>
+<tr>
+<th>Item</th><th>Link</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>cfg</td><td><del data-operation-index="0"><a href="https://x.example">docs</a></del><ins data-operation-index="0">docs</ins></td>
 </tr>
 </tbody>
 </table>
