@@ -2,6 +2,12 @@
 
 **Boost Markdown review productivity in the AI age.**
 
+## Demo
+
+See mddiff on a real document — a two-version operations handbook diffed end to end, with inline edits, list and table changes, code blocks, rewritten paragraphs, and added/removed sections side by side:
+
+👉 **[View the live rendered diff](https://awesomele.github.io/homebrew-tap/mddiff/polaris-handbook.diff.html)**
+
 ## Why mddiff
 
 Coding agents now generate and modify more Markdown: plans, specs, skills, rules, READMEs, changelogs, and implementation notes.
