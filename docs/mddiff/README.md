@@ -31,6 +31,10 @@ brew install awesomele/tap/mddiff
 
 See the [releases](https://github.com/awesomele/homebrew-tap/releases) for the version history and notes.
 
+Prefer the editor? Install the
+[**VS Code extension**](https://marketplace.visualstudio.com/items?itemName=awesomele.mddiff)
+for the same rendered diff inside VS Code.
+
 ## Usage
 
 ```text
