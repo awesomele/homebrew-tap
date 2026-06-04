@@ -77,8 +77,8 @@
   li.li-ins > :last-child, li.li-del > :last-child { margin-bottom: 0; }
   /* view toggle */
   /* Use the full window in split view (only the body's side padding is
-     reserved — 28px left, 36px right so the minimap's 32px hover never overlaps
-     the right column), so wide tables get the most room. A table still wider
+     reserved — 28px left, 36px right so the fixed 24px minimap clears the
+     right column), so wide tables get the most room. A table still wider
      than its half then shows its own scrollbar — the intended last resort. */
   body.split-mode { max-width: none; }
   .view { display: none; }
@@ -106,7 +106,6 @@
      (mirroring the side-by-side columns). Click to jump, drag to scrub. */
   #mddiff-minimap { position: fixed; top: var(--bar-h, 50px); right: 0; bottom: 0; width: 24px;
     background: rgba(22,27,34,.55); border-left: 1px solid #21262d; z-index: 6; cursor: pointer; }
-  #mddiff-minimap:hover { width: 32px; }
   #mddiff-minimap .tick { position: absolute; min-height: 2px; border-radius: 1px; }
   #mddiff-minimap .tick.del { left: 1px; right: 50%; background: #f85149; }
   #mddiff-minimap .tick.ins { left: 50%; right: 1px; background: #3fb950; }
