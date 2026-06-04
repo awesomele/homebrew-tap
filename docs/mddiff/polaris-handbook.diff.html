@@ -57,6 +57,11 @@
   /* an added block reads as normal prose; a removed block as red, struck-through text */
   ins.mdblock, ins.mdblock * { color: #c9d1d9; text-decoration: none; }
   del.mdblock, del.mdblock * { color: #f85149; text-decoration: line-through; }
+  /* …but a link inside a wholly-added block is still a link — keep the blue +
+     underline rather than inheriting the prose colour above. Most visible on a
+     newly-added file (HEAD has no copy), whose entire TOC/links render inside one
+     ins.mdblock and would otherwise be plain text. */
+  ins.mdblock a, ins.mdblock a * { color: #58a6ff; text-decoration: underline; }
   /* added / removed list items (removed = red, struck through, matching del blocks).
      No LEFT padding: the colored box paints its padding, so any left padding would
      either indent the text past the sibling bullets, or — if cancelled with a
@@ -111,6 +116,13 @@
   .col-new .col-del, .col-new tr.tr-del { display: none; }
   .col h1, .col h2, .col h3, .col h4 { margin-top: 0; }
   .col > :nth-child(2) { margin-top: 0; }
+  /* Hide the native PAGE scrollbar — the right-edge minimap is the scroll
+     indicator (its viewport box) + scrubber, so the scrollbar is redundant, and it
+     otherwise sits inside the floating-TOC hover band and fights it. Scrolling
+     still works via wheel / trackpad / keys / the minimap. Inner overflow (code
+     blocks, wide tables) keeps its OWN scrollbars — this targets only html/body. */
+  html, body { scrollbar-width: none; -ms-overflow-style: none; }
+  html::-webkit-scrollbar, body::-webkit-scrollbar { width: 0; height: 0; display: none; }
   /* diff overview minimap (right edge): one bar per change, its height scaled to
      the change's rendered size; removed on the left half, added on the right
      (mirroring the side-by-side columns). Click to jump, drag to scrub. */
@@ -121,6 +133,40 @@
   #mddiff-minimap .tick.ins { left: 50%; right: 1px; background: #3fb950; }
   #mddiff-vp { position: absolute; left: 0; right: 0; min-height: 14px; pointer-events: none;
     background: rgba(139,148,158,.20); border: 1px solid rgba(139,148,158,.45); border-radius: 2px; }
+  /* Floating table-of-contents (right edge, just left of the diff minimap). Built
+     from the active view's headings; revealed by hovering the right-edge band (the
+     minimap or the slim handle), available at any scroll position. Slides in from
+     the right; the diff ruler stays put. Like the minimap it's colour-only across
+     themes (body.light below), so a theme toggle needs no rebuild. */
+  #mddiff-toc { position: fixed; top: var(--bar-h, 50px); right: 24px; z-index: 6;
+    width: 260px; max-width: 42vw; max-height: calc(100vh - var(--bar-h, 50px) - 24px);
+    overflow: auto; margin: 8px 0; padding: 8px 0;
+    /* see-through "frosted glass": a faint translucent fill + a blur of whatever
+       content is behind, so the panel stays transparent without the entries
+       overlapping the body text underneath. The rgba fill alone is the fallback
+       where backdrop-filter is unsupported. */
+    background: rgba(13,17,23,.72); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    border: 1px solid rgba(110,118,129,.22); border-radius: 6px;
+    font-size: 13px; line-height: 1.5;
+    transform: translateX(calc(100% + 28px)); opacity: 0; pointer-events: none;
+    transition: transform .15s ease, opacity .15s ease; }
+  body.toc-open #mddiff-toc { transform: translateX(0); opacity: 1; pointer-events: auto; }
+  #mddiff-toc a { display: block; color: #8b949e; text-decoration: none; padding: 2px 14px;
+    border-left: 2px solid transparent; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #mddiff-toc a:hover { color: #c9d1d9; background: rgba(110,118,129,.1); }
+  #mddiff-toc a.cur { color: #58a6ff; border-left-color: #1f6feb; }
+  #mddiff-toc a.lvl-1 { font-weight: 600; color: #c9d1d9; }
+  #mddiff-toc a.lvl-2 { padding-left: 26px; } #mddiff-toc a.lvl-3 { padding-left: 38px; }
+  #mddiff-toc a.lvl-4 { padding-left: 50px; } #mddiff-toc a.lvl-5 { padding-left: 62px; }
+  #mddiff-toc a.lvl-6 { padding-left: 74px; }
+  /* slim hover handle — a persistent discoverability cue for the panel. Shown
+     whenever the doc has a TOC (.toc-ready) and the panel isn't already open. */
+  #mddiff-toc-handle { position: fixed; top: 50%; right: 24px; z-index: 6; transform: translateY(-50%);
+    display: none; width: 16px; height: 56px; line-height: 54px; text-align: center;
+    background: rgba(22,27,34,.85); color: #8b949e; border: 1px solid #30363d; border-right: 0;
+    border-radius: 6px 0 0 6px; font-size: 11px; cursor: pointer; user-select: none; }
+  #mddiff-toc-handle:hover { color: #c9d1d9; }
+  body.toc-ready:not(.toc-open) #mddiff-toc-handle { display: block; }
   /* ---- Light ("white") theme. Default is dark; body.light flips the palette to
      a GitHub-light scheme. Every rule is scoped under body.light, so it both wins
      on specificity AND leaves the default (dark) output unchanged. Colours only —
@@ -147,6 +193,7 @@
   body.light ins.mdblock { background: #e6ffec; border-left-color: #2da44e; }
   body.light del.mdblock { background: #ffebe9; border-left-color: #cf222e; }
   body.light ins.mdblock, body.light ins.mdblock * { color: #1f2328; }
+  body.light ins.mdblock a, body.light ins.mdblock a * { color: #0969da; text-decoration: underline; }
   body.light del.mdblock, body.light del.mdblock * { color: #cf222e; }
   body.light li.li-ins { background: #e6ffec; }
   body.light li.li-del, body.light li.li-del * { background: #ffebe9; color: #cf222e; }
@@ -158,6 +205,13 @@
   body.light #mddiff-minimap .tick.del { background: #cf222e; }
   body.light #mddiff-minimap .tick.ins { background: #2da44e; }
   body.light #mddiff-vp { background: rgba(140,149,159,.18); border-color: rgba(140,149,159,.45); }
+  body.light #mddiff-toc { background: rgba(255,255,255,.72); border-color: rgba(140,149,159,.3); }
+  body.light #mddiff-toc a { color: #656d76; }
+  body.light #mddiff-toc a:hover { color: #1f2328; background: rgba(208,215,222,.32); }
+  body.light #mddiff-toc a.cur { color: #0969da; border-left-color: #0969da; }
+  body.light #mddiff-toc a.lvl-1 { color: #1f2328; }
+  body.light #mddiff-toc-handle { background: rgba(246,248,250,.92); color: #656d76; border-color: #d0d7de; }
+  body.light #mddiff-toc-handle:hover { color: #1f2328; }
 </style></head>
 <body>
 <div class="mddiff-bar"><b>polaris-handbook.before.md</b> → <b>polaris-handbook.after.md</b> &nbsp;·&nbsp;
@@ -640,6 +694,8 @@ off <code>polctl</code>.</li><li data-align="67">Dashboards are linked from the 
 the <del data-operation-index="2"><a href="https://wiki.example.com/polaris/postmortems">postmortem index</a>.</del><ins data-operation-index="2">new tracing spans.</ins></li></ul></div>
 </div>
 <div id="mddiff-minimap" title="diff overview — click to jump, drag to scrub"><div id="mddiff-vp"></div></div>
+<nav id="mddiff-toc" aria-label="Table of contents"></nav>
+<div id="mddiff-toc-handle" title="Table of contents">☰</div>
 <script>
 (function () {
   var views = { inline: document.getElementById('inline-view'),
@@ -802,6 +858,117 @@ the <del data-operation-index="2"><a href="https://wiki.example.com/polaris/post
     window.addEventListener('scroll', updateViewport, { passive: true });
   }
 
+  // Floating table-of-contents: a heading outline that slides out to the left of
+  // the diff minimap when you hover the right edge. Available regardless of scroll
+  // position — there is NO in-viewport gate (that boundary was fiddly and mis-fired,
+  // leaving the panel disarmed even when the TOC was off-screen). Entries are built
+  // from the ACTIVE view's headings (each already carries an id from diff.js's
+  // addHeadingIds); clicking one rides the same #-link handler below. Rebuilt on
+  // every view switch, like the minimap.
+  var toc = document.getElementById('mddiff-toc');
+  var tocReady = false, tocHeads = [];
+  // The single body copy to read from — the body is rendered 3× (inline + 2 cols),
+  // so scope to one: the inline view, or in split the canonical "after" column.
+  function tocScope() {
+    var active = document.querySelector('.view.active');
+    if (!active) return null;
+    return active.id === 'split-view' ? (active.querySelector('.col-new') || active) : active;
+  }
+  // A heading's NEW-side text: drop removed (<del>) content so an edited heading
+  // reads as its after-text — "Deploying a change"→"release" is "Deploying a
+  // release", not the concatenated "Deploying a changerelease". textContent alone
+  // keeps the <del> even though CSS hides it in the new column. The right/new file
+  // is the source of truth for the outline.
+  function headingText(h) {
+    var c = h.cloneNode(true), dels = c.querySelectorAll('del');
+    for (var i = 0; i < dels.length; i++) dels[i].parentNode.removeChild(dels[i]);
+    // NB: \s, not s — this whole script is inside buildPage's template literal,
+    // where s would collapse to a bare "s" and the regex would eat every letter s.
+    return (c.textContent || '').replace(/\s+/g, ' ').trim();
+  }
+  function buildToc() {
+    if (!toc) return;
+    toc.textContent = '';
+    tocHeads = [];
+    var scope = tocScope();
+    if (scope) {
+      var hs = scope.querySelectorAll('h1,h2,h3,h4,h5,h6'), frag = document.createDocumentFragment();
+      for (var i = 0; i < hs.length; i++) {
+        var h = hs[i];
+        if (!h.id || h.offsetParent === null) continue; // no slug, or the opposite side's hidden copy
+        var label = headingText(h);
+        if (!label) continue;                           // wholly-removed heading: the new side has no entry
+        var a = document.createElement('a');
+        a.href = '#' + h.id;
+        a.className = 'lvl-' + h.tagName.charAt(1);
+        a.textContent = label;
+        frag.appendChild(a);
+        tocHeads.push({ el: h, link: a });
+      }
+      toc.appendChild(frag);
+    }
+    tocReady = tocHeads.length > 0;            // nothing to reveal for a doc with no headings
+    document.body.classList.toggle('toc-ready', tocReady);
+    updateTocState();
+  }
+  // Scroll-spy: highlight the current section = the last heading whose top has
+  // scrolled above a reading line ~30% down the viewport. Using the very top (the
+  // bar) instead lagged a whole section behind — a heading only became "current"
+  // once it reached the bar, so the section filling the screen wasn't yet marked.
+  // Live rects (cheap, like align()), so resize/relayout needs no rebuild.
+  function updateTocState() {
+    if (!toc) return;
+    var line = (bar ? bar.offsetHeight : 0) + 12 + window.innerHeight * 0.3, curLink = null;
+    for (var i = 0; i < tocHeads.length; i++)
+      if (tocHeads[i].el.getBoundingClientRect().top <= line) curLink = tocHeads[i].link; else break;
+    for (var j = 0; j < tocHeads.length; j++) tocHeads[j].link.classList.toggle('cur', tocHeads[j].link === curLink);
+  }
+  // Reveal logic. The trigger is a GENEROUS band at the right edge (the minimap
+  // plus a margin) — not just the 24px ruler, which was a sliver to hit. The panel
+  // opens once, centred on the cursor's height (clamped to the viewport), then
+  // HOLDS that position so it isn't a moving target. It stays up while the cursor
+  // is over it, and only hides after a forgiving delay once the cursor has left
+  // BOTH the rail and the panel. Armed only when there's a TOC to show (tocReady)
+  // and never mid-scrub (scrubbing is the minimap's own drag flag).
+  var TOC_RAIL = 44, TOC_HIDE_MS = 450;   // px-from-right trigger band; close grace
+  var tocHideTimer = null, tocRaf = 0, tocMX = 0, tocMY = 0;
+  function positionToc(y) { // centre on the cursor, kept within the viewport
+    var h = toc.offsetHeight || 0, barH = bar ? bar.offsetHeight : 50;
+    var minTop = barH + 8, maxTop = Math.max(minTop, window.innerHeight - h - 8);
+    toc.style.top = Math.max(minTop, Math.min(y - h / 2, maxTop)) + 'px';
+  }
+  function tocIsOpen() { return document.body.classList.contains('toc-open'); }
+  function closeToc() { document.body.classList.remove('toc-open'); }
+  function cancelHide() { if (tocHideTimer) { clearTimeout(tocHideTimer); tocHideTimer = null; } }
+  // schedule once — don't reset on every mousemove, or a moving cursor never lets
+  // the timer fire and the panel can't close while the mouse is in motion.
+  function scheduleHide() { if (!tocHideTimer) tocHideTimer = setTimeout(function () { tocHideTimer = null; closeToc(); }, TOC_HIDE_MS); }
+  function overPanel(x, y) {
+    if (!tocIsOpen()) return false;
+    var r = toc.getBoundingClientRect(), pad = 14; // a forgiving margin around the panel
+    return x >= r.left - pad && x <= r.right + pad && y >= r.top - pad && y <= r.bottom + pad;
+  }
+  function onPointer(x, y) {
+    if (!toc || !tocReady || scrubbing) return;
+    var barH = bar ? bar.offsetHeight : 50;
+    if (x >= window.innerWidth - TOC_RAIL && y >= barH) {       // on the right-edge rail
+      cancelHide();
+      if (!tocIsOpen()) { positionToc(y); document.body.classList.add('toc-open'); } // open once, then hold
+    } else if (overPanel(x, y)) {
+      cancelHide();                                             // hovering the panel itself
+    } else if (tocIsOpen()) {
+      scheduleHide();                                           // left both → hide after the grace delay
+    }
+  }
+  window.addEventListener('mousemove', function (e) {
+    tocMX = e.clientX; tocMY = e.clientY;
+    if (tocRaf) return;
+    tocRaf = requestAnimationFrame(function () { tocRaf = 0; onPointer(tocMX, tocMY); });
+  });
+  // Clicking an entry jumps there (handled below); get the panel out of the way.
+  if (toc) toc.addEventListener('click', function () { cancelHide(); closeToc(); });
+  window.addEventListener('scroll', updateTocState, { passive: true });
+
   // In-page anchor jumps (a TOC entry, or any [text](#heading) link). The core
   // now stamps heading ids (see diff.js), but the diff BODY is rendered three
   // times — the inline view + the two columns — so each slug exists up to 3×.
@@ -859,7 +1026,10 @@ the <del data-operation-index="2"><a href="https://wiki.example.com/polaris/post
     if (!a) return;
     var href = a.getAttribute('href') || '';
     if (href.charAt(0) !== '#' || href.length < 2) return; // external link / bare "#": leave to the browser
-    var scope = jumpScope(a) || document.querySelector('.view.active');
+    // A link inside a view scopes to that view; a floating-TOC/nav link (outside
+    // any view) falls back to the active view's canonical side (col-new in split),
+    // matching the deep-link jump below — so it lands in the right column copy.
+    var scope = jumpScope(a) || tocScope();
     if (!scope) return;
     var target = findById(scope, decodeId(href.slice(1)));
     if (target) { e.preventDefault(); scrollToTarget(scope, target, true); }
@@ -885,15 +1055,15 @@ the <del data-operation-index="2"><a href="https://wiki.example.com/polaris/post
     // Remember the chosen view so a reload (Cmd+R re-renders the page from disk)
     // and the next diff keep it, instead of snapping back to the launch view.
     try { localStorage.setItem('mddiff-view', v); } catch (e) {}
-    if (v === 'split') requestAnimationFrame(function () { align(); buildMinimap(); });
-    else requestAnimationFrame(buildMinimap);
+    if (v === 'split') requestAnimationFrame(function () { align(); buildMinimap(); buildToc(); });
+    else requestAnimationFrame(function () { buildMinimap(); buildToc(); });
   }
   btns.inline.onclick = function () { set('inline'); };
   btns.split.onclick  = function () { set('split'); };
 
   var rz;
   window.addEventListener('resize', function () { syncBarH(); clearTimeout(rz); rz = setTimeout(function () { align(); buildMinimap(); }, 120); });
-  window.addEventListener('load', function () { syncBarH(); if (split.classList.contains('active')) align(); buildMinimap(); requestAnimationFrame(jumpToHash); });
+  window.addEventListener('load', function () { syncBarH(); if (split.classList.contains('active')) align(); buildMinimap(); buildToc(); requestAnimationFrame(jumpToHash); });
 
   // Restore the last chosen view; fall back to the launch view ("split")
   // when nothing's stored. This is what keeps a reload from reverting the toggle.
