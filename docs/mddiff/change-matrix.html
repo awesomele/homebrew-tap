@@ -350,15 +350,15 @@
         <p class="blurb">An inserted paragraph is a gap (no anchor); the shared heading below stays row-aligned across columns.</p>
       </details>
       <div class="split">
-        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1">H</h1>
+        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1" id="h">H</h1>
 <p data-align="2">intro</p>
 <ins class="mdblock"><p>INSERTED</p>
-</ins><h2 data-align="3">Steps</h2>
+</ins><h2 data-align="3" id="steps">Steps</h2>
 </div>
-        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1">H</h1>
+        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1" id="h">H</h1>
 <p data-align="2">intro</p>
 <ins class="mdblock"><p>INSERTED</p>
-</ins><h2 data-align="3">Steps</h2>
+</ins><h2 data-align="3" id="steps">Steps</h2>
 </div>
       </div>
     </div>
@@ -474,10 +474,10 @@
         <p class="blurb">A reworded heading keeps its shared words; only the changed word is marked.</p>
       </details>
       <div class="split">
-        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1">Deployment <del data-operation-index="1">guide</del><ins data-operation-index="1">runbook</ins></h1>
+        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1" id="deployment-runbook">Deployment <del data-operation-index="1">guide</del><ins data-operation-index="1">runbook</ins></h1>
 <p data-align="2">body stays</p>
 </div>
-        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1">Deployment <del data-operation-index="1">guide</del><ins data-operation-index="1">runbook</ins></h1>
+        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1" id="deployment-runbook">Deployment <del data-operation-index="1">guide</del><ins data-operation-index="1">runbook</ins></h1>
 <p data-align="2">body stays</p>
 </div>
       </div>
@@ -490,12 +490,12 @@
       </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><p data-align="1">Intro paragraph here.</p>
-<ins class="mdblock"><h2>New Section</h2>
-</ins><h2 data-align="2">Section A</h2>
+<ins class="mdblock"><h2 id="new-section">New Section</h2>
+</ins><h2 data-align="2" id="section-a">Section A</h2>
 </div>
         <div class="col col-new"><div class="col-head">after</div><p data-align="1">Intro paragraph here.</p>
-<ins class="mdblock"><h2>New Section</h2>
-</ins><h2 data-align="2">Section A</h2>
+<ins class="mdblock"><h2 id="new-section">New Section</h2>
+</ins><h2 data-align="2" id="section-a">Section A</h2>
 </div>
       </div>
     </div>
@@ -507,12 +507,12 @@
       </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><p data-align="1">Intro paragraph here.</p>
-<del class="mdblock"><h2>New Section</h2>
-</del><h2 data-align="2">Section A</h2>
+<del class="mdblock"><h2 id="new-section">New Section</h2>
+</del><h2 data-align="2" id="section-a">Section A</h2>
 </div>
         <div class="col col-new"><div class="col-head">after</div><p data-align="1">Intro paragraph here.</p>
-<del class="mdblock"><h2>New Section</h2>
-</del><h2 data-align="2">Section A</h2>
+<del class="mdblock"><h2 id="new-section">New Section</h2>
+</del><h2 data-align="2" id="section-a">Section A</h2>
 </div>
       </div>
     </div>
@@ -523,10 +523,10 @@
         <p class="blurb">A single-letter fix (colour → color) word-diffs in place inside the heading.</p>
       </details>
       <div class="split">
-        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1">the <del data-operation-index="1">colour</del><ins data-operation-index="1">color</ins> guide</h1>
+        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1" id="the-color-guide">the <del data-operation-index="1">colour</del><ins data-operation-index="1">color</ins> guide</h1>
 <p data-align="2">body</p>
 </div>
-        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1">the <del data-operation-index="1">colour</del><ins data-operation-index="1">color</ins> guide</h1>
+        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1" id="the-color-guide">the <del data-operation-index="1">colour</del><ins data-operation-index="1">color</ins> guide</h1>
 <p data-align="2">body</p>
 </div>
       </div>
@@ -538,10 +538,10 @@
         <p class="blurb">Inserting a letter (cat → cart) re-marks the whole word, as htmldiff is word-level.</p>
       </details>
       <div class="split">
-        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1">the <del data-operation-index="1">cat</del><ins data-operation-index="1">cart</ins> manual</h1>
+        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1" id="the-cart-manual">the <del data-operation-index="1">cat</del><ins data-operation-index="1">cart</ins> manual</h1>
 <p data-align="2">body</p>
 </div>
-        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1">the <del data-operation-index="1">cat</del><ins data-operation-index="1">cart</ins> manual</h1>
+        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1" id="the-cart-manual">the <del data-operation-index="1">cat</del><ins data-operation-index="1">cart</ins> manual</h1>
 <p data-align="2">body</p>
 </div>
       </div>
@@ -553,10 +553,10 @@
         <p class="blurb">The mirror (cart → cat) — the same whole-word re-mark.</p>
       </details>
       <div class="split">
-        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1">the <del data-operation-index="1">cart</del><ins data-operation-index="1">cat</ins> manual</h1>
+        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1" id="the-cat-manual">the <del data-operation-index="1">cart</del><ins data-operation-index="1">cat</ins> manual</h1>
 <p data-align="2">body</p>
 </div>
-        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1">the <del data-operation-index="1">cart</del><ins data-operation-index="1">cat</ins> manual</h1>
+        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1" id="the-cat-manual">the <del data-operation-index="1">cart</del><ins data-operation-index="1">cat</ins> manual</h1>
 <p data-align="2">body</p>
 </div>
       </div>
@@ -568,10 +568,10 @@
         <p class="blurb">A new word in the heading is marked inline; the surrounding words stay clean.</p>
       </details>
       <div class="split">
-        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1">Deployment <ins data-operation-index="1">field </ins>guide</h1>
+        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1" id="deployment-field-guide">Deployment <ins data-operation-index="1">field </ins>guide</h1>
 <p data-align="2">body</p>
 </div>
-        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1">Deployment <ins data-operation-index="1">field </ins>guide</h1>
+        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1" id="deployment-field-guide">Deployment <ins data-operation-index="1">field </ins>guide</h1>
 <p data-align="2">body</p>
 </div>
       </div>
@@ -583,10 +583,10 @@
         <p class="blurb">A dropped word is struck inline; the rest of the heading stays clean.</p>
       </details>
       <div class="split">
-        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1">Deployment <del data-operation-index="1">field </del>guide</h1>
+        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1" id="deployment-guide">Deployment <del data-operation-index="1">field </del>guide</h1>
 <p data-align="2">body</p>
 </div>
-        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1">Deployment <del data-operation-index="1">field </del>guide</h1>
+        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1" id="deployment-guide">Deployment <del data-operation-index="1">field </del>guide</h1>
 <p data-align="2">body</p>
 </div>
       </div>
@@ -598,10 +598,10 @@
         <p class="blurb">The shared opening of the heading stays unmarked; only the divergent tail is shown.</p>
       </details>
       <div class="split">
-        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1">Setup for the <del data-operation-index="1">local server</del><ins data-operation-index="1">production cluster</ins></h1>
+        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1" id="setup-for-the-production-cluster">Setup for the <del data-operation-index="1">local server</del><ins data-operation-index="1">production cluster</ins></h1>
 <p data-align="2">body</p>
 </div>
-        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1">Setup for the <del data-operation-index="1">local server</del><ins data-operation-index="1">production cluster</ins></h1>
+        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1" id="setup-for-the-production-cluster">Setup for the <del data-operation-index="1">local server</del><ins data-operation-index="1">production cluster</ins></h1>
 <p data-align="2">body</p>
 </div>
       </div>
@@ -613,10 +613,10 @@
         <p class="blurb">A trailing phrase is marked inline; the original heading text is untouched.</p>
       </details>
       <div class="split">
-        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1">Setup guide<ins data-operation-index="1"> for new contributors</ins></h1>
+        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1" id="setup-guide-for-new-contributors">Setup guide<ins data-operation-index="1"> for new contributors</ins></h1>
 <p data-align="2">body</p>
 </div>
-        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1">Setup guide<ins data-operation-index="1"> for new contributors</ins></h1>
+        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1" id="setup-guide-for-new-contributors">Setup guide<ins data-operation-index="1"> for new contributors</ins></h1>
 <p data-align="2">body</p>
 </div>
       </div>
@@ -628,10 +628,10 @@
         <p class="blurb">A trailing phrase struck inline; the kept heading text stays clean.</p>
       </details>
       <div class="split">
-        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1">Setup guide<del data-operation-index="1"> for new contributors</del></h1>
+        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1" id="setup-guide">Setup guide<del data-operation-index="1"> for new contributors</del></h1>
 <p data-align="2">body</p>
 </div>
-        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1">Setup guide<del data-operation-index="1"> for new contributors</del></h1>
+        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1" id="setup-guide">Setup guide<del data-operation-index="1"> for new contributors</del></h1>
 <p data-align="2">body</p>
 </div>
       </div>
@@ -643,10 +643,10 @@
         <p class="blurb">A heading that reads as a full clause keeps its shared opening; only the changed tail is marked.</p>
       </details>
       <div class="split">
-        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1">Deploys happen <del data-operation-index="1">nightly</del><ins data-operation-index="1">on every merge</ins></h1>
+        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1" id="deploys-happen-on-every-merge">Deploys happen <del data-operation-index="1">nightly</del><ins data-operation-index="1">on every merge</ins></h1>
 <p data-align="2">body</p>
 </div>
-        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1">Deploys happen <del data-operation-index="1">nightly</del><ins data-operation-index="1">on every merge</ins></h1>
+        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1" id="deploys-happen-on-every-merge">Deploys happen <del data-operation-index="1">nightly</del><ins data-operation-index="1">on every merge</ins></h1>
 <p data-align="2">body</p>
 </div>
       </div>
@@ -658,10 +658,10 @@
         <p class="blurb">A second clause extends the heading; the new text is marked inline.</p>
       </details>
       <div class="split">
-        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1">Install the <del data-operation-index="1">tool</del><ins data-operation-index="1">tool. Then restart the daemon</ins></h1>
+        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1" id="install-the-tool-then-restart-the-daemon">Install the <del data-operation-index="1">tool</del><ins data-operation-index="1">tool. Then restart the daemon</ins></h1>
 <p data-align="2">body</p>
 </div>
-        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1">Install the <del data-operation-index="1">tool</del><ins data-operation-index="1">tool. Then restart the daemon</ins></h1>
+        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1" id="install-the-tool-then-restart-the-daemon">Install the <del data-operation-index="1">tool</del><ins data-operation-index="1">tool. Then restart the daemon</ins></h1>
 <p data-align="2">body</p>
 </div>
       </div>
@@ -673,10 +673,10 @@
         <p class="blurb">The trailing clause is dropped; the old text is preserved struck-through.</p>
       </details>
       <div class="split">
-        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1">Install the <del data-operation-index="1">tool. Then restart the daemon</del><ins data-operation-index="1">tool</ins></h1>
+        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1" id="install-the-tool">Install the <del data-operation-index="1">tool. Then restart the daemon</del><ins data-operation-index="1">tool</ins></h1>
 <p data-align="2">body</p>
 </div>
-        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1">Install the <del data-operation-index="1">tool. Then restart the daemon</del><ins data-operation-index="1">tool</ins></h1>
+        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1" id="install-the-tool">Install the <del data-operation-index="1">tool. Then restart the daemon</del><ins data-operation-index="1">tool</ins></h1>
 <p data-align="2">body</p>
 </div>
       </div>
@@ -688,10 +688,10 @@
         <p class="blurb">When both the text and the href change, htmldiff marks the link cleanly inside the heading.</p>
       </details>
       <div class="split">
-        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1">See <del data-operation-index="1"><a href="#cfg-a">Config</a></del><ins data-operation-index="1"><a href="#cfg-b">Settings</a></ins> now</h1>
+        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1" id="see-settings-now">See <del data-operation-index="1"><a href="#cfg-a">Config</a></del><ins data-operation-index="1"><a href="#cfg-b">Settings</a></ins> now</h1>
 <p data-align="2">body</p>
 </div>
-        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1">See <del data-operation-index="1"><a href="#cfg-a">Config</a></del><ins data-operation-index="1"><a href="#cfg-b">Settings</a></ins> now</h1>
+        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1" id="see-settings-now">See <del data-operation-index="1"><a href="#cfg-a">Config</a></del><ins data-operation-index="1"><a href="#cfg-b">Settings</a></ins> now</h1>
 <p data-align="2">body</p>
 </div>
       </div>
@@ -703,10 +703,10 @@
         <p class="blurb">Wrapping a heading word in a link: the bare word struck, the linked word added.</p>
       </details>
       <div class="split">
-        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1">See the <del data-operation-index="1">docs</del><ins data-operation-index="1"><a href="https://x.example">docs</a></ins> page</h1>
+        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1" id="see-the-docs-page">See the <del data-operation-index="1">docs</del><ins data-operation-index="1"><a href="https://x.example">docs</a></ins> page</h1>
 <p data-align="2">body</p>
 </div>
-        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1">See the <del data-operation-index="1">docs</del><ins data-operation-index="1"><a href="https://x.example">docs</a></ins> page</h1>
+        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1" id="see-the-docs-page">See the <del data-operation-index="1">docs</del><ins data-operation-index="1"><a href="https://x.example">docs</a></ins> page</h1>
 <p data-align="2">body</p>
 </div>
       </div>
@@ -718,10 +718,10 @@
         <p class="blurb">Unwrapping a heading link is the mirror: the linked word struck, the bare word added.</p>
       </details>
       <div class="split">
-        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1">See the <del data-operation-index="1"><a href="https://x.example">docs</a></del><ins data-operation-index="1">docs</ins> page</h1>
+        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1" id="see-the-docs-page">See the <del data-operation-index="1"><a href="https://x.example">docs</a></del><ins data-operation-index="1">docs</ins> page</h1>
 <p data-align="2">body</p>
 </div>
-        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1">See the <del data-operation-index="1"><a href="https://x.example">docs</a></del><ins data-operation-index="1">docs</ins> page</h1>
+        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1" id="see-the-docs-page">See the <del data-operation-index="1"><a href="https://x.example">docs</a></del><ins data-operation-index="1">docs</ins> page</h1>
 <p data-align="2">body</p>
 </div>
       </div>
