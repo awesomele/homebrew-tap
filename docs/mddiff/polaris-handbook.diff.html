@@ -114,7 +114,11 @@
      classes are stamped by diffTable; cell-level marks reuse the ins/del rules. */
   .col-old .col-ins, .col-old tr.tr-ins { display: none; }
   .col-new .col-del, .col-new tr.tr-del { display: none; }
-  .col h1, .col h2, .col h3, .col h4 { margin-top: 0; }
+  /* Only the FIRST content block (after the sticky filename header) starts flush
+     at the column top; every other heading keeps its natural top margin so it
+     isn't cramped against the block above it (most visibly a table). Row alignment
+     adds to that margin rather than replacing it (see pushDown), so the spacing
+     and the cross-column alignment coexist. */
   .col > :nth-child(2) { margin-top: 0; }
   /* Hide the native PAGE scrollbar — the right-edge minimap is the scroll
      indicator (its viewport box) + scrubber, so the scrollbar is redundant, and it
@@ -230,27 +234,27 @@ documentation builds to every downstream team. This handbook is the single
 reference for operating it in production: how it is structured, how to deploy a
 change, and what to do when something breaks at 3 a.m.</p>
 <h2 data-align="4" id="contents">Contents</h2>
-<ul data-align="5"><li data-align="6"><a href="#overview">Overview</a></li><li data-align="7"><a href="#architecture">Architecture</a></li><li data-align="8"><del data-operation-index="0"><a href="#deploying-a-change">Deploying a change</a></del><ins data-operation-index="0"><a href="#deploying-a-release">Deploying a release</a></ins></li><li data-align="9"><a href="#configuration">Configuration</a></li><li data-align="10"><a href="#capacity-planning">Capacity planning</a></li><li data-align="11"><a href="#incident-response">Incident response</a></li><li data-align="12"><a href="#cli-reference">CLI reference</a></li><li data-align="13"><a href="#service-tiers">Service tiers</a></li><li class="li-del"><a href="#deprecations">Deprecations</a></li><li class="li-ins"><a href="#observability">Observability</a></li><li data-align="14"><a href="#glossary">Glossary</a></li></ul><h2 data-align="15" id="overview">Overview</h2>
-<p data-align="16">Polaris ingests Markdown from roughly forty repositories, renders it to HTML,
+<ul data-align="5"><li data-align="6"><a href="#overview">Overview</a></li><li data-align="7"><a href="#architecture">Architecture</a></li><li data-align="8"><del data-operation-index="0"><a href="#deploying-a-change">Deploying a change</a></del><ins data-operation-index="0"><a href="#deploying-a-release">Deploying a release</a></ins></li><li data-align="9"><a href="#configuration">Configuration</a></li><li data-align="10"><a href="#capacity-planning">Capacity planning</a></li><li data-align="11"><a href="#render-benchmarks">Render benchmarks</a></li><li data-align="12"><a href="#incident-response">Incident response</a></li><li data-align="13"><a href="#cli-reference">CLI reference</a></li><li data-align="14"><a href="#service-tiers">Service tiers</a></li><li class="li-del"><a href="#deprecations">Deprecations</a></li><li class="li-ins"><a href="#observability">Observability</a></li><li data-align="15"><a href="#glossary">Glossary</a></li></ul><h2 data-align="16" id="overview">Overview</h2>
+<p data-align="17">Polaris ingests Markdown from roughly forty repositories, renders it to HTML,
 and serves the result behind a <del>thin caching layer. The render path is
 deliberately stateless so that any node can serve any request,</del><ins>small caching layer. The render path is
 deliberately stateless so that any worker can pick up any job from the shared
 queue,</ins> and a build is never tied to the machine that produced it.</p>
-<p data-align="17">The platform has three moving parts: an <strong>ingest</strong> worker that watches the
+<p data-align="18">The platform has three moving parts: an <strong>ingest</strong> worker that watches the
 source repositories, a <strong>render</strong> pool that turns Markdown into HTML, and an
 <strong>edge</strong> tier that caches and serves the finished pages to readers. Each part
 can be operated, scaled, and rolled back on its own.<ins data-operation-index="1"> Splitting them this way
 keeps a renderer crash from ever touching ingest.</ins></p>
-<p data-align="18">At steady state Polaris serves a few million page views a day across the three
+<p data-align="19">At steady state Polaris serves a few million page views a day across the three
 regions, with the bulk concentrated in the hour after each Monday release. None
 of that traffic ever reaches a renderer when the cache is warm, which is exactly
 why the edge tier, not the render pool, is sized for the worst case.</p>
-<h2 data-align="19" id="architecture">Architecture</h2>
-<del data-align="20" class="mdblock"><p>Each request enters through the edge tier, which checks its cache first and only
+<h2 data-align="20" id="architecture">Architecture</h2>
+<del data-align="21" class="mdblock"><p>Each request enters through the edge tier, which checks its cache first and only
 falls through to a renderer on a miss. Renderers are completely interchangeable;
 they hold no session state, so the pool can be scaled up or drained at will
 without coordinating between nodes or warming anything in advance.</p>
-</del><ins data-align="20" class="mdblock"><p>Every request arrives at the edge tier, which consults its cache first and only
+</del><ins data-align="21" class="mdblock"><p>Every request arrives at the edge tier, which consults its cache first and only
 drops through to a renderer on a miss. Renderers are entirely fungible; they keep
 no session state, so the fleet can be grown or drained on demand without any
 coordination between nodes or warming work done beforehand.</p>
@@ -261,18 +265,18 @@ replaces it within a minute and no request is lost.</p>
 </del><ins class="mdblock"><p>The edge tier is the only component readers ever talk to directly, and it is
 sized for peak fan-out rather than average load so a thundering herd after a
 cache purge never reaches the renderers.</p>
-</ins><p data-align="21">The ingest worker is the only stateful component, and it keeps nothing more than
+</ins><p data-align="22">The ingest worker is the only stateful component, and it keeps nothing more than
 a cursor into each repository&#39;s commit history.<del data-operation-index="1"> A poisoned commit therefore
 blocks only that one repository, never the whole queue.</del></p>
-<h2 data-align="22" id="deploying-a-release">Deploying a <del data-operation-index="1">change</del><ins data-operation-index="1">release</ins></h2>
-<p data-align="23">Deployment is a strictly ordered process. Do not skip steps, and never deploy to
+<h2 data-align="23" id="deploying-a-release">Deploying a <del data-operation-index="1">change</del><ins data-operation-index="1">release</ins></h2>
+<p data-align="24">Deployment is a strictly ordered process. Do not skip steps, and never deploy to
 all regions at once.</p>
-<ol data-align="24"><li data-align="25">Cut a release branch and tag it <code>polaris-vX.Y.Z</code>.</li><li data-align="26">Run the full test suite and confirm the smoke check is green.</li><li data-align="27">Promote the build to the <code>staging</code> edge and watch the dashboards.</li><li data-align="28">Promote to <code>production</code> one region at a time, starting with <code>us-west</code><del data-operation-index="1">.</del><ins data-operation-index="1">, and
-pause for a full health check between each region before continuing.</ins></li><li class="li-ins">Tag the release as <code>verified</code> once the canary has cleared everywhere.</li><li data-align="29">Update the status page once every region reports healthy.</li></ol><p data-align="30">Promotion to a single region itself has two phases:</p>
-<ul data-align="31"><li data-align="32">Drain ten percent of traffic onto the new build as a canary.</li><li data-align="33">Hold for fifteen minutes, then shift the remaining traffic.</li><li class="li-ins">Roll back instantly if the error rate rises above baseline.</li></ul><h2 data-align="34" id="configuration">Configuration</h2>
-<p data-align="35">The render pool is tuned with a small set of environment variables. The defaults
+<ol data-align="25"><li data-align="26">Cut a release branch and tag it <code>polaris-vX.Y.Z</code>.</li><li data-align="27">Run the full test suite and confirm the smoke check is green.</li><li data-align="28">Promote the build to the <code>staging</code> edge and watch the dashboards.</li><li data-align="29">Promote to <code>production</code> one region at a time, starting with <code>us-west</code><del data-operation-index="1">.</del><ins data-operation-index="1">, and
+pause for a full health check between each region before continuing.</ins></li><li class="li-ins">Tag the release as <code>verified</code> once the canary has cleared everywhere.</li><li data-align="30">Update the status page once every region reports healthy.</li></ol><p data-align="31">Promotion to a single region itself has two phases:</p>
+<ul data-align="32"><li data-align="33">Drain ten percent of traffic onto the new build as a canary.</li><li data-align="34">Hold for fifteen minutes, then shift the remaining traffic.</li><li class="li-ins">Roll back instantly if the error rate rises above baseline.</li></ul><h2 data-align="35" id="configuration">Configuration</h2>
+<p data-align="36">The render pool is tuned with a small set of environment variables. The defaults
 are conservative; <del data-operation-index="1">raise</del><ins data-operation-index="1">change</ins> them only <del data-operation-index="3">with evidence from the dashboards.</del><ins data-operation-index="3">after a load test, never on a hunch.</ins></p>
-<table data-align="36">
+<table data-align="37">
 <thead>
 <tr>
 <th>Variable</th><th>Default</th><th>Purpose</th><th class="col-ins"><ins>Restart needed?</ins></th>
@@ -293,46 +297,104 @@ are conservative; <del data-operation-index="1">raise</del><ins data-operation-i
 </tr>
 </tbody>
 </table>
-<h2 data-align="37" id="capacity-planning">Capacity planning</h2>
-<p data-align="38">Capacity is owned by the on-call lead and revisited at every release review.</p>
-<p data-align="39">Headroom is tracked against the rolling Monday peak; we provision for twice that
+<h2 data-align="38" id="capacity-planning">Capacity planning</h2>
+<p data-align="39">Capacity is owned by the on-call lead and revisited at every release review.</p>
+<p data-align="40">Headroom is tracked against the rolling Monday peak; we provision for twice that
 peak, which has <del data-operation-index="1">comfortably and reliably </del>absorbed every surge so far this year.</p>
-<p data-align="40">Scaling is still manual: an operator adds nodes to the render pool and then waits
+<p data-align="41">Scaling is still manual: an operator adds nodes to the render pool and then waits
 <ins data-operation-index="1">a good while </ins>for them to warm.</p>
-<p data-align="41">The underlying forecast is rough, <del data-operation-index="1">frankly stale, </del>only<del data-operation-index="3"> loosely</del> tuned, and<del data-operation-index="5"> openly</del> optimistic about cache
+<p data-align="42">The underlying forecast is rough, <del data-operation-index="1">frankly stale, </del>only<del data-operation-index="3"> loosely</del> tuned, and<del data-operation-index="5"> openly</del> optimistic about cache
 behaviour.</p>
-<p data-align="42">Storage grows <ins data-operation-index="1">slowly but </ins>predictably and <ins data-operation-index="3">for the most part </ins>needs<ins data-operation-index="5"> almost</ins> no
+<p data-align="43">Storage grows <ins data-operation-index="1">slowly but </ins>predictably and <ins data-operation-index="3">for the most part </ins>needs<ins data-operation-index="5"> almost</ins> no
 attention day to day.</p>
-<del data-align="43" class="mdblock"><p>For now the review itself is <em>informal and quick</em> in practice.</p>
-</del><ins data-align="43" class="mdblock"><p>For now the review itself is <strong>formal, scheduled, and surprisingly thorough</strong> in
+<del data-align="44" class="mdblock"><p>For now the review itself is <em>informal and quick</em> in practice.</p>
+</del><ins data-align="44" class="mdblock"><p>For now the review itself is <strong>formal, scheduled, and surprisingly thorough</strong> in
 practice.</p>
-</ins><h2 data-align="44" id="incident-response">Incident response</h2>
-<p data-align="45">When paged, work the list from the top — the first matching cause is almost
+</ins><h2 data-align="45" id="render-benchmarks">Render benchmarks</h2>
+<p data-align="46">Throughput is measured per node at steady state, p50 renders per second. These
+profiles anchor the capacity forecast above.</p>
+<table data-align="47">
+<thead>
+<tr>
+<th>Profile</th><th>Concurrency</th><th>Renders/sec</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Baseline</td><td>8</td><td>120</td>
+</tr>
+<tr>
+<td>Tuned</td><td>16</td><td><del data-operation-index="0">205</del><ins data-operation-index="0">240</ins></td>
+</tr>
+<tr class="tr-ins">
+<td><ins>Burst</ins></td><td><ins>24</ins></td><td><ins>300</ins></td>
+</tr>
+</tbody>
+</table>
+<h3 data-align="48" id="baseline-profile">Baseline profile</h3>
+<p data-align="49">The conservative default that ships out of the box — safe on the smallest node
+size and the right place to start a new region before there is any load history.</p>
+<table data-align="50">
+<thead>
+<tr>
+<th>Setting</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>RENDER_CONCURRENCY</code></td>
+<td><code>8</code></td>
+</tr>
+<tr>
+<td><code>CACHE_TTL_SECONDS</code></td>
+<td><code>300</code></td>
+</tr>
+</tbody></table>
+<h3 data-align="51" id="tuned-profile">Tuned profile</h3>
+<p data-align="52">Raised concurrency for the Monday peak, paired with a longer cache TTL so the
+edge absorbs more of the surge before a renderer is ever touched.</p>
+<table data-align="53">
+<thead>
+<tr>
+<th>Setting</th><th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>RENDER_CONCURRENCY</code></td><td><code>16</code></td>
+</tr>
+<tr>
+<td><code>CACHE_TTL_SECONDS</code></td><td><code><del data-operation-index="1">600</del><ins data-operation-index="1">900</ins></code></td>
+</tr>
+</tbody>
+</table>
+<h2 data-align="54" id="incident-response">Incident response</h2>
+<p data-align="55">When paged, work the list from the top — the first matching cause is almost
 always the real one.</p>
-<ul data-align="46"><li data-align="47"><strong>Edge returning stale pages.</strong> Confirm the TTL, then purge the affected <del data-operation-index="1">path.</del><ins data-operation-index="1">route.</ins></li><li data-align="48"><strong>Renders timing out.</strong> <del>Renderers are probably starved, so check renderer CPU
+<ul data-align="56"><li data-align="57"><strong>Edge returning stale pages.</strong> Confirm the TTL, then purge the affected <del data-operation-index="1">path.</del><ins data-operation-index="1">route.</ins></li><li data-align="58"><strong>Renders timing out.</strong> <del>Renderers are probably starved, so check renderer CPU
 on the pool dashboard, and if it is pinned, scale the pool out before you reach
 for the code, because nine times out of ten it is load and not a regression.</del><ins>Pull the slowest renderer&#39;s trace, look for a runaway
 Markdown table or a pathological regex in a code fence, and quarantine that one
-source repo rather than scaling the whole pool blindly.</ins></li><li class="li-del"><strong>Ingest lag climbing.</strong> Inspect the cursor; a poisoned commit stalls the queue.</li><li data-align="49"><strong>Total outage.</strong> Page the platform lead and fail over to the static mirror.</li></ul><ins class="mdblock"><blockquote>
+source repo rather than scaling the whole pool blindly.</ins></li><li class="li-del"><strong>Ingest lag climbing.</strong> Inspect the cursor; a poisoned commit stalls the queue.</li><li data-align="59"><strong>Total outage.</strong> Page the platform lead and fail over to the static mirror.</li></ul><ins class="mdblock"><blockquote>
 <p>Open the incident channel before you start poking — a silent fix that works is
 still an incident nobody can learn from later.</p>
 </blockquote>
-</ins><h2 data-align="50" id="cli-reference">CLI reference</h2>
-<p data-align="51">Operators drive Polaris through the <code>pol</code> command. The most common calls:</p>
-<pre data-align="52"><code class="language-sh">pol status --region us-west
+</ins><h2 data-align="60" id="cli-reference">CLI reference</h2>
+<p data-align="61">Operators drive Polaris through the <code>pol</code> command. The most common calls:</p>
+<pre data-align="62"><code class="language-sh">pol status --region us-west
 pol drain renderer-<del data-operation-index="1">7</del><ins data-operation-index="1">12</ins>
 pol cache purge /docs/handbook
 <ins data-operation-index="3">pol tail renderer-12 --since 5m
 </ins></code></pre>
-<p data-align="53">A dry run prints the plan without executing it:</p>
-<pre data-align="54"><code class="language-sh">pol deploy v1.4.0 --dry-run
+<p data-align="63">A dry run prints the plan without executing it:</p>
+<pre data-align="64"><code class="language-sh">pol deploy v1.4.0 --dry-run
 </code></pre>
 <del class="mdblock"><p>Every <code>pol</code> subcommand accepts <code>--json</code> for machine-readable output, which is
 handy when you are scripting against it from a notebook.</p>
-</del><h2 data-align="55" id="service-tiers">Service tiers</h2>
-<p data-align="56">Not every consumer gets the same guarantees. Tiers are assigned at onboarding
+</del><h2 data-align="65" id="service-tiers">Service tiers</h2>
+<p data-align="66">Not every consumer gets the same guarantees. Tiers are assigned at onboarding
 and reviewed whenever a team&#39;s traffic profile changes.</p>
-<table data-align="57">
+<table data-align="67">
 <thead>
 <tr>
 <th>Tier</th><th>Availability</th><th>Support</th>
@@ -357,12 +419,12 @@ next major release; the two share no flags, so the move is not automatic.</p>
 </ins><ins class="mdblock"><p>Every render emits a structured span, so a slow page can be traced end to end
 from the edge hit down to the Markdown lexer. Spans are sampled at one percent in
 steady state and at one hundred percent during a deploy window.</p>
-</ins><pre data-align="58"><code class="language-sh"><del data-operation-index="1">polctl</del><ins data-operation-index="1">pol trace</ins> --<del data-operation-index="3">legacy-status</del><ins data-operation-index="3">slowest 10 --window 15m</ins>
+</ins><pre data-align="68"><code class="language-sh"><del data-operation-index="1">polctl</del><ins data-operation-index="1">pol trace</ins> --<del data-operation-index="3">legacy-status</del><ins data-operation-index="3">slowest 10 --window 15m</ins>
 </code></pre>
-<h2 data-align="59" id="glossary">Glossary</h2>
-<p data-align="60">A few terms recur throughout this handbook, and it is worth pinning them down so
+<h2 data-align="69" id="glossary">Glossary</h2>
+<p data-align="70">A few terms recur throughout this handbook, and it is worth pinning them down so
 that an incident call does not stall on vocabulary:</p>
-<ul data-align="61">
+<ul data-align="71">
 <li><strong>Build</strong> — one rendered snapshot of a source repository at a given commit.</li>
 <li><strong>Canary</strong> — the small slice of live traffic a new build serves first.</li>
 <li><strong>Cursor</strong> — the per-repository commit pointer the ingest worker advances.</li>
@@ -370,12 +432,12 @@ that an incident call does not stall on vocabulary:</p>
 <li><strong>Edge</strong> — the caching tier that readers actually connect to.</li>
 <li><strong>Mirror</strong> — the read-only static fallback served during a total outage.</li>
 </ul>
-<h2 data-align="62" id="references">References</h2>
-<p data-align="63">Further reading lives in the wiki:</p>
-<ul data-align="64"><li class="li-del" data-align="65">The <a href="https://wiki.example.com/polaris/design">original design doc</a> explains the
-stateless render decision.</li><li class="li-ins" data-align="65">The <a href="https://wiki.example.com/polaris/design">platform design doc</a> explains the
-stateless render decision.</li><li data-align="66">The <del data-operation-index="1"><a href="https://wiki.example.com/polaris/migrate">migration guide</a></del><ins data-operation-index="1"><a href="https://wiki.example.com/polaris/migrate-v2">migration guide</a></ins> covers the move
-off <code>polctl</code>.</li><li data-align="67">Dashboards are linked from the <del data-operation-index="1"><a href="https://ops.example.com/polaris">operations portal</a></del><ins data-operation-index="1"><a href="https://metrics.example.com/polaris">metrics portal</a></ins>.</li><li data-align="68"><del data-operation-index="0">Past incidents are catalogued in</del><ins data-operation-index="0">The <a href="https://wiki.example.com/polaris/observability">observability guide</a> explains</ins>
+<h2 data-align="72" id="references">References</h2>
+<p data-align="73">Further reading lives in the wiki:</p>
+<ul data-align="74"><li class="li-del" data-align="75">The <a href="https://wiki.example.com/polaris/design">original design doc</a> explains the
+stateless render decision.</li><li class="li-ins" data-align="75">The <a href="https://wiki.example.com/polaris/design">platform design doc</a> explains the
+stateless render decision.</li><li data-align="76">The <del data-operation-index="1"><a href="https://wiki.example.com/polaris/migrate">migration guide</a></del><ins data-operation-index="1"><a href="https://wiki.example.com/polaris/migrate-v2">migration guide</a></ins> covers the move
+off <code>polctl</code>.</li><li data-align="77">Dashboards are linked from the <del data-operation-index="1"><a href="https://ops.example.com/polaris">operations portal</a></del><ins data-operation-index="1"><a href="https://metrics.example.com/polaris">metrics portal</a></ins>.</li><li data-align="78"><del data-operation-index="0">Past incidents are catalogued in</del><ins data-operation-index="0">The <a href="https://wiki.example.com/polaris/observability">observability guide</a> explains</ins>
 the <del data-operation-index="2"><a href="https://wiki.example.com/polaris/postmortems">postmortem index</a>.</del><ins data-operation-index="2">new tracing spans.</ins></li></ul></div>
 <div id="split-view" class="view">
   <div class="col col-old"><div class="col-head"><b>polaris-handbook.before.md</b></div><h1 data-align="1" id="polaris-platform-operations-handbook">Polaris Platform — Operations Handbook</h1>
@@ -388,27 +450,27 @@ documentation builds to every downstream team. This handbook is the single
 reference for operating it in production: how it is structured, how to deploy a
 change, and what to do when something breaks at 3 a.m.</p>
 <h2 data-align="4" id="contents">Contents</h2>
-<ul data-align="5"><li data-align="6"><a href="#overview">Overview</a></li><li data-align="7"><a href="#architecture">Architecture</a></li><li data-align="8"><del data-operation-index="0"><a href="#deploying-a-change">Deploying a change</a></del><ins data-operation-index="0"><a href="#deploying-a-release">Deploying a release</a></ins></li><li data-align="9"><a href="#configuration">Configuration</a></li><li data-align="10"><a href="#capacity-planning">Capacity planning</a></li><li data-align="11"><a href="#incident-response">Incident response</a></li><li data-align="12"><a href="#cli-reference">CLI reference</a></li><li data-align="13"><a href="#service-tiers">Service tiers</a></li><li class="li-del"><a href="#deprecations">Deprecations</a></li><li class="li-ins"><a href="#observability">Observability</a></li><li data-align="14"><a href="#glossary">Glossary</a></li></ul><h2 data-align="15" id="overview">Overview</h2>
-<p data-align="16">Polaris ingests Markdown from roughly forty repositories, renders it to HTML,
+<ul data-align="5"><li data-align="6"><a href="#overview">Overview</a></li><li data-align="7"><a href="#architecture">Architecture</a></li><li data-align="8"><del data-operation-index="0"><a href="#deploying-a-change">Deploying a change</a></del><ins data-operation-index="0"><a href="#deploying-a-release">Deploying a release</a></ins></li><li data-align="9"><a href="#configuration">Configuration</a></li><li data-align="10"><a href="#capacity-planning">Capacity planning</a></li><li data-align="11"><a href="#render-benchmarks">Render benchmarks</a></li><li data-align="12"><a href="#incident-response">Incident response</a></li><li data-align="13"><a href="#cli-reference">CLI reference</a></li><li data-align="14"><a href="#service-tiers">Service tiers</a></li><li class="li-del"><a href="#deprecations">Deprecations</a></li><li class="li-ins"><a href="#observability">Observability</a></li><li data-align="15"><a href="#glossary">Glossary</a></li></ul><h2 data-align="16" id="overview">Overview</h2>
+<p data-align="17">Polaris ingests Markdown from roughly forty repositories, renders it to HTML,
 and serves the result behind a <del>thin caching layer. The render path is
 deliberately stateless so that any node can serve any request,</del><ins>small caching layer. The render path is
 deliberately stateless so that any worker can pick up any job from the shared
 queue,</ins> and a build is never tied to the machine that produced it.</p>
-<p data-align="17">The platform has three moving parts: an <strong>ingest</strong> worker that watches the
+<p data-align="18">The platform has three moving parts: an <strong>ingest</strong> worker that watches the
 source repositories, a <strong>render</strong> pool that turns Markdown into HTML, and an
 <strong>edge</strong> tier that caches and serves the finished pages to readers. Each part
 can be operated, scaled, and rolled back on its own.<ins data-operation-index="1"> Splitting them this way
 keeps a renderer crash from ever touching ingest.</ins></p>
-<p data-align="18">At steady state Polaris serves a few million page views a day across the three
+<p data-align="19">At steady state Polaris serves a few million page views a day across the three
 regions, with the bulk concentrated in the hour after each Monday release. None
 of that traffic ever reaches a renderer when the cache is warm, which is exactly
 why the edge tier, not the render pool, is sized for the worst case.</p>
-<h2 data-align="19" id="architecture">Architecture</h2>
-<del data-align="20" class="mdblock"><p>Each request enters through the edge tier, which checks its cache first and only
+<h2 data-align="20" id="architecture">Architecture</h2>
+<del data-align="21" class="mdblock"><p>Each request enters through the edge tier, which checks its cache first and only
 falls through to a renderer on a miss. Renderers are completely interchangeable;
 they hold no session state, so the pool can be scaled up or drained at will
 without coordinating between nodes or warming anything in advance.</p>
-</del><ins data-align="20" class="mdblock"><p>Every request arrives at the edge tier, which consults its cache first and only
+</del><ins data-align="21" class="mdblock"><p>Every request arrives at the edge tier, which consults its cache first and only
 drops through to a renderer on a miss. Renderers are entirely fungible; they keep
 no session state, so the fleet can be grown or drained on demand without any
 coordination between nodes or warming work done beforehand.</p>
@@ -419,18 +481,18 @@ replaces it within a minute and no request is lost.</p>
 </del><ins class="mdblock"><p>The edge tier is the only component readers ever talk to directly, and it is
 sized for peak fan-out rather than average load so a thundering herd after a
 cache purge never reaches the renderers.</p>
-</ins><p data-align="21">The ingest worker is the only stateful component, and it keeps nothing more than
+</ins><p data-align="22">The ingest worker is the only stateful component, and it keeps nothing more than
 a cursor into each repository&#39;s commit history.<del data-operation-index="1"> A poisoned commit therefore
 blocks only that one repository, never the whole queue.</del></p>
-<h2 data-align="22" id="deploying-a-release">Deploying a <del data-operation-index="1">change</del><ins data-operation-index="1">release</ins></h2>
-<p data-align="23">Deployment is a strictly ordered process. Do not skip steps, and never deploy to
+<h2 data-align="23" id="deploying-a-release">Deploying a <del data-operation-index="1">change</del><ins data-operation-index="1">release</ins></h2>
+<p data-align="24">Deployment is a strictly ordered process. Do not skip steps, and never deploy to
 all regions at once.</p>
-<ol data-align="24"><li data-align="25">Cut a release branch and tag it <code>polaris-vX.Y.Z</code>.</li><li data-align="26">Run the full test suite and confirm the smoke check is green.</li><li data-align="27">Promote the build to the <code>staging</code> edge and watch the dashboards.</li><li data-align="28">Promote to <code>production</code> one region at a time, starting with <code>us-west</code><del data-operation-index="1">.</del><ins data-operation-index="1">, and
-pause for a full health check between each region before continuing.</ins></li><li class="li-ins">Tag the release as <code>verified</code> once the canary has cleared everywhere.</li><li data-align="29">Update the status page once every region reports healthy.</li></ol><p data-align="30">Promotion to a single region itself has two phases:</p>
-<ul data-align="31"><li data-align="32">Drain ten percent of traffic onto the new build as a canary.</li><li data-align="33">Hold for fifteen minutes, then shift the remaining traffic.</li><li class="li-ins">Roll back instantly if the error rate rises above baseline.</li></ul><h2 data-align="34" id="configuration">Configuration</h2>
-<p data-align="35">The render pool is tuned with a small set of environment variables. The defaults
+<ol data-align="25"><li data-align="26">Cut a release branch and tag it <code>polaris-vX.Y.Z</code>.</li><li data-align="27">Run the full test suite and confirm the smoke check is green.</li><li data-align="28">Promote the build to the <code>staging</code> edge and watch the dashboards.</li><li data-align="29">Promote to <code>production</code> one region at a time, starting with <code>us-west</code><del data-operation-index="1">.</del><ins data-operation-index="1">, and
+pause for a full health check between each region before continuing.</ins></li><li class="li-ins">Tag the release as <code>verified</code> once the canary has cleared everywhere.</li><li data-align="30">Update the status page once every region reports healthy.</li></ol><p data-align="31">Promotion to a single region itself has two phases:</p>
+<ul data-align="32"><li data-align="33">Drain ten percent of traffic onto the new build as a canary.</li><li data-align="34">Hold for fifteen minutes, then shift the remaining traffic.</li><li class="li-ins">Roll back instantly if the error rate rises above baseline.</li></ul><h2 data-align="35" id="configuration">Configuration</h2>
+<p data-align="36">The render pool is tuned with a small set of environment variables. The defaults
 are conservative; <del data-operation-index="1">raise</del><ins data-operation-index="1">change</ins> them only <del data-operation-index="3">with evidence from the dashboards.</del><ins data-operation-index="3">after a load test, never on a hunch.</ins></p>
-<table data-align="36">
+<table data-align="37">
 <thead>
 <tr>
 <th>Variable</th><th>Default</th><th>Purpose</th><th class="col-ins"><ins>Restart needed?</ins></th>
@@ -451,46 +513,104 @@ are conservative; <del data-operation-index="1">raise</del><ins data-operation-i
 </tr>
 </tbody>
 </table>
-<h2 data-align="37" id="capacity-planning">Capacity planning</h2>
-<p data-align="38">Capacity is owned by the on-call lead and revisited at every release review.</p>
-<p data-align="39">Headroom is tracked against the rolling Monday peak; we provision for twice that
+<h2 data-align="38" id="capacity-planning">Capacity planning</h2>
+<p data-align="39">Capacity is owned by the on-call lead and revisited at every release review.</p>
+<p data-align="40">Headroom is tracked against the rolling Monday peak; we provision for twice that
 peak, which has <del data-operation-index="1">comfortably and reliably </del>absorbed every surge so far this year.</p>
-<p data-align="40">Scaling is still manual: an operator adds nodes to the render pool and then waits
+<p data-align="41">Scaling is still manual: an operator adds nodes to the render pool and then waits
 <ins data-operation-index="1">a good while </ins>for them to warm.</p>
-<p data-align="41">The underlying forecast is rough, <del data-operation-index="1">frankly stale, </del>only<del data-operation-index="3"> loosely</del> tuned, and<del data-operation-index="5"> openly</del> optimistic about cache
+<p data-align="42">The underlying forecast is rough, <del data-operation-index="1">frankly stale, </del>only<del data-operation-index="3"> loosely</del> tuned, and<del data-operation-index="5"> openly</del> optimistic about cache
 behaviour.</p>
-<p data-align="42">Storage grows <ins data-operation-index="1">slowly but </ins>predictably and <ins data-operation-index="3">for the most part </ins>needs<ins data-operation-index="5"> almost</ins> no
+<p data-align="43">Storage grows <ins data-operation-index="1">slowly but </ins>predictably and <ins data-operation-index="3">for the most part </ins>needs<ins data-operation-index="5"> almost</ins> no
 attention day to day.</p>
-<del data-align="43" class="mdblock"><p>For now the review itself is <em>informal and quick</em> in practice.</p>
-</del><ins data-align="43" class="mdblock"><p>For now the review itself is <strong>formal, scheduled, and surprisingly thorough</strong> in
+<del data-align="44" class="mdblock"><p>For now the review itself is <em>informal and quick</em> in practice.</p>
+</del><ins data-align="44" class="mdblock"><p>For now the review itself is <strong>formal, scheduled, and surprisingly thorough</strong> in
 practice.</p>
-</ins><h2 data-align="44" id="incident-response">Incident response</h2>
-<p data-align="45">When paged, work the list from the top — the first matching cause is almost
+</ins><h2 data-align="45" id="render-benchmarks">Render benchmarks</h2>
+<p data-align="46">Throughput is measured per node at steady state, p50 renders per second. These
+profiles anchor the capacity forecast above.</p>
+<table data-align="47">
+<thead>
+<tr>
+<th>Profile</th><th>Concurrency</th><th>Renders/sec</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Baseline</td><td>8</td><td>120</td>
+</tr>
+<tr>
+<td>Tuned</td><td>16</td><td><del data-operation-index="0">205</del><ins data-operation-index="0">240</ins></td>
+</tr>
+<tr class="tr-ins">
+<td><ins>Burst</ins></td><td><ins>24</ins></td><td><ins>300</ins></td>
+</tr>
+</tbody>
+</table>
+<h3 data-align="48" id="baseline-profile">Baseline profile</h3>
+<p data-align="49">The conservative default that ships out of the box — safe on the smallest node
+size and the right place to start a new region before there is any load history.</p>
+<table data-align="50">
+<thead>
+<tr>
+<th>Setting</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>RENDER_CONCURRENCY</code></td>
+<td><code>8</code></td>
+</tr>
+<tr>
+<td><code>CACHE_TTL_SECONDS</code></td>
+<td><code>300</code></td>
+</tr>
+</tbody></table>
+<h3 data-align="51" id="tuned-profile">Tuned profile</h3>
+<p data-align="52">Raised concurrency for the Monday peak, paired with a longer cache TTL so the
+edge absorbs more of the surge before a renderer is ever touched.</p>
+<table data-align="53">
+<thead>
+<tr>
+<th>Setting</th><th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>RENDER_CONCURRENCY</code></td><td><code>16</code></td>
+</tr>
+<tr>
+<td><code>CACHE_TTL_SECONDS</code></td><td><code><del data-operation-index="1">600</del><ins data-operation-index="1">900</ins></code></td>
+</tr>
+</tbody>
+</table>
+<h2 data-align="54" id="incident-response">Incident response</h2>
+<p data-align="55">When paged, work the list from the top — the first matching cause is almost
 always the real one.</p>
-<ul data-align="46"><li data-align="47"><strong>Edge returning stale pages.</strong> Confirm the TTL, then purge the affected <del data-operation-index="1">path.</del><ins data-operation-index="1">route.</ins></li><li data-align="48"><strong>Renders timing out.</strong> <del>Renderers are probably starved, so check renderer CPU
+<ul data-align="56"><li data-align="57"><strong>Edge returning stale pages.</strong> Confirm the TTL, then purge the affected <del data-operation-index="1">path.</del><ins data-operation-index="1">route.</ins></li><li data-align="58"><strong>Renders timing out.</strong> <del>Renderers are probably starved, so check renderer CPU
 on the pool dashboard, and if it is pinned, scale the pool out before you reach
 for the code, because nine times out of ten it is load and not a regression.</del><ins>Pull the slowest renderer&#39;s trace, look for a runaway
 Markdown table or a pathological regex in a code fence, and quarantine that one
-source repo rather than scaling the whole pool blindly.</ins></li><li class="li-del"><strong>Ingest lag climbing.</strong> Inspect the cursor; a poisoned commit stalls the queue.</li><li data-align="49"><strong>Total outage.</strong> Page the platform lead and fail over to the static mirror.</li></ul><ins class="mdblock"><blockquote>
+source repo rather than scaling the whole pool blindly.</ins></li><li class="li-del"><strong>Ingest lag climbing.</strong> Inspect the cursor; a poisoned commit stalls the queue.</li><li data-align="59"><strong>Total outage.</strong> Page the platform lead and fail over to the static mirror.</li></ul><ins class="mdblock"><blockquote>
 <p>Open the incident channel before you start poking — a silent fix that works is
 still an incident nobody can learn from later.</p>
 </blockquote>
-</ins><h2 data-align="50" id="cli-reference">CLI reference</h2>
-<p data-align="51">Operators drive Polaris through the <code>pol</code> command. The most common calls:</p>
-<pre data-align="52"><code class="language-sh">pol status --region us-west
+</ins><h2 data-align="60" id="cli-reference">CLI reference</h2>
+<p data-align="61">Operators drive Polaris through the <code>pol</code> command. The most common calls:</p>
+<pre data-align="62"><code class="language-sh">pol status --region us-west
 pol drain renderer-<del data-operation-index="1">7</del><ins data-operation-index="1">12</ins>
 pol cache purge /docs/handbook
 <ins data-operation-index="3">pol tail renderer-12 --since 5m
 </ins></code></pre>
-<p data-align="53">A dry run prints the plan without executing it:</p>
-<pre data-align="54"><code class="language-sh">pol deploy v1.4.0 --dry-run
+<p data-align="63">A dry run prints the plan without executing it:</p>
+<pre data-align="64"><code class="language-sh">pol deploy v1.4.0 --dry-run
 </code></pre>
 <del class="mdblock"><p>Every <code>pol</code> subcommand accepts <code>--json</code> for machine-readable output, which is
 handy when you are scripting against it from a notebook.</p>
-</del><h2 data-align="55" id="service-tiers">Service tiers</h2>
-<p data-align="56">Not every consumer gets the same guarantees. Tiers are assigned at onboarding
+</del><h2 data-align="65" id="service-tiers">Service tiers</h2>
+<p data-align="66">Not every consumer gets the same guarantees. Tiers are assigned at onboarding
 and reviewed whenever a team&#39;s traffic profile changes.</p>
-<table data-align="57">
+<table data-align="67">
 <thead>
 <tr>
 <th>Tier</th><th>Availability</th><th>Support</th>
@@ -515,12 +635,12 @@ next major release; the two share no flags, so the move is not automatic.</p>
 </ins><ins class="mdblock"><p>Every render emits a structured span, so a slow page can be traced end to end
 from the edge hit down to the Markdown lexer. Spans are sampled at one percent in
 steady state and at one hundred percent during a deploy window.</p>
-</ins><pre data-align="58"><code class="language-sh"><del data-operation-index="1">polctl</del><ins data-operation-index="1">pol trace</ins> --<del data-operation-index="3">legacy-status</del><ins data-operation-index="3">slowest 10 --window 15m</ins>
+</ins><pre data-align="68"><code class="language-sh"><del data-operation-index="1">polctl</del><ins data-operation-index="1">pol trace</ins> --<del data-operation-index="3">legacy-status</del><ins data-operation-index="3">slowest 10 --window 15m</ins>
 </code></pre>
-<h2 data-align="59" id="glossary">Glossary</h2>
-<p data-align="60">A few terms recur throughout this handbook, and it is worth pinning them down so
+<h2 data-align="69" id="glossary">Glossary</h2>
+<p data-align="70">A few terms recur throughout this handbook, and it is worth pinning them down so
 that an incident call does not stall on vocabulary:</p>
-<ul data-align="61">
+<ul data-align="71">
 <li><strong>Build</strong> — one rendered snapshot of a source repository at a given commit.</li>
 <li><strong>Canary</strong> — the small slice of live traffic a new build serves first.</li>
 <li><strong>Cursor</strong> — the per-repository commit pointer the ingest worker advances.</li>
@@ -528,12 +648,12 @@ that an incident call does not stall on vocabulary:</p>
 <li><strong>Edge</strong> — the caching tier that readers actually connect to.</li>
 <li><strong>Mirror</strong> — the read-only static fallback served during a total outage.</li>
 </ul>
-<h2 data-align="62" id="references">References</h2>
-<p data-align="63">Further reading lives in the wiki:</p>
-<ul data-align="64"><li class="li-del" data-align="65">The <a href="https://wiki.example.com/polaris/design">original design doc</a> explains the
-stateless render decision.</li><li class="li-ins" data-align="65">The <a href="https://wiki.example.com/polaris/design">platform design doc</a> explains the
-stateless render decision.</li><li data-align="66">The <del data-operation-index="1"><a href="https://wiki.example.com/polaris/migrate">migration guide</a></del><ins data-operation-index="1"><a href="https://wiki.example.com/polaris/migrate-v2">migration guide</a></ins> covers the move
-off <code>polctl</code>.</li><li data-align="67">Dashboards are linked from the <del data-operation-index="1"><a href="https://ops.example.com/polaris">operations portal</a></del><ins data-operation-index="1"><a href="https://metrics.example.com/polaris">metrics portal</a></ins>.</li><li data-align="68"><del data-operation-index="0">Past incidents are catalogued in</del><ins data-operation-index="0">The <a href="https://wiki.example.com/polaris/observability">observability guide</a> explains</ins>
+<h2 data-align="72" id="references">References</h2>
+<p data-align="73">Further reading lives in the wiki:</p>
+<ul data-align="74"><li class="li-del" data-align="75">The <a href="https://wiki.example.com/polaris/design">original design doc</a> explains the
+stateless render decision.</li><li class="li-ins" data-align="75">The <a href="https://wiki.example.com/polaris/design">platform design doc</a> explains the
+stateless render decision.</li><li data-align="76">The <del data-operation-index="1"><a href="https://wiki.example.com/polaris/migrate">migration guide</a></del><ins data-operation-index="1"><a href="https://wiki.example.com/polaris/migrate-v2">migration guide</a></ins> covers the move
+off <code>polctl</code>.</li><li data-align="77">Dashboards are linked from the <del data-operation-index="1"><a href="https://ops.example.com/polaris">operations portal</a></del><ins data-operation-index="1"><a href="https://metrics.example.com/polaris">metrics portal</a></ins>.</li><li data-align="78"><del data-operation-index="0">Past incidents are catalogued in</del><ins data-operation-index="0">The <a href="https://wiki.example.com/polaris/observability">observability guide</a> explains</ins>
 the <del data-operation-index="2"><a href="https://wiki.example.com/polaris/postmortems">postmortem index</a>.</del><ins data-operation-index="2">new tracing spans.</ins></li></ul></div>
   <div class="col col-new"><div class="col-head"><b>polaris-handbook.after.md</b></div><h1 data-align="1" id="polaris-platform-operations-handbook">Polaris Platform — Operations Handbook</h1>
 <blockquote data-align="2">
@@ -545,27 +665,27 @@ documentation builds to every downstream team. This handbook is the single
 reference for operating it in production: how it is structured, how to deploy a
 change, and what to do when something breaks at 3 a.m.</p>
 <h2 data-align="4" id="contents">Contents</h2>
-<ul data-align="5"><li data-align="6"><a href="#overview">Overview</a></li><li data-align="7"><a href="#architecture">Architecture</a></li><li data-align="8"><del data-operation-index="0"><a href="#deploying-a-change">Deploying a change</a></del><ins data-operation-index="0"><a href="#deploying-a-release">Deploying a release</a></ins></li><li data-align="9"><a href="#configuration">Configuration</a></li><li data-align="10"><a href="#capacity-planning">Capacity planning</a></li><li data-align="11"><a href="#incident-response">Incident response</a></li><li data-align="12"><a href="#cli-reference">CLI reference</a></li><li data-align="13"><a href="#service-tiers">Service tiers</a></li><li class="li-del"><a href="#deprecations">Deprecations</a></li><li class="li-ins"><a href="#observability">Observability</a></li><li data-align="14"><a href="#glossary">Glossary</a></li></ul><h2 data-align="15" id="overview">Overview</h2>
-<p data-align="16">Polaris ingests Markdown from roughly forty repositories, renders it to HTML,
+<ul data-align="5"><li data-align="6"><a href="#overview">Overview</a></li><li data-align="7"><a href="#architecture">Architecture</a></li><li data-align="8"><del data-operation-index="0"><a href="#deploying-a-change">Deploying a change</a></del><ins data-operation-index="0"><a href="#deploying-a-release">Deploying a release</a></ins></li><li data-align="9"><a href="#configuration">Configuration</a></li><li data-align="10"><a href="#capacity-planning">Capacity planning</a></li><li data-align="11"><a href="#render-benchmarks">Render benchmarks</a></li><li data-align="12"><a href="#incident-response">Incident response</a></li><li data-align="13"><a href="#cli-reference">CLI reference</a></li><li data-align="14"><a href="#service-tiers">Service tiers</a></li><li class="li-del"><a href="#deprecations">Deprecations</a></li><li class="li-ins"><a href="#observability">Observability</a></li><li data-align="15"><a href="#glossary">Glossary</a></li></ul><h2 data-align="16" id="overview">Overview</h2>
+<p data-align="17">Polaris ingests Markdown from roughly forty repositories, renders it to HTML,
 and serves the result behind a <del>thin caching layer. The render path is
 deliberately stateless so that any node can serve any request,</del><ins>small caching layer. The render path is
 deliberately stateless so that any worker can pick up any job from the shared
 queue,</ins> and a build is never tied to the machine that produced it.</p>
-<p data-align="17">The platform has three moving parts: an <strong>ingest</strong> worker that watches the
+<p data-align="18">The platform has three moving parts: an <strong>ingest</strong> worker that watches the
 source repositories, a <strong>render</strong> pool that turns Markdown into HTML, and an
 <strong>edge</strong> tier that caches and serves the finished pages to readers. Each part
 can be operated, scaled, and rolled back on its own.<ins data-operation-index="1"> Splitting them this way
 keeps a renderer crash from ever touching ingest.</ins></p>
-<p data-align="18">At steady state Polaris serves a few million page views a day across the three
+<p data-align="19">At steady state Polaris serves a few million page views a day across the three
 regions, with the bulk concentrated in the hour after each Monday release. None
 of that traffic ever reaches a renderer when the cache is warm, which is exactly
 why the edge tier, not the render pool, is sized for the worst case.</p>
-<h2 data-align="19" id="architecture">Architecture</h2>
-<del data-align="20" class="mdblock"><p>Each request enters through the edge tier, which checks its cache first and only
+<h2 data-align="20" id="architecture">Architecture</h2>
+<del data-align="21" class="mdblock"><p>Each request enters through the edge tier, which checks its cache first and only
 falls through to a renderer on a miss. Renderers are completely interchangeable;
 they hold no session state, so the pool can be scaled up or drained at will
 without coordinating between nodes or warming anything in advance.</p>
-</del><ins data-align="20" class="mdblock"><p>Every request arrives at the edge tier, which consults its cache first and only
+</del><ins data-align="21" class="mdblock"><p>Every request arrives at the edge tier, which consults its cache first and only
 drops through to a renderer on a miss. Renderers are entirely fungible; they keep
 no session state, so the fleet can be grown or drained on demand without any
 coordination between nodes or warming work done beforehand.</p>
@@ -576,18 +696,18 @@ replaces it within a minute and no request is lost.</p>
 </del><ins class="mdblock"><p>The edge tier is the only component readers ever talk to directly, and it is
 sized for peak fan-out rather than average load so a thundering herd after a
 cache purge never reaches the renderers.</p>
-</ins><p data-align="21">The ingest worker is the only stateful component, and it keeps nothing more than
+</ins><p data-align="22">The ingest worker is the only stateful component, and it keeps nothing more than
 a cursor into each repository&#39;s commit history.<del data-operation-index="1"> A poisoned commit therefore
 blocks only that one repository, never the whole queue.</del></p>
-<h2 data-align="22" id="deploying-a-release">Deploying a <del data-operation-index="1">change</del><ins data-operation-index="1">release</ins></h2>
-<p data-align="23">Deployment is a strictly ordered process. Do not skip steps, and never deploy to
+<h2 data-align="23" id="deploying-a-release">Deploying a <del data-operation-index="1">change</del><ins data-operation-index="1">release</ins></h2>
+<p data-align="24">Deployment is a strictly ordered process. Do not skip steps, and never deploy to
 all regions at once.</p>
-<ol data-align="24"><li data-align="25">Cut a release branch and tag it <code>polaris-vX.Y.Z</code>.</li><li data-align="26">Run the full test suite and confirm the smoke check is green.</li><li data-align="27">Promote the build to the <code>staging</code> edge and watch the dashboards.</li><li data-align="28">Promote to <code>production</code> one region at a time, starting with <code>us-west</code><del data-operation-index="1">.</del><ins data-operation-index="1">, and
-pause for a full health check between each region before continuing.</ins></li><li class="li-ins">Tag the release as <code>verified</code> once the canary has cleared everywhere.</li><li data-align="29">Update the status page once every region reports healthy.</li></ol><p data-align="30">Promotion to a single region itself has two phases:</p>
-<ul data-align="31"><li data-align="32">Drain ten percent of traffic onto the new build as a canary.</li><li data-align="33">Hold for fifteen minutes, then shift the remaining traffic.</li><li class="li-ins">Roll back instantly if the error rate rises above baseline.</li></ul><h2 data-align="34" id="configuration">Configuration</h2>
-<p data-align="35">The render pool is tuned with a small set of environment variables. The defaults
+<ol data-align="25"><li data-align="26">Cut a release branch and tag it <code>polaris-vX.Y.Z</code>.</li><li data-align="27">Run the full test suite and confirm the smoke check is green.</li><li data-align="28">Promote the build to the <code>staging</code> edge and watch the dashboards.</li><li data-align="29">Promote to <code>production</code> one region at a time, starting with <code>us-west</code><del data-operation-index="1">.</del><ins data-operation-index="1">, and
+pause for a full health check between each region before continuing.</ins></li><li class="li-ins">Tag the release as <code>verified</code> once the canary has cleared everywhere.</li><li data-align="30">Update the status page once every region reports healthy.</li></ol><p data-align="31">Promotion to a single region itself has two phases:</p>
+<ul data-align="32"><li data-align="33">Drain ten percent of traffic onto the new build as a canary.</li><li data-align="34">Hold for fifteen minutes, then shift the remaining traffic.</li><li class="li-ins">Roll back instantly if the error rate rises above baseline.</li></ul><h2 data-align="35" id="configuration">Configuration</h2>
+<p data-align="36">The render pool is tuned with a small set of environment variables. The defaults
 are conservative; <del data-operation-index="1">raise</del><ins data-operation-index="1">change</ins> them only <del data-operation-index="3">with evidence from the dashboards.</del><ins data-operation-index="3">after a load test, never on a hunch.</ins></p>
-<table data-align="36">
+<table data-align="37">
 <thead>
 <tr>
 <th>Variable</th><th>Default</th><th>Purpose</th><th class="col-ins"><ins>Restart needed?</ins></th>
@@ -608,46 +728,104 @@ are conservative; <del data-operation-index="1">raise</del><ins data-operation-i
 </tr>
 </tbody>
 </table>
-<h2 data-align="37" id="capacity-planning">Capacity planning</h2>
-<p data-align="38">Capacity is owned by the on-call lead and revisited at every release review.</p>
-<p data-align="39">Headroom is tracked against the rolling Monday peak; we provision for twice that
+<h2 data-align="38" id="capacity-planning">Capacity planning</h2>
+<p data-align="39">Capacity is owned by the on-call lead and revisited at every release review.</p>
+<p data-align="40">Headroom is tracked against the rolling Monday peak; we provision for twice that
 peak, which has <del data-operation-index="1">comfortably and reliably </del>absorbed every surge so far this year.</p>
-<p data-align="40">Scaling is still manual: an operator adds nodes to the render pool and then waits
+<p data-align="41">Scaling is still manual: an operator adds nodes to the render pool and then waits
 <ins data-operation-index="1">a good while </ins>for them to warm.</p>
-<p data-align="41">The underlying forecast is rough, <del data-operation-index="1">frankly stale, </del>only<del data-operation-index="3"> loosely</del> tuned, and<del data-operation-index="5"> openly</del> optimistic about cache
+<p data-align="42">The underlying forecast is rough, <del data-operation-index="1">frankly stale, </del>only<del data-operation-index="3"> loosely</del> tuned, and<del data-operation-index="5"> openly</del> optimistic about cache
 behaviour.</p>
-<p data-align="42">Storage grows <ins data-operation-index="1">slowly but </ins>predictably and <ins data-operation-index="3">for the most part </ins>needs<ins data-operation-index="5"> almost</ins> no
+<p data-align="43">Storage grows <ins data-operation-index="1">slowly but </ins>predictably and <ins data-operation-index="3">for the most part </ins>needs<ins data-operation-index="5"> almost</ins> no
 attention day to day.</p>
-<del data-align="43" class="mdblock"><p>For now the review itself is <em>informal and quick</em> in practice.</p>
-</del><ins data-align="43" class="mdblock"><p>For now the review itself is <strong>formal, scheduled, and surprisingly thorough</strong> in
+<del data-align="44" class="mdblock"><p>For now the review itself is <em>informal and quick</em> in practice.</p>
+</del><ins data-align="44" class="mdblock"><p>For now the review itself is <strong>formal, scheduled, and surprisingly thorough</strong> in
 practice.</p>
-</ins><h2 data-align="44" id="incident-response">Incident response</h2>
-<p data-align="45">When paged, work the list from the top — the first matching cause is almost
+</ins><h2 data-align="45" id="render-benchmarks">Render benchmarks</h2>
+<p data-align="46">Throughput is measured per node at steady state, p50 renders per second. These
+profiles anchor the capacity forecast above.</p>
+<table data-align="47">
+<thead>
+<tr>
+<th>Profile</th><th>Concurrency</th><th>Renders/sec</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Baseline</td><td>8</td><td>120</td>
+</tr>
+<tr>
+<td>Tuned</td><td>16</td><td><del data-operation-index="0">205</del><ins data-operation-index="0">240</ins></td>
+</tr>
+<tr class="tr-ins">
+<td><ins>Burst</ins></td><td><ins>24</ins></td><td><ins>300</ins></td>
+</tr>
+</tbody>
+</table>
+<h3 data-align="48" id="baseline-profile">Baseline profile</h3>
+<p data-align="49">The conservative default that ships out of the box — safe on the smallest node
+size and the right place to start a new region before there is any load history.</p>
+<table data-align="50">
+<thead>
+<tr>
+<th>Setting</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>RENDER_CONCURRENCY</code></td>
+<td><code>8</code></td>
+</tr>
+<tr>
+<td><code>CACHE_TTL_SECONDS</code></td>
+<td><code>300</code></td>
+</tr>
+</tbody></table>
+<h3 data-align="51" id="tuned-profile">Tuned profile</h3>
+<p data-align="52">Raised concurrency for the Monday peak, paired with a longer cache TTL so the
+edge absorbs more of the surge before a renderer is ever touched.</p>
+<table data-align="53">
+<thead>
+<tr>
+<th>Setting</th><th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>RENDER_CONCURRENCY</code></td><td><code>16</code></td>
+</tr>
+<tr>
+<td><code>CACHE_TTL_SECONDS</code></td><td><code><del data-operation-index="1">600</del><ins data-operation-index="1">900</ins></code></td>
+</tr>
+</tbody>
+</table>
+<h2 data-align="54" id="incident-response">Incident response</h2>
+<p data-align="55">When paged, work the list from the top — the first matching cause is almost
 always the real one.</p>
-<ul data-align="46"><li data-align="47"><strong>Edge returning stale pages.</strong> Confirm the TTL, then purge the affected <del data-operation-index="1">path.</del><ins data-operation-index="1">route.</ins></li><li data-align="48"><strong>Renders timing out.</strong> <del>Renderers are probably starved, so check renderer CPU
+<ul data-align="56"><li data-align="57"><strong>Edge returning stale pages.</strong> Confirm the TTL, then purge the affected <del data-operation-index="1">path.</del><ins data-operation-index="1">route.</ins></li><li data-align="58"><strong>Renders timing out.</strong> <del>Renderers are probably starved, so check renderer CPU
 on the pool dashboard, and if it is pinned, scale the pool out before you reach
 for the code, because nine times out of ten it is load and not a regression.</del><ins>Pull the slowest renderer&#39;s trace, look for a runaway
 Markdown table or a pathological regex in a code fence, and quarantine that one
-source repo rather than scaling the whole pool blindly.</ins></li><li class="li-del"><strong>Ingest lag climbing.</strong> Inspect the cursor; a poisoned commit stalls the queue.</li><li data-align="49"><strong>Total outage.</strong> Page the platform lead and fail over to the static mirror.</li></ul><ins class="mdblock"><blockquote>
+source repo rather than scaling the whole pool blindly.</ins></li><li class="li-del"><strong>Ingest lag climbing.</strong> Inspect the cursor; a poisoned commit stalls the queue.</li><li data-align="59"><strong>Total outage.</strong> Page the platform lead and fail over to the static mirror.</li></ul><ins class="mdblock"><blockquote>
 <p>Open the incident channel before you start poking — a silent fix that works is
 still an incident nobody can learn from later.</p>
 </blockquote>
-</ins><h2 data-align="50" id="cli-reference">CLI reference</h2>
-<p data-align="51">Operators drive Polaris through the <code>pol</code> command. The most common calls:</p>
-<pre data-align="52"><code class="language-sh">pol status --region us-west
+</ins><h2 data-align="60" id="cli-reference">CLI reference</h2>
+<p data-align="61">Operators drive Polaris through the <code>pol</code> command. The most common calls:</p>
+<pre data-align="62"><code class="language-sh">pol status --region us-west
 pol drain renderer-<del data-operation-index="1">7</del><ins data-operation-index="1">12</ins>
 pol cache purge /docs/handbook
 <ins data-operation-index="3">pol tail renderer-12 --since 5m
 </ins></code></pre>
-<p data-align="53">A dry run prints the plan without executing it:</p>
-<pre data-align="54"><code class="language-sh">pol deploy v1.4.0 --dry-run
+<p data-align="63">A dry run prints the plan without executing it:</p>
+<pre data-align="64"><code class="language-sh">pol deploy v1.4.0 --dry-run
 </code></pre>
 <del class="mdblock"><p>Every <code>pol</code> subcommand accepts <code>--json</code> for machine-readable output, which is
 handy when you are scripting against it from a notebook.</p>
-</del><h2 data-align="55" id="service-tiers">Service tiers</h2>
-<p data-align="56">Not every consumer gets the same guarantees. Tiers are assigned at onboarding
+</del><h2 data-align="65" id="service-tiers">Service tiers</h2>
+<p data-align="66">Not every consumer gets the same guarantees. Tiers are assigned at onboarding
 and reviewed whenever a team&#39;s traffic profile changes.</p>
-<table data-align="57">
+<table data-align="67">
 <thead>
 <tr>
 <th>Tier</th><th>Availability</th><th>Support</th>
@@ -672,12 +850,12 @@ next major release; the two share no flags, so the move is not automatic.</p>
 </ins><ins class="mdblock"><p>Every render emits a structured span, so a slow page can be traced end to end
 from the edge hit down to the Markdown lexer. Spans are sampled at one percent in
 steady state and at one hundred percent during a deploy window.</p>
-</ins><pre data-align="58"><code class="language-sh"><del data-operation-index="1">polctl</del><ins data-operation-index="1">pol trace</ins> --<del data-operation-index="3">legacy-status</del><ins data-operation-index="3">slowest 10 --window 15m</ins>
+</ins><pre data-align="68"><code class="language-sh"><del data-operation-index="1">polctl</del><ins data-operation-index="1">pol trace</ins> --<del data-operation-index="3">legacy-status</del><ins data-operation-index="3">slowest 10 --window 15m</ins>
 </code></pre>
-<h2 data-align="59" id="glossary">Glossary</h2>
-<p data-align="60">A few terms recur throughout this handbook, and it is worth pinning them down so
+<h2 data-align="69" id="glossary">Glossary</h2>
+<p data-align="70">A few terms recur throughout this handbook, and it is worth pinning them down so
 that an incident call does not stall on vocabulary:</p>
-<ul data-align="61">
+<ul data-align="71">
 <li><strong>Build</strong> — one rendered snapshot of a source repository at a given commit.</li>
 <li><strong>Canary</strong> — the small slice of live traffic a new build serves first.</li>
 <li><strong>Cursor</strong> — the per-repository commit pointer the ingest worker advances.</li>
@@ -685,12 +863,12 @@ that an incident call does not stall on vocabulary:</p>
 <li><strong>Edge</strong> — the caching tier that readers actually connect to.</li>
 <li><strong>Mirror</strong> — the read-only static fallback served during a total outage.</li>
 </ul>
-<h2 data-align="62" id="references">References</h2>
-<p data-align="63">Further reading lives in the wiki:</p>
-<ul data-align="64"><li class="li-del" data-align="65">The <a href="https://wiki.example.com/polaris/design">original design doc</a> explains the
-stateless render decision.</li><li class="li-ins" data-align="65">The <a href="https://wiki.example.com/polaris/design">platform design doc</a> explains the
-stateless render decision.</li><li data-align="66">The <del data-operation-index="1"><a href="https://wiki.example.com/polaris/migrate">migration guide</a></del><ins data-operation-index="1"><a href="https://wiki.example.com/polaris/migrate-v2">migration guide</a></ins> covers the move
-off <code>polctl</code>.</li><li data-align="67">Dashboards are linked from the <del data-operation-index="1"><a href="https://ops.example.com/polaris">operations portal</a></del><ins data-operation-index="1"><a href="https://metrics.example.com/polaris">metrics portal</a></ins>.</li><li data-align="68"><del data-operation-index="0">Past incidents are catalogued in</del><ins data-operation-index="0">The <a href="https://wiki.example.com/polaris/observability">observability guide</a> explains</ins>
+<h2 data-align="72" id="references">References</h2>
+<p data-align="73">Further reading lives in the wiki:</p>
+<ul data-align="74"><li class="li-del" data-align="75">The <a href="https://wiki.example.com/polaris/design">original design doc</a> explains the
+stateless render decision.</li><li class="li-ins" data-align="75">The <a href="https://wiki.example.com/polaris/design">platform design doc</a> explains the
+stateless render decision.</li><li data-align="76">The <del data-operation-index="1"><a href="https://wiki.example.com/polaris/migrate">migration guide</a></del><ins data-operation-index="1"><a href="https://wiki.example.com/polaris/migrate-v2">migration guide</a></ins> covers the move
+off <code>polctl</code>.</li><li data-align="77">Dashboards are linked from the <del data-operation-index="1"><a href="https://ops.example.com/polaris">operations portal</a></del><ins data-operation-index="1"><a href="https://metrics.example.com/polaris">metrics portal</a></ins>.</li><li data-align="78"><del data-operation-index="0">Past incidents are catalogued in</del><ins data-operation-index="0">The <a href="https://wiki.example.com/polaris/observability">observability guide</a> explains</ins>
 the <del data-operation-index="2"><a href="https://wiki.example.com/polaris/postmortems">postmortem index</a>.</del><ins data-operation-index="2">new tracing spans.</ins></li></ul></div>
 </div>
 <div id="mddiff-minimap" title="diff overview — click to jump, drag to scrub"><div id="mddiff-vp"></div></div>
