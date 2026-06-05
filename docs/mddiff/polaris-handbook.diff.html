@@ -967,6 +967,13 @@ the <del data-operation-index="2"><a href="https://wiki.example.com/polaris/post
   });
   // Clicking an entry jumps there (handled below); get the panel out of the way.
   if (toc) toc.addEventListener('click', function () { cancelHide(); closeToc(); });
+  // A click anywhere outside the panel dismisses it at once, rather than waiting out
+  // the hover grace delay — a faster, more deliberate opt-out than moving the cursor
+  // off the rail. mousedown (not click) so a text-selection drag started elsewhere
+  // also closes it; clicks inside the panel are left to the entry handler above.
+  window.addEventListener('mousedown', function (e) {
+    if (tocIsOpen() && toc && !toc.contains(e.target)) { cancelHide(); closeToc(); }
+  });
   window.addEventListener('scroll', updateTocState, { passive: true });
 
   // In-page anchor jumps (a TOC entry, or any [text](#heading) link). The core
