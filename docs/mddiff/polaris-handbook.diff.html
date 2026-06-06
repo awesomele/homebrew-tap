@@ -1089,6 +1089,12 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
   // normal flow (left-aligned with the prose). Measured, not hard-coded, so it
   // tracks the real table widths (the --bar-h "measure, don't guess" idiom);
   // self-gates on the inline view being active so it's a no-op in split mode.
+  //
+  // A wholly-added / -removed table is wrapped in its SHADE box (ins.mdblock /
+  // del.mdblock — the green/red highlight). Break THAT box out, not the bare
+  // table, so the highlight grows with the table instead of being left behind at
+  // the column width; the table inside (max-width: 100%) then fills the box. A
+  // plain table (unchanged, or a row/column diff) is its own breakout target.
   function fitInlineTables() {
     var iv = views.inline;
     if (!iv.classList.contains('active')) return;
@@ -1099,18 +1105,28 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
     var tables = iv.querySelectorAll('table');
     for (var i = 0; i < tables.length; i++) {
       var t = tables[i];
-      // Reset to the CSS default first (width:max-content, max-width:100%) so a
-      // resize re-measures the natural width instead of compounding the last fit.
-      t.style.maxWidth = ''; t.style.width = ''; t.style.marginLeft = ''; t.style.transform = '';
+      var p = t.parentNode;
+      var target = (p && p.nodeType === 1 && p.classList.contains('mdblock')) ? p : t;
+      // Reset both target and table to the CSS default first (width:max-content,
+      // max-width:100%) so a resize re-measures rather than compounding the last fit.
+      target.style.maxWidth = ''; target.style.width = ''; target.style.marginLeft = ''; target.style.transform = ''; target.style.boxSizing = '';
+      if (target !== t) { t.style.maxWidth = ''; t.style.width = ''; }
       if (fullW <= columnW) continue;          // window too narrow to gain anything
-      t.style.maxWidth = 'none';               // measure the unconstrained content width
+      t.style.maxWidth = 'none';               // measure the unconstrained table width
       var natural = t.offsetWidth;
+      t.style.maxWidth = '';
       if (natural > columnW + 1) {
-        t.style.maxWidth = fullW + 'px';       // width:max-content then sizes to min(natural, fullW)
-        t.style.marginLeft = '50%';
-        t.style.transform = 'translateX(-50%)';
-      } else {
-        t.style.maxWidth = '';                 // fits the column → leave it in flow
+        // width:max-content shrink-wraps the target to its content (the table,
+        // plus the shade box's padding), capped at fullW; centre it across the
+        // window. The inner table's max-width:100% then fills the shaded box.
+        // box-sizing:border-box makes the fullW cap apply to the VISIBLE box —
+        // a shade box's 12px padding + 3px border would otherwise push its border
+        // edge fullW+27px wide, eating the gutter and crowding the right minimap.
+        target.style.width = 'max-content';
+        target.style.maxWidth = fullW + 'px';
+        target.style.boxSizing = 'border-box';
+        target.style.marginLeft = '50%';
+        target.style.transform = 'translateX(-50%)';
       }
     }
   }
@@ -1345,10 +1361,20 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
     // display:none in the column for its opposite side; offsetParent===null ⇒
     // hidden, and scrolling to a zero-box element would jump to the top), then
     // resolve: exact id first, else the normalized-text fallback (see ANCHOR_JS).
+    //
+    // Use innerText, NOT textContent, for the fallback text: a CHANGED heading
+    // carries the opposite side's words in display:none <del>/<ins>, which
+    // textContent still includes — so "Translating ⟨del⟩ratio→derived⟨/del⟩…"
+    // would compare with the removed words baked in and never match the new-side
+    // TOC fragment. innerText is the RENDERED (visible) text, i.e. this side's
+    // words only — exactly what the heading was slugged from and what the
+    // fragment points at. (This is also why exact-id alone is insufficient: our
+    // slug collapses a "→"/"×"'s double space to one hyphen while GitHub keeps
+    // both, so the fragment has "m--required" vs our id's "m-required".)
     var els = scope.querySelectorAll('[id]'), cands = [];
     for (var i = 0; i < els.length; i++)
       if (els[i].offsetParent !== null)
-        cands.push({ id: els[i].id, text: els[i].textContent, el: els[i] });
+        cands.push({ id: els[i].id, text: els[i].innerText, el: els[i] });
     var hit = resolveAnchor(id, cands);
     return hit ? hit.el : null;
   }
