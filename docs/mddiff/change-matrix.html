@@ -382,32 +382,30 @@
   </section>
   <section class="sec" id="sec-hyperlink">
     <h2>Hyperlink</h2>
-    <p class="secblurb">A known exception. A link has two parts — displayed text and embedded URL — and node-htmldiff keys links by URL, so we cannot diff them elegantly. We fall back to a safe whole-block/whole-item replace so nothing is ever silently lost.</p>
+    <p class="secblurb">A link has two parts — displayed text and embedded URL. mddiff word-diffs the visible text in place (it drops &lt;a&gt; from node-htmldiff’s atomic-tag set and neutralises the href so the link wrapper still matches), so a renamed link reads like any other inline edit and keeps its anchor. The one honest limit: a URL-only change (identical text) can only be signalled — struck + re-added — because both sides render the same.</p>
     
     <div class="case" id="hyperlink-text-change-paragraph">
       <details class="meta">
         <summary>Link text changed, URL unchanged (in prose) <span class="cid">#hyperlink-text-change-paragraph</span></summary>
         <p class="coord">hyperlink · paragraph · edit</p>
-        <p class="blurb">Same href, new visible text: htmldiff returns no marks, so the safe floor whole-blocks it — the old text survives instead of being silently replaced.</p>
+        <p class="blurb">Same href, new visible text: the link’s text word-diffs in place, like any other inline edit — no whole-block fallback.</p>
       </details>
       <div class="split">
-        <div class="col col-old"><div class="col-head">before</div><del data-align="1" class="mdblock"><p>See <a href="#cfg">Configuration</a> for details.</p>
-</del><ins data-align="1" class="mdblock"><p>See <a href="#cfg">Settings</a> for details.</p>
-</ins></div>
-        <div class="col col-new"><div class="col-head">after</div><del data-align="1" class="mdblock"><p>See <a href="#cfg">Configuration</a> for details.</p>
-</del><ins data-align="1" class="mdblock"><p>See <a href="#cfg">Settings</a> for details.</p>
-</ins></div>
+        <div class="col col-old"><div class="col-head">before</div><p data-align="1">See <a href="#cfg"><del data-operation-index="1">Configuration</del><ins data-operation-index="1">Settings</ins></a> for details.</p>
+</div>
+        <div class="col col-new"><div class="col-head">after</div><p data-align="1">See <a href="#cfg"><del data-operation-index="1">Configuration</del><ins data-operation-index="1">Settings</ins></a> for details.</p>
+</div>
       </div>
     </div>
     <div class="case" id="hyperlink-text-change-toc">
       <details class="meta">
         <summary>Link text changed, URL unchanged (in a TOC) <span class="cid">#hyperlink-text-change-toc</span></summary>
         <p class="coord">hyperlink · toc · edit</p>
-        <p class="blurb">Inside a list the same rename becomes a removed + added item, keeping the old link text.</p>
+        <p class="blurb">Inside a TOC the same rename word-diffs in place; the entry keeps its anchor and the unchanged entry stays put.</p>
       </details>
       <div class="split">
-        <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#cfg">Configuration</a></li><li class="li-ins" data-align="2"><a href="#cfg">Settings</a></li><li data-align="3"><a href="#help">Help</a></li></ol></div>
-        <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#cfg">Configuration</a></li><li class="li-ins" data-align="2"><a href="#cfg">Settings</a></li><li data-align="3"><a href="#help">Help</a></li></ol></div>
+        <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li data-align="2"><a href="#cfg"><del data-operation-index="1">Configuration</del><ins data-operation-index="1">Settings</ins></a></li><li data-align="3"><a href="#help">Help</a></li></ol></div>
+        <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li data-align="2"><a href="#cfg"><del data-operation-index="1">Configuration</del><ins data-operation-index="1">Settings</ins></a></li><li data-align="3"><a href="#help">Help</a></li></ol></div>
       </div>
     </div>
     <div class="case" id="hyperlink-url-change">
@@ -427,12 +425,12 @@
       <details class="meta">
         <summary>Link text and URL both changed <span class="cid">#hyperlink-both-change</span></summary>
         <p class="coord">hyperlink · paragraph · edit</p>
-        <p class="blurb">When the URL also changes, htmldiff sees a different link and marks it cleanly — the readable case, in contrast to the text-only rename above.</p>
+        <p class="blurb">Text and href both change: the visible text still word-diffs in place, and the link adopts the new href (matching the new-side anchor).</p>
       </details>
       <div class="split">
-        <div class="col col-old"><div class="col-head">before</div><p data-align="1">See <del data-operation-index="1"><a href="#cfg-a">Configuration</a></del><ins data-operation-index="1"><a href="#cfg-b">Settings</a></ins> now.</p>
+        <div class="col col-old"><div class="col-head">before</div><p data-align="1">See <a href="#cfg-b"><del data-operation-index="1">Configuration</del><ins data-operation-index="1">Settings</ins></a> now.</p>
 </div>
-        <div class="col col-new"><div class="col-head">after</div><p data-align="1">See <del data-operation-index="1"><a href="#cfg-a">Configuration</a></del><ins data-operation-index="1"><a href="#cfg-b">Settings</a></ins> now.</p>
+        <div class="col col-new"><div class="col-head">after</div><p data-align="1">See <a href="#cfg-b"><del data-operation-index="1">Configuration</del><ins data-operation-index="1">Settings</ins></a> now.</p>
 </div>
       </div>
     </div>
@@ -443,9 +441,9 @@
         <p class="blurb">Wrapping a word in a link is marked inline: the bare word is struck, the linked word added.</p>
       </details>
       <div class="split">
-        <div class="col col-old"><div class="col-head">before</div><p data-align="1">See the <del data-operation-index="1">docs</del><ins data-operation-index="1"><a href="https://x.example">docs</a></ins> page for setup.</p>
+        <div class="col col-old"><div class="col-head">before</div><p data-align="1">See the <del>docs</del><ins><a href="https://x.example">docs</a></ins> page for setup.</p>
 </div>
-        <div class="col col-new"><div class="col-head">after</div><p data-align="1">See the <del data-operation-index="1">docs</del><ins data-operation-index="1"><a href="https://x.example">docs</a></ins> page for setup.</p>
+        <div class="col col-new"><div class="col-head">after</div><p data-align="1">See the <del>docs</del><ins><a href="https://x.example">docs</a></ins> page for setup.</p>
 </div>
       </div>
     </div>
@@ -456,9 +454,9 @@
         <p class="blurb">Unwrapping a link is the mirror: the linked word is struck, the bare word added.</p>
       </details>
       <div class="split">
-        <div class="col col-old"><div class="col-head">before</div><p data-align="1">See the <del data-operation-index="1"><a href="https://x.example">docs</a></del><ins data-operation-index="1">docs</ins> page for setup.</p>
+        <div class="col col-old"><div class="col-head">before</div><p data-align="1">See the <del><a href="https://x.example">docs</a></del><ins>docs</ins> page for setup.</p>
 </div>
-        <div class="col col-new"><div class="col-head">after</div><p data-align="1">See the <del data-operation-index="1"><a href="https://x.example">docs</a></del><ins data-operation-index="1">docs</ins> page for setup.</p>
+        <div class="col col-new"><div class="col-head">after</div><p data-align="1">See the <del><a href="https://x.example">docs</a></del><ins>docs</ins> page for setup.</p>
 </div>
       </div>
     </div>
@@ -685,13 +683,13 @@
       <details class="meta">
         <summary>A link in a heading changed (text + URL) <span class="cid">#heading-hyperlink-edit</span></summary>
         <p class="coord">hyperlink · heading · edit</p>
-        <p class="blurb">When both the text and the href change, htmldiff marks the link cleanly inside the heading.</p>
+        <p class="blurb">The link’s text word-diffs in place inside the heading; the heading slugs to its new text.</p>
       </details>
       <div class="split">
-        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1" id="see-settings-now">See <del data-operation-index="1"><a href="#cfg-a">Config</a></del><ins data-operation-index="1"><a href="#cfg-b">Settings</a></ins> now</h1>
+        <div class="col col-old"><div class="col-head">before</div><h1 data-align="1" id="see-settings-now">See <a href="#cfg-b"><del data-operation-index="1">Config</del><ins data-operation-index="1">Settings</ins></a> now</h1>
 <p data-align="2">body</p>
 </div>
-        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1" id="see-settings-now">See <del data-operation-index="1"><a href="#cfg-a">Config</a></del><ins data-operation-index="1"><a href="#cfg-b">Settings</a></ins> now</h1>
+        <div class="col col-new"><div class="col-head">after</div><h1 data-align="1" id="see-settings-now">See <a href="#cfg-b"><del data-operation-index="1">Config</del><ins data-operation-index="1">Settings</ins></a> now</h1>
 <p data-align="2">body</p>
 </div>
       </div>
@@ -1064,16 +1062,16 @@
       <details class="meta">
         <summary>A link in a blockquote changed (text + URL) <span class="cid">#blockquote-hyperlink-edit</span></summary>
         <p class="coord">hyperlink · blockquote · edit</p>
-        <p class="blurb">Both the text and the href change, so htmldiff marks the link cleanly inside the quote.</p>
+        <p class="blurb">The link’s text word-diffs in place inside the quote.</p>
       </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><blockquote data-align="1">
-<p>See <del data-operation-index="1"><a href="#cfg-a">Config</a></del><ins data-operation-index="1"><a href="#cfg-b">Settings</a></ins> for details</p>
+<p>See <a href="#cfg-b"><del data-operation-index="1">Config</del><ins data-operation-index="1">Settings</ins></a> for details</p>
 </blockquote>
 <p data-align="2">after</p>
 </div>
         <div class="col col-new"><div class="col-head">after</div><blockquote data-align="1">
-<p>See <del data-operation-index="1"><a href="#cfg-a">Config</a></del><ins data-operation-index="1"><a href="#cfg-b">Settings</a></ins> for details</p>
+<p>See <a href="#cfg-b"><del data-operation-index="1">Config</del><ins data-operation-index="1">Settings</ins></a> for details</p>
 </blockquote>
 <p data-align="2">after</p>
 </div>
@@ -1087,12 +1085,12 @@
       </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><blockquote data-align="1">
-<p>See the <del data-operation-index="1">docs</del><ins data-operation-index="1"><a href="https://x.example">docs</a></ins> page for setup</p>
+<p>See the <del>docs</del><ins><a href="https://x.example">docs</a></ins> page for setup</p>
 </blockquote>
 <p data-align="2">after</p>
 </div>
         <div class="col col-new"><div class="col-head">after</div><blockquote data-align="1">
-<p>See the <del data-operation-index="1">docs</del><ins data-operation-index="1"><a href="https://x.example">docs</a></ins> page for setup</p>
+<p>See the <del>docs</del><ins><a href="https://x.example">docs</a></ins> page for setup</p>
 </blockquote>
 <p data-align="2">after</p>
 </div>
@@ -1106,12 +1104,12 @@
       </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><blockquote data-align="1">
-<p>See the <del data-operation-index="1"><a href="https://x.example">docs</a></del><ins data-operation-index="1">docs</ins> page for setup</p>
+<p>See the <del><a href="https://x.example">docs</a></del><ins>docs</ins> page for setup</p>
 </blockquote>
 <p data-align="2">after</p>
 </div>
         <div class="col col-new"><div class="col-head">after</div><blockquote data-align="1">
-<p>See the <del data-operation-index="1"><a href="https://x.example">docs</a></del><ins data-operation-index="1">docs</ins> page for setup</p>
+<p>See the <del><a href="https://x.example">docs</a></del><ins>docs</ins> page for setup</p>
 </blockquote>
 <p data-align="2">after</p>
 </div>
@@ -1477,11 +1475,11 @@ const b = <del data-operation-index="1">2;</del><ins data-operation-index="1">3;
       <details class="meta">
         <summary>A link in a list item changed (text + URL) <span class="cid">#list-hyperlink-edit</span></summary>
         <p class="coord">hyperlink · list · edit</p>
-        <p class="blurb">Both the text and the href change, so htmldiff marks the link cleanly inside the bullet — it stays one item.</p>
+        <p class="blurb">The link’s text word-diffs in place inside the bullet — it stays one item.</p>
       </details>
       <div class="split">
-        <div class="col col-old"><div class="col-head">before</div><ul data-align="1"><li data-align="2">See <del data-operation-index="1"><a href="#cfg-a">Config</a></del><ins data-operation-index="1"><a href="#cfg-b">Settings</a></ins> for the steps</li></ul></div>
-        <div class="col col-new"><div class="col-head">after</div><ul data-align="1"><li data-align="2">See <del data-operation-index="1"><a href="#cfg-a">Config</a></del><ins data-operation-index="1"><a href="#cfg-b">Settings</a></ins> for the steps</li></ul></div>
+        <div class="col col-old"><div class="col-head">before</div><ul data-align="1"><li data-align="2">See <a href="#cfg-b"><del data-operation-index="1">Config</del><ins data-operation-index="1">Settings</ins></a> for the steps</li></ul></div>
+        <div class="col col-new"><div class="col-head">after</div><ul data-align="1"><li data-align="2">See <a href="#cfg-b"><del data-operation-index="1">Config</del><ins data-operation-index="1">Settings</ins></a> for the steps</li></ul></div>
       </div>
     </div>
     <div class="case" id="list-hyperlink-add">
@@ -1491,8 +1489,8 @@ const b = <del data-operation-index="1">2;</del><ins data-operation-index="1">3;
         <p class="blurb">Wrapping a word in a link: the bare word struck, the linked word added; the bullet stays one item.</p>
       </details>
       <div class="split">
-        <div class="col col-old"><div class="col-head">before</div><ul data-align="1"><li data-align="2">See the <del data-operation-index="1">docs</del><ins data-operation-index="1"><a href="https://x.example">docs</a></ins> page for setup</li></ul></div>
-        <div class="col col-new"><div class="col-head">after</div><ul data-align="1"><li data-align="2">See the <del data-operation-index="1">docs</del><ins data-operation-index="1"><a href="https://x.example">docs</a></ins> page for setup</li></ul></div>
+        <div class="col col-old"><div class="col-head">before</div><ul data-align="1"><li data-align="2">See the <del>docs</del><ins><a href="https://x.example">docs</a></ins> page for setup</li></ul></div>
+        <div class="col col-new"><div class="col-head">after</div><ul data-align="1"><li data-align="2">See the <del>docs</del><ins><a href="https://x.example">docs</a></ins> page for setup</li></ul></div>
       </div>
     </div>
     <div class="case" id="list-hyperlink-delete">
@@ -1502,8 +1500,8 @@ const b = <del data-operation-index="1">2;</del><ins data-operation-index="1">3;
         <p class="blurb">Unwrapping a link is the mirror: the linked word struck, the bare word added.</p>
       </details>
       <div class="split">
-        <div class="col col-old"><div class="col-head">before</div><ul data-align="1"><li data-align="2">See the <del data-operation-index="1"><a href="https://x.example">docs</a></del><ins data-operation-index="1">docs</ins> page for setup</li></ul></div>
-        <div class="col col-new"><div class="col-head">after</div><ul data-align="1"><li data-align="2">See the <del data-operation-index="1"><a href="https://x.example">docs</a></del><ins data-operation-index="1">docs</ins> page for setup</li></ul></div>
+        <div class="col col-old"><div class="col-head">before</div><ul data-align="1"><li data-align="2">See the <del><a href="https://x.example">docs</a></del><ins>docs</ins> page for setup</li></ul></div>
+        <div class="col col-new"><div class="col-head">after</div><ul data-align="1"><li data-align="2">See the <del><a href="https://x.example">docs</a></del><ins>docs</ins> page for setup</li></ul></div>
       </div>
     </div>
   </section>
@@ -1537,110 +1535,110 @@ const b = <del data-operation-index="1">2;</del><ins data-operation-index="1">3;
       <details class="meta">
         <summary>Reordered entries (moves aren't detected) <span class="cid">#toc-reorder</span></summary>
         <p class="coord">hyperlink · toc · edit</p>
-        <p class="blurb">An honest limitation: mddiff does not detect a move, so swapping two entries shows as each position’s link changing in place rather than a clean reorder.</p>
+        <p class="blurb">An honest limitation: mddiff does not detect a move, so swapping two entries shows as each position’s text changing in place rather than a clean reorder.</p>
       </details>
       <div class="split">
-        <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li data-align="2"><del data-operation-index="0"><a href="#a">Alpha</a></del><ins data-operation-index="0"><a href="#b">Beta</a></ins></li><li data-align="3"><del data-operation-index="0"><a href="#b">Beta</a></del><ins data-operation-index="0"><a href="#a">Alpha</a></ins></li><li data-align="4"><a href="#c">Gamma</a></li></ol></div>
-        <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li data-align="2"><del data-operation-index="0"><a href="#a">Alpha</a></del><ins data-operation-index="0"><a href="#b">Beta</a></ins></li><li data-align="3"><del data-operation-index="0"><a href="#b">Beta</a></del><ins data-operation-index="0"><a href="#a">Alpha</a></ins></li><li data-align="4"><a href="#c">Gamma</a></li></ol></div>
+        <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li data-align="2"><a href="#b"><del data-operation-index="1">Alpha</del><ins data-operation-index="1">Beta</ins></a></li><li data-align="3"><a href="#a"><del data-operation-index="1">Beta</del><ins data-operation-index="1">Alpha</ins></a></li><li data-align="4"><a href="#c">Gamma</a></li></ol></div>
+        <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li data-align="2"><a href="#b"><del data-operation-index="1">Alpha</del><ins data-operation-index="1">Beta</ins></a></li><li data-align="3"><a href="#a"><del data-operation-index="1">Beta</del><ins data-operation-index="1">Alpha</ins></a></li><li data-align="4"><a href="#c">Gamma</a></li></ol></div>
       </div>
     </div>
     <div class="case" id="toc-character-edit">
       <details class="meta">
         <summary>One character changed in a TOC entry <span class="cid">#toc-character-edit</span></summary>
         <p class="coord">character · toc · edit · consecutive</p>
-        <p class="blurb">A TOC entry is a link, so a same-href text fix returns no marks from htmldiff — the safe floor swaps the whole entry, keeping the old text.</p>
+        <p class="blurb">A TOC entry is a link, and its visible text word-diffs in place: the edited word is re-marked (htmldiff is word-level), the anchor and unchanged entry untouched.</p>
       </details>
       <div class="split">
-        <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#cfg">Configuration</a></li><li class="li-ins" data-align="2"><a href="#cfg">Configurations</a></li><li data-align="3"><a href="#help">Help</a></li></ol></div>
-        <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#cfg">Configuration</a></li><li class="li-ins" data-align="2"><a href="#cfg">Configurations</a></li><li data-align="3"><a href="#help">Help</a></li></ol></div>
+        <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li data-align="2"><a href="#cfg"><del data-operation-index="1">Configuration</del><ins data-operation-index="1">Configurations</ins></a></li><li data-align="3"><a href="#help">Help</a></li></ol></div>
+        <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li data-align="2"><a href="#cfg"><del data-operation-index="1">Configuration</del><ins data-operation-index="1">Configurations</ins></a></li><li data-align="3"><a href="#help">Help</a></li></ol></div>
       </div>
     </div>
     <div class="case" id="toc-character-add">
       <details class="meta">
         <summary>One character added to a TOC entry <span class="cid">#toc-character-add</span></summary>
         <p class="coord">character · toc · add</p>
-        <p class="blurb">Adding a letter to the entry text (Setup → Setups) is still a same-href text change, so the whole entry is swapped.</p>
+        <p class="blurb">Adding a letter (Setup → Setups) re-marks the whole word in place, as htmldiff is word-level.</p>
       </details>
       <div class="split">
-        <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#s">Setup</a></li><li class="li-ins" data-align="2"><a href="#s">Setups</a></li><li data-align="3"><a href="#help">Help</a></li></ol></div>
-        <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#s">Setup</a></li><li class="li-ins" data-align="2"><a href="#s">Setups</a></li><li data-align="3"><a href="#help">Help</a></li></ol></div>
+        <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li data-align="2"><a href="#s"><del data-operation-index="1">Setup</del><ins data-operation-index="1">Setups</ins></a></li><li data-align="3"><a href="#help">Help</a></li></ol></div>
+        <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li data-align="2"><a href="#s"><del data-operation-index="1">Setup</del><ins data-operation-index="1">Setups</ins></a></li><li data-align="3"><a href="#help">Help</a></li></ol></div>
       </div>
     </div>
     <div class="case" id="toc-character-delete">
       <details class="meta">
         <summary>One character removed from a TOC entry <span class="cid">#toc-character-delete</span></summary>
         <p class="coord">character · toc · delete</p>
-        <p class="blurb">The mirror (Setups → Setup) — the whole entry is swapped, old text kept.</p>
+        <p class="blurb">The mirror (Setups → Setup) — the whole word is re-marked in place.</p>
       </details>
       <div class="split">
-        <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#s">Setups</a></li><li class="li-ins" data-align="2"><a href="#s">Setup</a></li><li data-align="3"><a href="#help">Help</a></li></ol></div>
-        <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#s">Setups</a></li><li class="li-ins" data-align="2"><a href="#s">Setup</a></li><li data-align="3"><a href="#help">Help</a></li></ol></div>
+        <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li data-align="2"><a href="#s"><del data-operation-index="1">Setups</del><ins data-operation-index="1">Setup</ins></a></li><li data-align="3"><a href="#help">Help</a></li></ol></div>
+        <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li data-align="2"><a href="#s"><del data-operation-index="1">Setups</del><ins data-operation-index="1">Setup</ins></a></li><li data-align="3"><a href="#help">Help</a></li></ol></div>
       </div>
     </div>
     <div class="case" id="toc-word-edit">
       <details class="meta">
         <summary>A word changed in a TOC entry <span class="cid">#toc-word-edit</span></summary>
         <p class="coord">word · toc · edit</p>
-        <p class="blurb">Renaming one word of the entry text (development → deployment), same href — the whole entry is swapped, old text kept.</p>
+        <p class="blurb">Renaming one word (development → deployment) marks only that word; the shared word stays clean.</p>
       </details>
       <div class="split">
-        <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#local">Local development</a></li><li class="li-ins" data-align="2"><a href="#local">Local deployment</a></li><li data-align="3"><a href="#backups">Backups</a></li></ol></div>
-        <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#local">Local development</a></li><li class="li-ins" data-align="2"><a href="#local">Local deployment</a></li><li data-align="3"><a href="#backups">Backups</a></li></ol></div>
+        <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li data-align="2"><a href="#local">Local <del data-operation-index="1">development</del><ins data-operation-index="1">deployment</ins></a></li><li data-align="3"><a href="#backups">Backups</a></li></ol></div>
+        <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li data-align="2"><a href="#local">Local <del data-operation-index="1">development</del><ins data-operation-index="1">deployment</ins></a></li><li data-align="3"><a href="#backups">Backups</a></li></ol></div>
       </div>
     </div>
     <div class="case" id="toc-word-add">
       <details class="meta">
         <summary>A word added to a TOC entry <span class="cid">#toc-word-add</span></summary>
         <p class="coord">word · toc · add</p>
-        <p class="blurb">Inserting a word into the entry text, same href — the whole entry is swapped.</p>
+        <p class="blurb">Inserting a word marks only the new word inline; the surrounding words stay clean.</p>
       </details>
       <div class="split">
-        <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#local">Local setup</a></li><li class="li-ins" data-align="2"><a href="#local">Local machine setup</a></li><li data-align="3"><a href="#backups">Backups</a></li></ol></div>
-        <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#local">Local setup</a></li><li class="li-ins" data-align="2"><a href="#local">Local machine setup</a></li><li data-align="3"><a href="#backups">Backups</a></li></ol></div>
+        <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li data-align="2"><a href="#local">Local <ins data-operation-index="1">machine </ins>setup</a></li><li data-align="3"><a href="#backups">Backups</a></li></ol></div>
+        <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li data-align="2"><a href="#local">Local <ins data-operation-index="1">machine </ins>setup</a></li><li data-align="3"><a href="#backups">Backups</a></li></ol></div>
       </div>
     </div>
     <div class="case" id="toc-word-delete">
       <details class="meta">
         <summary>A word removed from a TOC entry <span class="cid">#toc-word-delete</span></summary>
         <p class="coord">word · toc · delete</p>
-        <p class="blurb">The mirror — dropping a word from the entry text swaps the whole entry, old text kept.</p>
+        <p class="blurb">The mirror — dropping a word marks just that word as removed; the rest stays clean.</p>
       </details>
       <div class="split">
-        <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#local">Local machine setup</a></li><li class="li-ins" data-align="2"><a href="#local">Local setup</a></li><li data-align="3"><a href="#backups">Backups</a></li></ol></div>
-        <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#local">Local machine setup</a></li><li class="li-ins" data-align="2"><a href="#local">Local setup</a></li><li data-align="3"><a href="#backups">Backups</a></li></ol></div>
+        <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li data-align="2"><a href="#local">Local <del data-operation-index="1">machine </del>setup</a></li><li data-align="3"><a href="#backups">Backups</a></li></ol></div>
+        <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li data-align="2"><a href="#local">Local <del data-operation-index="1">machine </del>setup</a></li><li data-align="3"><a href="#backups">Backups</a></li></ol></div>
       </div>
     </div>
     <div class="case" id="toc-phrase-edit">
       <details class="meta">
         <summary>A phrase reworded in a TOC entry <span class="cid">#toc-phrase-edit</span></summary>
         <p class="coord">phrase · toc · edit · consecutive</p>
-        <p class="blurb">Rewording the whole entry label, same href — the entry is swapped, old label kept.</p>
+        <p class="blurb">Rewording the whole label shares no words, so the entry label word-diffs as one clean removed + added span (still in place, anchor kept).</p>
       </details>
       <div class="split">
-        <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#prefs">Driver preference storage</a></li><li class="li-ins" data-align="2"><a href="#prefs">Where the driver settings live</a></li><li data-align="3"><a href="#backups">Backups</a></li></ol></div>
-        <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#prefs">Driver preference storage</a></li><li class="li-ins" data-align="2"><a href="#prefs">Where the driver settings live</a></li><li data-align="3"><a href="#backups">Backups</a></li></ol></div>
+        <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li data-align="2"><a href="#prefs"><del data-operation-index="1">Driver preference storage</del><ins data-operation-index="1">Where the driver settings live</ins></a></li><li data-align="3"><a href="#backups">Backups</a></li></ol></div>
+        <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li data-align="2"><a href="#prefs"><del data-operation-index="1">Driver preference storage</del><ins data-operation-index="1">Where the driver settings live</ins></a></li><li data-align="3"><a href="#backups">Backups</a></li></ol></div>
       </div>
     </div>
     <div class="case" id="toc-phrase-add">
       <details class="meta">
         <summary>A phrase appended to a TOC entry <span class="cid">#toc-phrase-add</span></summary>
         <p class="coord">phrase · toc · add</p>
-        <p class="blurb">Extending the entry label, same href — the entry is swapped.</p>
+        <p class="blurb">Extending the label marks only the appended words; the kept word stays clean.</p>
       </details>
       <div class="split">
-        <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#backups">Backups</a></li><li class="li-ins" data-align="2"><a href="#backups">Backups and restore</a></li><li data-align="3"><a href="#help">Help</a></li></ol></div>
-        <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#backups">Backups</a></li><li class="li-ins" data-align="2"><a href="#backups">Backups and restore</a></li><li data-align="3"><a href="#help">Help</a></li></ol></div>
+        <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li data-align="2"><a href="#backups">Backups<ins data-operation-index="1"> and restore</ins></a></li><li data-align="3"><a href="#help">Help</a></li></ol></div>
+        <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li data-align="2"><a href="#backups">Backups<ins data-operation-index="1"> and restore</ins></a></li><li data-align="3"><a href="#help">Help</a></li></ol></div>
       </div>
     </div>
     <div class="case" id="toc-phrase-delete">
       <details class="meta">
         <summary>A phrase removed from a TOC entry <span class="cid">#toc-phrase-delete</span></summary>
         <p class="coord">phrase · toc · delete</p>
-        <p class="blurb">The mirror — shortening the entry label swaps the whole entry, old label kept.</p>
+        <p class="blurb">The mirror — shortening the label marks just the dropped words; the kept word stays clean.</p>
       </details>
       <div class="split">
-        <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#backups">Backups and restore</a></li><li class="li-ins" data-align="2"><a href="#backups">Backups</a></li><li data-align="3"><a href="#help">Help</a></li></ol></div>
-        <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li class="li-del" data-align="2"><a href="#backups">Backups and restore</a></li><li class="li-ins" data-align="2"><a href="#backups">Backups</a></li><li data-align="3"><a href="#help">Help</a></li></ol></div>
+        <div class="col col-old"><div class="col-head">before</div><ol data-align="1"><li data-align="2"><a href="#backups">Backups<del data-operation-index="1"> and restore</del></a></li><li data-align="3"><a href="#help">Help</a></li></ol></div>
+        <div class="col col-new"><div class="col-head">after</div><ol data-align="1"><li data-align="2"><a href="#backups">Backups<del data-operation-index="1"> and restore</del></a></li><li data-align="3"><a href="#help">Help</a></li></ol></div>
       </div>
     </div>
   </section>
@@ -2376,7 +2374,7 @@ const b = <del data-operation-index="1">2;</del><ins data-operation-index="1">3;
       <details class="meta">
         <summary>A link in a cell changed (text + URL) <span class="cid">#table-hyperlink-edit</span></summary>
         <p class="coord">hyperlink · table · edit</p>
-        <p class="blurb">Both the text and the href change, so htmldiff marks the link cleanly inside the cell.</p>
+        <p class="blurb">The link’s text word-diffs in place inside the cell; each projected column stays rectangular.</p>
       </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><table data-align="1">
@@ -2387,7 +2385,7 @@ const b = <del data-operation-index="1">2;</del><ins data-operation-index="1">3;
 </thead>
 <tbody>
 <tr>
-<td>cfg</td><td><del data-operation-index="0"><a href="#cfg-a">Config</a></del><ins data-operation-index="0"><a href="#cfg-b">Settings</a></ins></td>
+<td>cfg</td><td><a href="#cfg-b"><del data-operation-index="1">Config</del><ins data-operation-index="1">Settings</ins></a></td>
 </tr>
 </tbody>
 </table>
@@ -2400,7 +2398,7 @@ const b = <del data-operation-index="1">2;</del><ins data-operation-index="1">3;
 </thead>
 <tbody>
 <tr>
-<td>cfg</td><td><del data-operation-index="0"><a href="#cfg-a">Config</a></del><ins data-operation-index="0"><a href="#cfg-b">Settings</a></ins></td>
+<td>cfg</td><td><a href="#cfg-b"><del data-operation-index="1">Config</del><ins data-operation-index="1">Settings</ins></a></td>
 </tr>
 </tbody>
 </table>
