@@ -2,6 +2,16 @@
 
 **Boost Markdown review productivity in the AI age.**
 
+## Contents
+
+- [Demo](#demo)
+- [Why mddiff](#why-mddiff)
+- [Highlights](#highlights)
+- [Install](#install)
+- [Usage](#usage)
+- [Releases](#releases)
+- [Notes](#notes)
+
 ## Demo
 
 👉 **[View the live rendered diff](https://awesomele.github.io/homebrew-tap/mddiff/polaris-handbook.diff.html)**
@@ -29,7 +39,13 @@ mddiff boosts Markdown review productivity through clearer diffs, broader Markdo
 brew install awesomele/tap/mddiff
 ```
 
-See the [releases](https://github.com/awesomele/homebrew-tap/releases) for the version history and notes.
+Upgrade to the latest version:
+
+```sh
+brew update && brew upgrade mddiff
+```
+
+> **Note:** Homebrew is phasing in a trust requirement for third-party taps. If `brew install` or `brew upgrade` reports `Refusing to load formula … from untrusted tap`, trust this tap once with `brew trust --tap awesomele/tap`.
 
 Prefer the editor? Install the
 [**VS Code extension**](https://marketplace.visualstudio.com/items?itemName=awesomele.mddiff)
@@ -54,6 +70,10 @@ mddiff — rendered markdown diff with green/red marks
 
 The opened page also has an Inline / Side-by-side toggle.
 ```
+
+## Releases
+
+See the [releases](https://github.com/awesomele/homebrew-tap/releases) for the version history and notes.
 
 ## Notes
 
