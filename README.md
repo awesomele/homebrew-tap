@@ -16,7 +16,7 @@ brew install <tool>
 
 ## Tools
 
-### [mddiff](docs/mddiff/) — rendered markdown diff
+### [mddiff](docs/mddiff/) — High-Fidelity Markdown Review and Diff for the AI Era
 
 Renders both versions of a markdown document and diffs the *result*, then shows it
 inline or row-aligned side-by-side in your browser. Block-aware, so a rewritten
