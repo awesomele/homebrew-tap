@@ -18,17 +18,6 @@ brew install <tool>
 
 ### [mddiff](docs/mddiff/) — High-Fidelity Markdown Review and Diff for the AI Era
 
-Renders both versions of a markdown document and diffs the *result*, then shows it
-inline or row-aligned side-by-side in your browser. Block-aware, so a rewritten
-paragraph reads as a clean whole-block replace instead of scrambled word-salad.
-**macOS only.**
-
-```sh
-brew install awesomele/tap/mddiff
-```
-
-[**Screenshots & usage →**](docs/mddiff/)
-
 <!-- Add a new tool as its own `### [<tool>](docs/<tool>/) — <one-liner>` section
      here, with a page + screenshots under docs/<tool>/. -->
 
