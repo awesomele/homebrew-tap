@@ -1093,16 +1093,30 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
   // we never INTRODUCE a scrollbar. Returns { w, sum }; null when even the floors
   // overflow 'avail' (caller leaves the table unpinned → its own horizontal
   // scrollbar, the last resort). Shared by the split sync and the inline pin.
+  //
+  // PIN_EPS cushion: pinTable re-applies these widths under table-layout:fixed, but
+  // a th's BORDER-box width (what colW measures via getBoundingClientRect) does NOT
+  // round-trip through a fixed <col> + border-collapse — the resulting cell content
+  // box comes back ~1px narrower than under auto layout. So a cell whose content
+  // sits EXACTLY at its column's max-content width (a hyphen-breakable UUID, a
+  // multi-word header) wraps once pinned, even though auto layout fit it on one
+  // line. Give every column a 1px cushion so the pinned content box is never under
+  // what was measured. It's folded INTO the fit — 'avail' reserves the whole
+  // cushion up front (budget = avail − cushion) and we scale against that — so the
+  // added pixels can never push the table past 'avail' into a scrollbar.
+  var PIN_EPS = 1;
   function fitColumns(w, floor, avail) {
+    var n = w.length, cushion = PIN_EPS * n, budget = avail - cushion;
     var sum = 0, floorSum = 0, i;
-    for (i = 0; i < w.length; i++) { sum += w[i]; floorSum += floor[i]; }
-    if (sum > avail && sum > 0) {
-      if (floorSum >= avail) return null;
-      var slack = sum - floorSum, need = sum - avail;
-      for (i = 0; i < w.length; i++) w[i] -= need * (w[i] - floor[i]) / slack;
-      sum = avail;
+    for (i = 0; i < n; i++) { sum += w[i]; floorSum += floor[i]; }
+    if (sum > budget && sum > 0) {
+      if (floorSum >= budget) return null;
+      var slack = sum - floorSum, need = sum - budget;
+      for (i = 0; i < n; i++) w[i] -= need * (w[i] - floor[i]) / slack;
+      sum = budget;
     }
-    return { w: w, sum: sum };
+    for (i = 0; i < n; i++) w[i] += PIN_EPS;
+    return { w: w, sum: sum + cushion };
   }
   // Freeze a table to exact column widths — an inserted <col> per width + fixed
   // layout — so every cell (prose, a nested table) wraps to its column instead of
@@ -1138,6 +1152,17 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
       // the rectangular projection. Auto layout already collapses the hidden column
       // to zero, so leave them alone. (Row add/remove keeps the same columns — synced.)
       if (to.querySelector('.col-ins, .col-del')) continue;
+      // Skip UNCHANGED tables (no cell or row diff anywhere). Their two side
+      // copies are byte-identical, so auto layout already gives them identical
+      // column widths — there is nothing to sync. Pinning them to table-layout:
+      // fixed gains nothing and can only HURT: a fixed column does not grow to
+      // its content the way auto does, so a cell whose content sits near its
+      // intrinsic width (a hyphen-breakable UUID, a multi-word header) wraps even
+      // when an auto column of the same width would not. That is the asymmetry
+      // where an unchanged table next to a column-added one (which is skipped
+      // above) wrapped oddly while the wider neighbour did not. Only a table that
+      // actually differs between the sides needs the shared-geometry pin.
+      if (!to.querySelector('ins, del, .tr-ins, .tr-del')) continue;
       var pair = [to, tn];
       // Drop any prior pinning so we re-measure the NATURAL auto-layout widths — a
       // resize must re-sync from scratch, never compound the last frozen widths.
