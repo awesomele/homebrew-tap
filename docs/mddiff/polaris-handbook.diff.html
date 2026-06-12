@@ -1040,9 +1040,14 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
   // counter starts from 0, so a list whose start attribute is non-1 needs its
   // counter seeded to start-1; CSS counters can't read the attribute, so do it
   // here. Only the inline copy uses the counter (split keeps native numbering).
-  var startedOls = views.inline.querySelectorAll('ol[start]');
-  for (var oi = 0; oi < startedOls.length; oi++)
-    startedOls[oi].style.counterReset = 'mddiff-li ' + (parseInt(startedOls[oi].getAttribute('start'), 10) - 1);
+  // A function (not inline) so the live-refresh swap can re-seed: an innerHTML
+  // replacement drops this style, which would renumber a start!=1 list from 1.
+  function seedInlineOls() {
+    var startedOls = views.inline.querySelectorAll('ol[start]');
+    for (var oi = 0; oi < startedOls.length; oi++)
+      startedOls[oi].style.counterReset = 'mddiff-li ' + (parseInt(startedOls[oi].getAttribute('start'), 10) - 1);
+  }
+  seedInlineOls();
 
   // Keep the sticky column labels flush below the top bar: publish the bar's
   // real rendered height as --bar-h, which .col-head / the minimap stick to via
