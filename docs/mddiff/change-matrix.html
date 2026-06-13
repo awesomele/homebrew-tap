@@ -1170,11 +1170,11 @@ const b = <del data-operation-index="1">2;</del><ins data-operation-index="1">3;
       </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><pre data-align="1"><code class="language-js">const a = 1;
-<ins data-operation-index="1">const b = 2;
+<ins>const b = 2;
 </ins></code></pre>
 </div>
         <div class="col col-new"><div class="col-head">after</div><pre data-align="1"><code class="language-js">const a = 1;
-<ins data-operation-index="1">const b = 2;
+<ins>const b = 2;
 </ins></code></pre>
 </div>
       </div>
@@ -1187,11 +1187,11 @@ const b = <del data-operation-index="1">2;</del><ins data-operation-index="1">3;
       </details>
       <div class="split">
         <div class="col col-old"><div class="col-head">before</div><pre data-align="1"><code class="language-js">const a = 1;
-<del data-operation-index="1">const b = 2;
+<del>const b = 2;
 </del></code></pre>
 </div>
         <div class="col col-new"><div class="col-head">after</div><pre data-align="1"><code class="language-js">const a = 1;
-<del data-operation-index="1">const b = 2;
+<del>const b = 2;
 </del></code></pre>
 </div>
       </div>
@@ -1286,11 +1286,11 @@ const b = <del data-operation-index="1">2;</del><ins data-operation-index="1">3;
         <p class="blurb">A trailing comment appended to the line is marked added; the code before it stays clean.</p>
       </details>
       <div class="split">
-        <div class="col col-old"><div class="col-head">before</div><pre data-align="1"><code class="language-js">const a = 1; <ins data-operation-index="1">// ok
-</ins></code></pre>
+        <div class="col col-old"><div class="col-head">before</div><pre data-align="1"><code class="language-js">const a = 1;<ins data-operation-index="1"> // ok</ins>
+</code></pre>
 </div>
-        <div class="col col-new"><div class="col-head">after</div><pre data-align="1"><code class="language-js">const a = 1; <ins data-operation-index="1">// ok
-</ins></code></pre>
+        <div class="col col-new"><div class="col-head">after</div><pre data-align="1"><code class="language-js">const a = 1;<ins data-operation-index="1"> // ok</ins>
+</code></pre>
 </div>
       </div>
     </div>
@@ -1301,13 +1301,11 @@ const b = <del data-operation-index="1">2;</del><ins data-operation-index="1">3;
         <p class="blurb">A dropped trailing comment is struck; the code before it stays clean.</p>
       </details>
       <div class="split">
-        <div class="col col-old"><div class="col-head">before</div><pre data-align="1"><code class="language-js">const a = 1;
-<del data-operation-index="1">// ok
-</del></code></pre>
+        <div class="col col-old"><div class="col-head">before</div><pre data-align="1"><code class="language-js">const a = 1;<del data-operation-index="1"> // ok</del>
+</code></pre>
 </div>
-        <div class="col col-new"><div class="col-head">after</div><pre data-align="1"><code class="language-js">const a = 1;
-<del data-operation-index="1">// ok
-</del></code></pre>
+        <div class="col col-new"><div class="col-head">after</div><pre data-align="1"><code class="language-js">const a = 1;<del data-operation-index="1"> // ok</del>
+</code></pre>
 </div>
       </div>
     </div>
