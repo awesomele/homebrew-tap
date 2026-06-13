@@ -77,6 +77,31 @@
   /* per-side projection — hide the side that doesn't apply (mirrors the app) */
   .col-old ins, .col-old li.li-ins, .col-old .col-ins, .col-old tr.tr-ins { display:none; }
   .col-new del, .col-new li.li-del, .col-new .col-del, .col-new tr.tr-del { display:none; }
+  /* structural transforms — one shared element rendered per column (mirrors page.js) */
+  .mddiff-xform { position:relative; }
+  .mddiff-xform::after { content: attr(data-xfo) " → " attr(data-xfn);
+    font: 600 10px ui-monospace, SFMono-Regular, Menlo, monospace; color:#8b949e;
+    background:#161b22; border:1px solid #30363d; border-radius:4px; padding:0 5px;
+    margin-left:8px; vertical-align:middle; white-space:nowrap; text-decoration:none; }
+  .col-old .mddiff-xform::after { color:#f85149; border-color:rgba(248,81,73,.45); }
+  .col-new .mddiff-xform::after { color:#3fb950; border-color:rgba(63,185,80,.45); }
+  .col-old .xf-hlevel[data-xfo="h1"] { font-size:2em; }
+  .col-old .xf-hlevel[data-xfo="h2"] { font-size:1.5em; }
+  .col-old .xf-hlevel[data-xfo="h3"] { font-size:1.17em; }
+  .col-old .xf-hlevel[data-xfo="h4"] { font-size:1em; }
+  .col-old .xf-hlevel[data-xfo="h5"] { font-size:.83em; border-bottom:none; }
+  .col-old .xf-hlevel[data-xfo="h6"] { font-size:.67em; border-bottom:none; }
+  .col-old .xf-listtype[data-xfo="ol"] { list-style-type:decimal; }
+  .col-old .xf-listtype[data-xfo="ul"] { list-style-type:disc; }
+  .col-old ul.xf-listprose[data-xfo="p"], .col-old ol.xf-listprose[data-xfo="p"] { list-style:none; padding-left:0; margin-left:0; }
+  .col-old p.xf-listprose[data-xfo="ul"], .col-old p.xf-listprose[data-xfo="ol"] { padding-left:1.4em; text-indent:-1.4em; }
+  .col-old p.xf-listprose[data-xfo="ul"]::before { content:"•  "; white-space:pre; }
+  .col-old p.xf-listprose[data-xfo="ol"]::before { content:"1.  "; white-space:pre; }
+  .col-old blockquote.xf-bq[data-xfo="p"] { border-left:none; padding:0; color:inherit; }
+  .col-old p.xf-bq[data-xfo="bq"] { border-left:3px solid #30363d; padding:0 1em; color:#8b949e; }
+  .col-old li.xf-nest[data-xfo="1"], .col-new li.xf-nest[data-xfn="1"] { margin-left:1.6em; }
+  li.xf-nest[data-xfn="1"]::after { content:" ↳ nested"; }
+  li.xf-nest[data-xfn="0"]::after { content:" ↰ un-nested"; }
   /* coverage grid (generated from the axes) */
   .coverage { margin: 8px 0 30px; }
   .coverage h2 { font-size:18px; }
@@ -94,7 +119,7 @@
 <body>
 <h1>mddiff — visual diff gallery</h1>
 <p class="lead">Every kind of markdown change mddiff renders, shown as a real before/after diff.</p>
-<p class="legend"><b class="del">■ removed</b> &nbsp; <b class="add">■ added</b> &nbsp;·&nbsp; 14 sections, 149 cases</p>
+<p class="legend"><b class="del">■ removed</b> &nbsp; <b class="add">■ added</b> &nbsp;·&nbsp; 15 sections, 154 cases</p>
 <section class="coverage">
 <h2>Coverage — entity × container</h2>
 <table class="cov-grid"><thead><tr><th>entity \ container</th><th>word</th><th>sentence</th><th>paragraph</th><th>page</th><th>heading</th><th>blockquote</th><th>code block</th><th>Inline code `code`</th><th>Strikethrough</th><th>list</th><th>TOC</th><th>table</th></tr></thead><tbody><tr><th>Character</th><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="eq">✓</span></td><td><span class="eq">✓</span></td><td><span class="eq">✓</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td></tr><tr><th>Word</th><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="eq">✓</span></td><td><span class="eq">✓</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td></tr><tr><th>Phrase</th><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="eq">✓</span></td><td><span class="eq">✓</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td></tr><tr><th>Sentence</th><td><span class="inv">—</span></td><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="eq">✓</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td></tr><tr><th>Paragraph</th><td><span class="inv">—</span></td><td><span class="inv">—</span></td><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="inv">—</span></td><td><span class="inv">—</span></td><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td></tr><tr><th>Hyperlink</th><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="eq">✓</span></td><td><span class="eq">✓</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="inv">—</span></td><td><span class="inv">—</span></td><td><span class="inv">—</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td><td><span class="cov">e</span><span class="cov">a</span><span class="cov">d</span></td></tr></tbody></table>
@@ -103,7 +128,7 @@
 </section>
 <h2 class="nav-h">Jump to a section</h2>
 <p class="nav-sub">Each entry links to that section's before/after examples below; <code>· N</code> is its number of cases.</p>
-<nav class="nav"><a href="#sec-character"><b>Character</b> · 4</a><a href="#sec-word"><b>Word</b> · 3</a><a href="#sec-phrase"><b>Phrase</b> · 4</a><a href="#sec-sentence"><b>Sentence</b> · 3</a><a href="#sec-paragraph"><b>Paragraph</b> · 4</a><a href="#sec-hyperlink"><b>Hyperlink</b> · 6</a><a href="#sec-heading"><b>Heading</b> · 17</a><a href="#sec-blockquote"><b>Blockquote</b> · 20</a><a href="#sec-codeblock"><b>Code block</b> · 11</a><a href="#sec-inlinecode"><b>Inline code</b> · 12</a><a href="#sec-strikethrough"><b>Strikethrough</b> · 12</a><a href="#sec-list"><b>List</b> · 18</a><a href="#sec-toc"><b>Table of contents</b> · 12</a><a href="#sec-table"><b>Table</b> · 23</a></nav>
+<nav class="nav"><a href="#sec-character"><b>Character</b> · 4</a><a href="#sec-word"><b>Word</b> · 3</a><a href="#sec-phrase"><b>Phrase</b> · 4</a><a href="#sec-sentence"><b>Sentence</b> · 3</a><a href="#sec-paragraph"><b>Paragraph</b> · 4</a><a href="#sec-hyperlink"><b>Hyperlink</b> · 6</a><a href="#sec-heading"><b>Heading</b> · 17</a><a href="#sec-blockquote"><b>Blockquote</b> · 20</a><a href="#sec-codeblock"><b>Code block</b> · 11</a><a href="#sec-inlinecode"><b>Inline code</b> · 12</a><a href="#sec-strikethrough"><b>Strikethrough</b> · 12</a><a href="#sec-list"><b>List</b> · 18</a><a href="#sec-toc"><b>Table of contents</b> · 12</a><a href="#sec-table"><b>Table</b> · 23</a><a href="#sec-structural-transforms"><b>Structural transforms</b> · 5</a></nav>
 
   <section class="sec" id="sec-character">
     <h2>Character</h2>
@@ -2795,6 +2820,66 @@ const b = <del data-operation-index="1">2;</del><ins data-operation-index="1">3;
 </tbody>
 </table>
 </div>
+      </div>
+    </div>
+  </section>
+  <section class="sec" id="sec-structural-transforms">
+    <h2>Structural transforms</h2>
+    <p class="secblurb">When a block keeps its text but changes SHAPE — a heading level, a list kind, a blockquote wrap, a paragraph turned into a bullet, an item nested — the identical text is NOT struck and re-added. It renders once, shown in each side’s own shape (size / glyph / indent) with a badge naming the change; only a real wording edit is marked.</p>
+    
+    <div class="case" id="reshape-heading-level">
+      <details class="meta">
+        <summary>A heading changed level (## → ###) <span class="cid">#reshape-heading-level</span></summary>
+        <p class="coord">shape · heading · reshape</p>
+        <p class="blurb">Same title, smaller heading. The text stays clean; each column renders it at its own level with an h2 → h3 badge — not a red/green rewrite.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><h3 data-align="1" class="mddiff-xform xf-hlevel" data-xfo="h2" data-xfn="h3" id="deploying-a-release">Deploying a release</h3></div>
+        <div class="col col-new"><div class="col-head">after</div><h3 data-align="1" class="mddiff-xform xf-hlevel" data-xfo="h2" data-xfn="h3" id="deploying-a-release">Deploying a release</h3></div>
+      </div>
+    </div>
+    <div class="case" id="reshape-list-kind">
+      <details class="meta">
+        <summary>A list changed kind (numbered → bulleted) <span class="cid">#reshape-list-kind</span></summary>
+        <p class="coord">shape · list · reshape</p>
+        <p class="blurb">Same items, different markers. The items stay clean; the old column shows numbers, the new shows bullets, with an ol → ul badge.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><ul data-align="1" class="mddiff-xform xf-listtype" data-xfo="ol" data-xfn="ul"><li data-align="2">Cut a release branch.</li><li data-align="3">Run the full test suite.</li><li data-align="4">Promote to staging.</li></ul></div>
+        <div class="col col-new"><div class="col-head">after</div><ul data-align="1" class="mddiff-xform xf-listtype" data-xfo="ol" data-xfn="ul"><li data-align="2">Cut a release branch.</li><li data-align="3">Run the full test suite.</li><li data-align="4">Promote to staging.</li></ul></div>
+      </div>
+    </div>
+    <div class="case" id="reshape-para-to-bullet">
+      <details class="meta">
+        <summary>A paragraph became a bullet <span class="cid">#reshape-para-to-bullet</span></summary>
+        <p class="coord">shape · list · reshape</p>
+        <p class="blurb">The line is unchanged — it just joined a list. It renders once, plain in the old column and bulleted in the new, with a p → ul badge.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><ul data-align="1" class="mddiff-xform xf-listprose" data-xfo="p" data-xfn="ul"><li>Warm the new pool before draining the old one.</li></ul></div>
+        <div class="col col-new"><div class="col-head">after</div><ul data-align="1" class="mddiff-xform xf-listprose" data-xfo="p" data-xfn="ul"><li>Warm the new pool before draining the old one.</li></ul></div>
+      </div>
+    </div>
+    <div class="case" id="reshape-blockquote-wrap">
+      <details class="meta">
+        <summary>A paragraph was wrapped in a blockquote <span class="cid">#reshape-blockquote-wrap</span></summary>
+        <p class="coord">shape · blockquote · reshape</p>
+        <p class="blurb">Same sentence, now quoted. It renders once, plain in the old column and quoted in the new, with a p → bq badge — not struck and re-added.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><blockquote data-align="1" class="mddiff-xform xf-bq" data-xfo="p" data-xfn="bq"><p>Renderers are cattle, not pets.</p></blockquote></div>
+        <div class="col col-new"><div class="col-head">after</div><blockquote data-align="1" class="mddiff-xform xf-bq" data-xfo="p" data-xfn="bq"><p>Renderers are cattle, not pets.</p></blockquote></div>
+      </div>
+    </div>
+    <div class="case" id="reshape-nesting-move">
+      <details class="meta">
+        <summary>An item moved under its sibling (nesting) <span class="cid">#reshape-nesting-move</span></summary>
+        <p class="coord">shape · list · reshape</p>
+        <p class="blurb">A bullet became a nested child of the one above it. Detected as a MOVE: the item renders once (not struck as a sibling AND re-added nested), flush in the old column and indented in the new, with a ↳ nested badge.</p>
+      </details>
+      <div class="split">
+        <div class="col col-old"><div class="col-head">before</div><ul data-align="1"><li data-align="2">Promote one region at a time.</li><li class="mddiff-xform xf-nest" data-align="3" data-xfo="0" data-xfn="1">Hold for a full health check.</li></ul></div>
+        <div class="col col-new"><div class="col-head">after</div><ul data-align="1"><li data-align="2">Promote one region at a time.</li><li class="mddiff-xform xf-nest" data-align="3" data-xfo="0" data-xfn="1">Hold for a full health check.</li></ul></div>
       </div>
     </div>
   </section>
