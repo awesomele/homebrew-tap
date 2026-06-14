@@ -1,17 +1,17 @@
 class Mddiff < Formula
   desc "Rendered markdown diff — block-aware, inline + side-by-side, in your browser"
   homepage "https://github.com/awesomele/homebrew-tap/tree/main/docs/mddiff"
-  version "0.2.32"
+  version "0.2.33"
   license "MIT"
 
   on_macos do
     on_arm do
-      url "https://github.com/awesomele/homebrew-tap/releases/download/mddiff-v0.2.32/mddiff-darwin-arm64"
-      sha256 "9eeba9cb347b75f523d84fb243a836f5e45496595bc0c84167c3c8803def8b40"
+      url "https://github.com/awesomele/homebrew-tap/releases/download/mddiff-v0.2.33/mddiff-darwin-arm64"
+      sha256 "3c7830f6126a28f3269ae56a5d1061c9632c7e5f2171e7cad1798348e04d7ffc"
     end
     on_intel do
-      url "https://github.com/awesomele/homebrew-tap/releases/download/mddiff-v0.2.32/mddiff-darwin-x64"
-      sha256 "834f8bc7f6a6188b11c4a60cf2ef85b89463d994f92d14706596163111a69858"
+      url "https://github.com/awesomele/homebrew-tap/releases/download/mddiff-v0.2.33/mddiff-darwin-x64"
+      sha256 "992de54354e9ba41568c3079ddaf3eff448222a7142d453eaabc698463687075"
     end
   end
 
