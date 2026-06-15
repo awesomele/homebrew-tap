@@ -2,7 +2,9 @@ class Mddiff < Formula
   desc "Rendered markdown diff — block-aware, inline + side-by-side, in your browser"
   homepage "https://github.com/awesomele/homebrew-tap/tree/main/docs/mddiff"
   version "0.2.33"
-  license "MIT"
+  # mddiff is free-to-use proprietary software; its license is not an SPDX
+  # expression. The release asset is a prebuilt binary, not open source.
+  license :cannot_represent
 
   on_macos do
     on_arm do

@@ -31,4 +31,6 @@ brew install <tool>
 
 ## License
 
-MIT (per tool; see each tool's page).
+mddiff is distributed as a free-to-use proprietary developer tool. See `docs/mddiff/README.md` for details.
+
+Third-party open-source dependencies remain governed by their respective licenses.

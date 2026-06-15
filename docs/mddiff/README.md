@@ -11,6 +11,7 @@
 - [Usage](#usage)
 - [Releases](#releases)
 - [Notes](#notes)
+- [License](#license)
 
 ## Demo
 
@@ -89,4 +90,11 @@ See the [releases](https://github.com/awesomele/homebrew-tap/releases) for the v
 ## Notes
 
 - **macOS only** for now.
-- License: MIT.
+
+## License
+
+mddiff is distributed as a free-to-use proprietary developer tool.
+
+The Homebrew formula installs a prebuilt mddiff binary. The binary, mddiff core, the VS Code extension, and related tooling are not open source and are not licensed under MIT.
+
+Third-party open-source dependencies remain governed by their respective licenses.
