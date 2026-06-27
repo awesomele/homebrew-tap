@@ -345,6 +345,17 @@
     position: absolute; top: 0; width: 28px; text-align: right; line-height: inherit;
     color: #6e7681; font: 11px ui-monospace, SFMono-Regular, Menlo, monospace;
     font-variant-numeric: tabular-nums; pointer-events: none; -webkit-user-select: none; user-select: none; }
+  /* Blocks with a 3px LEFT BORDER — the blockquote's quote-bar and the whole-block
+     ins/del stripes — anchor their ABSOLUTE gutter number to the PADDING box, i.e.
+     INSIDE that border, so the number lands 3px right of the heading/paragraph
+     numbers and the gutter stops forming one vertical line. Pull it back by the
+     border width — in both views, on the ::before (old) AND ::after (new) number.
+     Borderless containers (lists, code, tables) reference the border box already,
+     so they line up without this. */
+  body.show-lines .col-old > :is(blockquote, del.mdblock)[data-oldline]::before,
+  body.show-lines .col-new > :is(blockquote, ins.mdblock)[data-newline]::before,
+  body.show-lines #inline-view > :is(blockquote, del.mdblock)[data-oldline]::before,
+  body.show-lines #inline-view > :is(blockquote, ins.mdblock)[data-newline]:not(.mddiff-xform)::after { margin-left: -3px; }
   /* A code <pre> scrolls long lines (overflow), which would CLIP its own margin number.
      Move the scroll — AND the rounded/padded background box — onto the inner <code>, leaving
      the <pre> a bare positioning wrapper (overflow visible) so the number shows unclipped and
