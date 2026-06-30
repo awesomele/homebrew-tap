@@ -332,6 +332,13 @@
   /* inline: BOTH gutters (old ::before, new ::after); ::after skips xform blocks so
      their "shape →" badge (also ::after) survives. */
   body.show-lines #inline-view { padding-left: 68px; }
+  /* With line numbers on the inline view stops centring and LEFT-ALIGNS, so the
+     number gutter sits at the page's left edge (a code/file-review layout) instead of
+     mid-window. That is what lets a wide table break out full-bleed WITHOUT sliding
+     back UNDER the centred gutter and overlapping the numbers (the reported bug):
+     fitInlineTables() then grows the table RIGHTWARD from the content edge rather than
+     centring it across the window. */
+  body.show-lines #inline-view { margin-left: 0; margin-right: auto; }
   body.show-lines #inline-view > [data-oldline], body.show-lines #inline-view > [data-newline] { position: relative; }
   body.show-lines #inline-view > [data-oldline]::before { content: attr(data-oldline); left: -66px; }
   body.show-lines #inline-view > [data-newline]:not(.mddiff-xform)::after { content: attr(data-newline); left: -34px; }
@@ -1718,6 +1725,18 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
     // GUT clears the 24px right-edge minimap; mirrored on the left so the
     // broken-out table stays centred in the window.
     var GUT = 36, fullW = window.innerWidth - GUT * 2;
+    // When the line-number gutter is on the inline view is LEFT-ALIGNED (CSS
+    // body.show-lines) so the numbers sit at the page's left edge. A broken-out table
+    // must then grow RIGHTWARD from the content's left edge (just right of the gutter):
+    // centring it across the window — the no-lines path below — would slide it back
+    // UNDER the gutter and overlap the numbers (the reported bug). So narrow the
+    // breakout region to [content-left .. window − GUT] and leave the table in flow.
+    var lines = document.body.classList.contains('show-lines');
+    if (lines) {
+      var padL = parseFloat(getComputedStyle(iv).paddingLeft) || 0;
+      columnW = iv.clientWidth - padL;   // in-flow width available to a table (gutter excluded)
+      fullW = window.innerWidth - GUT - (iv.getBoundingClientRect().left + padL);
+    }
     var tables = iv.querySelectorAll('table');
     for (var i = 0; i < tables.length; i++) {
       var t = tables[i];
@@ -1751,8 +1770,11 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
         target.style.width = 'max-content';
         target.style.maxWidth = fullW + 'px';
         target.style.boxSizing = 'border-box';
-        target.style.marginLeft = '50%';
-        target.style.transform = 'translateX(-50%)';
+        // Centre across the window — EXCEPT in lines mode, where the table stays in its
+        // flow position (left edge already at content-left, right of the gutter) so it
+        // grows rightward without centring back under the numbers; the loop-top reset
+        // cleared any prior 50%/translateX.
+        if (!lines) { target.style.marginLeft = '50%'; target.style.transform = 'translateX(-50%)'; }
         // If the content can't fit even at full-bleed — a column that won't wrap,
         // e.g. a nested table — the max-content cap above just lets the table scroll
         // sideways AND drags every prose row off-screen with it (all rows share the
@@ -2104,14 +2126,18 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
   setTheme(savedTheme);
 
   // Source line-number gutter toggle (the # button). Off by default; the choice
-  // persists like the view / theme toggles. The gutter is pure CSS (absolutely-
-  // positioned pseudo-elements that don't affect the reflow / minimap / align), so
-  // toggling needs no relayout.
+  // persists like the view / theme toggles. The numbers themselves are pure CSS
+  // (absolutely-positioned pseudo-elements that don't touch the reflow / minimap /
+  // align), but turning the gutter on also LEFT-ALIGNS the inline view (so the gutter
+  // lands at the page's left edge), which changes where a broken-out wide table sits —
+  // so re-run fitInlineTables() to reposition it. It self-gates on the inline view
+  // being active, so it's a no-op in split mode.
   var linesBtn = document.getElementById('btn-lines');
   function setLines(on) {
     document.body.classList.toggle('show-lines', on);
     if (linesBtn) linesBtn.classList.toggle('active', on);
     try { localStorage.setItem('mddiff-lines', on ? '1' : '0'); } catch (e) {}
+    fitInlineTables();
   }
   if (linesBtn) linesBtn.onclick = function () { setLines(!document.body.classList.contains('show-lines')); };
   var savedLines = false;
