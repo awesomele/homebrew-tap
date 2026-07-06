@@ -140,6 +140,19 @@
   .col-new del { display: none; }
   .col-old li.li-ins { display: none; }
   .col-new li.li-del { display: none; }
+  /* Single-side views (Left / Right). Show ONE column of the split view — the
+     old file on Left, the new on Right — at a readable, centred measure, so you
+     can read that version on its own. The diff shading stays: the column reuses
+     the per-side CSS above (.col-old hides ins / .col-new hides del), so a removed
+     passage still reads struck-through red on the Left and an added one green on
+     the Right, even though there's no opposite column to compare against. The
+     split view becomes a plain block (no flex) so the single visible column caps
+     + centres like the inline view instead of stretching full-bleed; row
+     alignment is disabled for these (align() bails), so nothing is pushed down to
+     match a hidden column. */
+  body.left-only #split-view, body.right-only #split-view { display: block; }
+  body.left-only #split-view .col-new, body.right-only #split-view .col-old { display: none; }
+  body.left-only #split-view .col-old, body.right-only #split-view .col-new { max-width: 900px; margin: 0 auto; }
   /* table diffs: drop whole added/removed columns & rows per side, so each
      projected table stays rectangular (no phantom empty cells). The change
      classes are stamped by diffTable; cell-level marks reuse the ins/del rules. */
@@ -393,7 +406,7 @@
   <span class="add">■ added</span> &nbsp; <span class="del">■ removed</span>&nbsp;·&nbsp; <span class="cost" title="time to render this diff page (server-side)">⏱ —</span>
   <button id="btn-theme" class="theme" type="button" title="Switch to light theme">☀︎</button><button id="btn-lines" class="theme lines" type="button" title="Toggle source line numbers">#</button>
   <span class="views">
-    <button id="btn-inline" type="button">Inline</button><button id="btn-split" type="button">Side by side</button>
+    <button id="btn-left" type="button" title="Show only the left (old) file, deletions still shaded">Left</button><button id="btn-inline" type="button">Inline</button><button id="btn-split" type="button">Side by side</button><button id="btn-right" type="button" title="Show only the right (new) file, additions still shaded">Right</button>
   </span><div class="swap-row"><button id="btn-swap" type="button" class="swap" title="Swap which document is on the left">⇄ Swap sides</button></div></div>
 <div id="inline-view" class="view"><h1 data-oldline="1" data-newline="1" data-align="1" id="polaris-platform-operations-handbook">Polaris Platform — Operations Handbook</h1>
 <blockquote data-oldline="3" data-newline="3" data-align="2">
@@ -1467,7 +1480,15 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
   var views = { inline: document.getElementById('inline-view'),
                 split:  document.getElementById('split-view') };
   var btns  = { inline: document.getElementById('btn-inline'),
-                split:  document.getElementById('btn-split') };
+                split:  document.getElementById('btn-split'),
+                left:   document.getElementById('btn-left'),
+                right:  document.getElementById('btn-right') };
+  // The four view modes. inline + split each own a view element; left/right reuse
+  // the split element (showing one of its two columns), so element activation is
+  // handled explicitly in set() — a for..in over a shared element would race.
+  var ALL_VIEWS = ['inline', 'split', 'left', 'right'];
+  function isView(v) { return ALL_VIEWS.indexOf(v) >= 0; }
+  var curView;   // the mode set() last applied; read by the swap/refresh re-render
   var split = views.split;
   var colOld = split.querySelector('.col-old');
   var colNew = split.querySelector('.col-new');
@@ -1507,6 +1528,24 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
   function clearAlign(col) {
     var els = col.querySelectorAll('[data-align]');
     for (var i = 0; i < els.length; i++) { els[i].style.marginTop = ''; els[i].style.marginBottom = ''; }
+  }
+  // Un-pin one table: drop the frozen colgroup + the fixed table-layout/width so it
+  // re-lays-out at its natural auto width. Shared by the split re-sync (which
+  // re-measures from scratch each frame) and the solo reset below.
+  function unpinTable(t) {
+    var cg = t.querySelector('colgroup.mddiff-cols'); if (cg) cg.remove();
+    t.style.tableLayout = ''; t.style.width = '';
+  }
+  // Drop any table column/row pinning left by a prior split-view align() so a
+  // solo (Left/Right) view lays its tables out naturally within the capped
+  // column — a pin sized to a split half-window would otherwise overflow the cap.
+  function resetSoloTables() {
+    [colOld, colNew].forEach(function (col) {
+      var ts = col.querySelectorAll('table');
+      for (var i = 0; i < ts.length; i++) unpinTable(ts[i]);
+      var rows = col.querySelectorAll('tr');
+      for (var j = 0; j < rows.length; j++) rows[j].style.height = '';
+    });
   }
   // Push an element down by ADDING to its effective (computed) margin — not
   // replacing it, so an anchor's natural margin (e.g. a heading's) is kept.
@@ -1608,10 +1647,7 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
       var pair = [to, tn];
       // Drop any prior pinning so we re-measure the NATURAL auto-layout widths — a
       // resize must re-sync from scratch, never compound the last frozen widths.
-      pair.forEach(function (t) {
-        var old = t.querySelector('colgroup.mddiff-cols'); if (old) old.remove();
-        t.style.tableLayout = ''; t.style.width = '';
-      });
+      pair.forEach(unpinTable);
       var natO = colW(to), natN = colW(tn);
       var n = Math.min(natO.length, natN.length); if (!n) continue;
       // Per column, the natural width is the WIDER side (the union both copies must
@@ -1659,6 +1695,9 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
   }
   function align() {
     if (!split.classList.contains('active')) return;
+    // A solo (Left/Right) view shows one column only — there is no opposite side
+    // to line up with, so skip alignment entirely (set() clears any prior margins).
+    if (document.body.classList.contains('left-only') || document.body.classList.contains('right-only')) return;
     syncTableColumns();
     syncTableRows();
     clearAlign(colOld); clearAlign(colNew);
@@ -1880,16 +1919,25 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
   function tocScope() {
     var active = document.querySelector('.view.active');
     if (!active) return null;
-    return active.id === 'split-view' ? (active.querySelector('.col-new') || active) : active;
+    if (active.id !== 'split-view') return active;
+    // In Left view the new column is hidden, so read from the OLD column; otherwise
+    // (split / Right) the new column is the canonical "after" side.
+    var side = document.body.classList.contains('left-only') ? '.col-old' : '.col-new';
+    return active.querySelector(side) || active;
   }
-  // A heading's NEW-side text: drop removed (<del>) content so an edited heading
-  // reads as its after-text — "Deploying a change"→"release" is "Deploying a
-  // release", not the concatenated "Deploying a changerelease". textContent alone
-  // keeps the <del> even though CSS hides it in the new column. The right/new file
-  // is the source of truth for the outline.
+  // A heading's SHOWN-side text — the label must match the heading actually on
+  // screen. An edited heading renders both sides ("Deploying a <del>change</del>
+  // <ins>release</ins>"); each side's column hides the other via CSS, so drop the
+  // HIDDEN side here too or the label leaks the invisible words (a concatenated
+  // "Deploying a changerelease"). The shown side depends on which column tocScope
+  // read: Left shows the OLD column (ins hidden) so drop <ins> and keep <del>;
+  // split / Right show the NEW column (del hidden) so drop <del> — the usual case,
+  // the after-text as the outline's source of truth.
   function headingText(h) {
-    var c = h.cloneNode(true), dels = c.querySelectorAll('del');
-    for (var i = 0; i < dels.length; i++) dels[i].parentNode.removeChild(dels[i]);
+    var c = h.cloneNode(true);
+    var drop = document.body.classList.contains('left-only') ? 'ins' : 'del';
+    var gone = c.querySelectorAll(drop);
+    for (var i = 0; i < gone.length; i++) gone[i].parentNode.removeChild(gone[i]);
     // NB: \s, not s — this whole script is inside buildPage's template literal,
     // where s would collapse to a bare "s" and the regex would eat every letter s.
     return (c.textContent || '').replace(/\s+/g, ' ').trim();
@@ -2063,29 +2111,40 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
   // the hidden first copy — redo the jump once layout has settled.
   function jumpToHash() {
     if (!location.hash || location.hash.length < 2) return;
-    var active = document.querySelector('.view.active');
-    if (!active) return;
-    var scope = active.id === 'split-view' ? (active.querySelector('.col-new') || active) : active;
+    var scope = tocScope();   // solo-aware: the visible column in Left/Right
+    if (!scope) return;
     var target = findById(scope, decodeId(location.hash.slice(1)));
     if (target) scrollToTarget(scope, target, false);
   }
 
   function set(v) {
     syncBarH();
-    for (var k in views) {
-      views[k].classList.toggle('active', k === v);
-      btns[k].classList.toggle('active', k === v);
-    }
-    document.body.classList.toggle('split-mode', v === 'split');
+    if (!isView(v)) v = initialView;
+    curView = v;
+    // inline shows the inline-view element; split / left / right all show the
+    // split-view element (left/right just hide one of its columns via body class).
+    var onSplit = v !== 'inline';
+    views.inline.classList.toggle('active', v === 'inline');
+    views.split.classList.toggle('active', onSplit);
+    for (var i = 0; i < ALL_VIEWS.length; i++) btns[ALL_VIEWS[i]].classList.toggle('active', ALL_VIEWS[i] === v);
+    // split-mode = "a column view with a sticky filename header" (split OR solo), so
+    // an in-page anchor jump clears that header too (scrollToTarget). left-only /
+    // right-only pick which single column the solo CSS above reveals.
+    document.body.classList.toggle('split-mode', onSplit);
+    document.body.classList.toggle('left-only', v === 'left');
+    document.body.classList.toggle('right-only', v === 'right');
     // Remember the chosen view so a reload (Cmd+R re-renders the page from disk)
     // and the next diff keep it, instead of snapping back to the launch view.
     try { localStorage.setItem('mddiff-view', v); } catch (e) {}
     if (v === 'split') requestAnimationFrame(function () { align(); buildMinimap(); buildToc(); });
+    else if (v === 'left' || v === 'right') requestAnimationFrame(function () { clearAlign(colOld); clearAlign(colNew); resetSoloTables(); buildMinimap(); buildToc(); });
     else requestAnimationFrame(function () { fitInlineTables(); buildMinimap(); buildToc(); });
   }
   
   btns.inline.onclick = function () { set('inline'); };
   btns.split.onclick  = function () { set('split'); };
+  btns.left.onclick   = function () { set('left'); };
+  btns.right.onclick  = function () { set('right'); };
 
   var rz;
   window.addEventListener('resize', function () { syncBarH(); clearTimeout(rz); rz = setTimeout(function () { align(); fitInlineTables(); buildMinimap(); }, 120); });
@@ -2097,7 +2156,7 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
   
   try {
     var savedView = localStorage.getItem('mddiff-view');
-    if (savedView === 'inline' || savedView === 'split') initialView = savedView;
+    if (isView(savedView)) initialView = savedView;
   } catch (e) {}
   
   set(initialView);
