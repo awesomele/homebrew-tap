@@ -1,7 +1,16 @@
 <!doctype html>
 <html><head><meta charset="utf-8"><title>mddiff: polaris-handbook.before.md → polaris-handbook.after.md</title>
 <style>
-  :root { color-scheme: dark; }
+  :root { color-scheme: dark;
+    /* Customizable via the 🎛 panel (persisted per-user). Fonts default to the
+       original stacks. Diff colours flow from TWO accent hues (--mddiff-add /
+       --mddiff-del); every tint / text / border shade is DERIVED from them with
+       color-mix, so the panel only overrides the two hues and the rest re-derives
+       — per theme, in pure CSS. The derived vars are redefined under body.light
+       (below), so a single diff-colour rule set serves both themes. */
+    --mddiff-font: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    --mddiff-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+    --mddiff-add: #3fb950; --mddiff-del: #f85149; }
   /* The body spans the FULL window in both views — only its side padding is
      reserved (28px left, 36px right so the fixed 24px minimap clears the right
      edge). The readable-column cap lives on #inline-view below, not here, so the
@@ -9,12 +18,37 @@
      to the same spot whether you're inline or side-by-side — switching views no
      longer shifts the buttons. */
   body { max-width: none; margin: 0; padding: 24px 36px 80px 28px;
-    font: 16px/1.65 -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
-    color: #c9d1d9; background: #0d1117; }
+    font: 16px/1.65 var(--mddiff-font);
+    color: #c9d1d9; background: #0d1117;
+    /* Diff-colour shades are DERIVED from the two accent hues here, on <body> —
+       NOT on :root — deliberately: the customize panel writes a custom accent as
+       an inline style on <body>, and a derived var's inner var(--mddiff-add) is
+       substituted against the accent value present ON THE ELEMENT WHERE THE
+       DERIVED VAR IS DECLARED. Declared on :root it would bake the :root default
+       and a body-level custom accent could never re-derive it (only the SOLID
+       var(--mddiff-add) rules would update). Declared on <body>, every shade
+       re-derives from the effective accent. body.light re-declares these with the
+       light recipe (wins by specificity), so one diff-colour rule set serves both
+       themes and both stay custom-aware. Keep these on body. */
+    --mddiff-add-fg: color-mix(in srgb, var(--mddiff-add) 78%, white);
+    --mddiff-add-bg: color-mix(in srgb, var(--mddiff-add) 30%, transparent);
+    --mddiff-add-soft: color-mix(in srgb, var(--mddiff-add) 10%, transparent);
+    --mddiff-del-fg: var(--mddiff-del);
+    --mddiff-del-bg: color-mix(in srgb, var(--mddiff-del) 28%, transparent);
+    --mddiff-del-soft: color-mix(in srgb, var(--mddiff-del) 10%, transparent);
+    /* ACCENT-AS-TEXT (legend, column headers, xform badge): the bright accent is
+       legible on the DARK surface, so ink = the accent here; body.light darkens the
+       GREEN for contrast on white (the red already clears AA). Fills/rails keep the
+       plain accent. */
+    --mddiff-add-ink: var(--mddiff-add);
+    --mddiff-del-ink: var(--mddiff-del);
+    /* Inline-code DEFAULT colour, in a var so the CSS rule, the picker swatch and the
+       reset all read ONE source (per theme). */
+    --mddiff-code-default: #f07828; }
   .mddiff-bar { position: sticky; top: 0; z-index: 5; margin: -24px -36px 24px -28px; padding: 12px 36px 12px 28px;
     background: #161b22; border-bottom: 1px solid #30363d; font-size: 13px; color: #8b949e; }
   .mddiff-bar b { color: #c9d1d9; }
-  .mddiff-bar .add { color: #3fb950; } .mddiff-bar .del { color: #f85149; }
+  .mddiff-bar .add { color: var(--mddiff-add-ink); } .mddiff-bar .del { color: var(--mddiff-del-ink); }
   .mddiff-bar .cost { color: #8b949e; font-variant-numeric: tabular-nums; cursor: default; }
   .mddiff-bar .views { float: right; }
   .mddiff-bar button { background: #21262d; color: #c9d1d9; border: 1px solid #30363d;
@@ -27,8 +61,37 @@
      pill — its own radius/border so the first-child/last-child pill rules (which
      it could otherwise match as a sibling of .views) don't square its corners. */
   .mddiff-bar button.theme { float: right; border-radius: 6px; border-left: 1px solid #30363d;
-    margin-left: 10px; padding: 3px 9px; font-size: 13px; line-height: 1.2; }
+    margin-left: 10px; padding: 0 9px; height: 24px; box-sizing: border-box;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 16px; line-height: 1; }
+  /* Uniform box + flex-centring so all three glyphs share ONE vertical centre and
+     ONE button height regardless of glyph size — the per-glyph padding/line-height
+     that varied before left the glyphs sitting at different heights. Only font-size
+     varies per glyph: the sun/moon reads well at 16px; the wide '#' looks oversized
+     there so it stays at 13px; the gear reads small so it is ~20% larger. */
+  .mddiff-bar button.lines { font-size: 13px; }
+  #btn-customize { font-size: 19px; }
   .mddiff-bar .swap-row { clear: both; padding-top: 8px; }
+  /* Customize panel: a dropdown anchored under the 🎛 button. The sticky bar is a
+     positioned ancestor, so the panel is absolutely placed against it. Hidden via
+     the [hidden] attr until the button opens it; a document click closes it. */
+  #mddiff-customize { position: absolute; top: calc(100% + 6px); right: 36px; z-index: 6;
+    background: #21262d; border: 1px solid #30363d; border-radius: 8px; padding: 10px 14px;
+    box-shadow: 0 6px 22px rgba(0,0,0,.45); min-width: 210px; }
+  #mddiff-customize[hidden] { display: none; }
+  #mddiff-customize .cz-sec { font-size: 11px; text-transform: uppercase; letter-spacing: .04em;
+    color: #6e7681; margin: 4px 0 2px; }
+  #mddiff-customize .cz-row { display: flex; justify-content: space-between; align-items: center;
+    gap: 16px; margin: 7px 0; }
+  #mddiff-customize .cz-row span { color: #c9d1d9; }
+  #mddiff-customize select { background: #161b22; color: #c9d1d9; border: 1px solid #30363d;
+    border-radius: 5px; padding: 2px 6px; font-size: 12px; cursor: pointer; }
+  #mddiff-customize .cz-color { display: inline-flex; align-items: center; gap: 8px; }
+  #mddiff-customize input[type=color] { width: 34px; height: 22px; padding: 0; cursor: pointer;
+    border: 1px solid #30363d; border-radius: 5px; background: #161b22; }
+  #mddiff-customize .cz-reset { background: none; border: 0; padding: 0; cursor: pointer;
+    color: #6e7681; font-size: 11px; }
+  #mddiff-customize .cz-reset:hover { color: #c9d1d9; }
   h1,h2,h3,h4 { border-bottom: 1px solid #21262d; padding-bottom: .3em; margin-top: 1.4em; }
   /* An in-page jump (a TOC link) lands the heading flush against the sticky bar;
      reserve the bar's height so it isn't hidden under it. The page JS computes a
@@ -36,9 +99,18 @@
      a native/no-JS jump readable too. */
   h1,h2,h3,h4,h5,h6 { scroll-margin-top: calc(var(--bar-h, 50px) + 12px); }
   a { color: #58a6ff; }
+  /* Inline code text colour is customizable (--mddiff-code, default =
+     --mddiff-code-default, the warm orange, per theme). Kept at this low
+     specificity ON PURPOSE so a diff mark still wins inside a change: the ins/del
+     colour rules below share specificity but come later in source, so changed code
+     shows the diff colour, unchanged code the custom one. Inside pre, the var is
+     set to currentColor so fenced code BLOCKS inherit the prose colour (NOT the
+     orange) — the panel's Code control is inline-only. NOTE: initial was WRONG here
+     — it yields the guaranteed-invalid value, so var() fell through to the orange
+     literal and blocks rendered orange. */
   code { background: #161b22; padding: .15em .4em; border-radius: 6px; font-size: 85%;
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-  pre { background: #161b22; padding: 14px; border-radius: 8px; overflow: auto; }
+    font-family: var(--mddiff-mono); color: var(--mddiff-code, var(--mddiff-code-default)); }
+  pre { background: #161b22; padding: 14px; border-radius: 8px; overflow: auto; --mddiff-code: currentColor; }
   pre code { background: none; padding: 0; }
   blockquote { border-left: 3px solid #30363d; margin: 0; padding: 0 1em; color: #8b949e; }
   /* A default display:table ignores the flex column's width and overflows it,
@@ -56,9 +128,9 @@
      shrink to min-content while the column is being measured, so the pin fits. */
   td table, th table { display: table; width: auto; max-width: 100%; overflow-x: visible; }
   img { max-width: 100%; }
-  ins, ins * { background: rgba(63,185,80,.30); color: #56d364; text-decoration: none;
+  ins, ins * { background: var(--mddiff-add-bg); color: var(--mddiff-add-fg); text-decoration: none;
     border-radius: 3px; }
-  del, del * { background: rgba(248,81,73,.28); color: #f85149; text-decoration: line-through;
+  del, del * { background: var(--mddiff-del-bg); color: var(--mddiff-del-fg); text-decoration: line-through;
     border-radius: 3px; }
   /* author strikethrough (~~text~~) renders as <s>, NOT <del>, so it is never
      mistaken for a deletion: shown in both side-by-side columns as plain muted
@@ -66,17 +138,22 @@
   s, s * { text-decoration: line-through; color: #8b949e; }
   /* whole-block changes (rewritten / added / removed paragraphs & blocks) */
   ins.mdblock, del.mdblock { display: block; border-radius: 6px; padding: 2px 12px; margin: 6px 0; }
-  ins.mdblock { background: rgba(63,185,80,.10); border-left: 3px solid #3fb950; }
-  del.mdblock { background: rgba(248,81,73,.10); border-left: 3px solid #f85149; }
+  ins.mdblock { background: var(--mddiff-add-soft); border-left: 3px solid var(--mddiff-add); }
+  del.mdblock { background: var(--mddiff-del-soft); border-left: 3px solid var(--mddiff-del); }
   ins.mdblock *, del.mdblock * { background: none; border-radius: 0; }
   /* an added block reads as normal prose; a removed block as red, struck-through text */
   ins.mdblock, ins.mdblock * { color: #c9d1d9; text-decoration: none; }
-  del.mdblock, del.mdblock * { color: #f85149; text-decoration: line-through; }
-  /* …but a link inside a wholly-added block is still a link — keep the blue +
-     underline rather than inheriting the prose colour above. Most visible on a
-     newly-added file (HEAD has no copy), whose entire TOC/links render inside one
-     ins.mdblock and would otherwise be plain text. */
-  ins.mdblock a, ins.mdblock a * { color: #58a6ff; text-decoration: underline; }
+  del.mdblock, del.mdblock * { color: var(--mddiff-del-fg); text-decoration: line-through; }
+  /* …but a link is still a link — keep the blue + underline rather than inheriting
+     the diff/prose colour above. Two nestings need it: (a) the whole link sits inside
+     a wholly-added block (ins.mdblock a — most visible on a newly-added file whose
+     entire TOC/links render inside one ins.mdblock, else plain text); (b) an INLINE
+     word-diff wrapped the link's own text in <ins> — the markup is <a><ins>text</ins></a>
+     (link added/reworded mid-paragraph, e.g. a "CAGRA primer" reference), so the plain
+     ins colour above would paint the link text green with no underline. Handle both
+     nesting directions (a ins / ins a). The green add background stays, so an added
+     link still reads as "added". */
+  ins.mdblock a, ins.mdblock a *, a ins, a ins *, ins a, ins a * { color: #58a6ff; text-decoration: underline; }
   /* added / removed list items (removed = red, struck through, matching del blocks).
      No LEFT padding: the colored box paints its padding, so any left padding would
      either indent the text past the sibling bullets, or — if cancelled with a
@@ -92,12 +169,12 @@
      from its text. -2.4em sits near the left edge of the default ~40px (2.5em) list
      gutter — a steady left rail that clears one- and two-digit numbers. */
   li.li-del, li.li-ins { position: relative; border-radius: 6px; padding: 4px 8px 4px 0; margin: 2px 0; }
-  li.li-ins { background: rgba(63,185,80,.10); }
-  li.li-del, li.li-del * { background: rgba(248,81,73,.06); color: #f85149; text-decoration: line-through; }
+  li.li-ins { background: var(--mddiff-add-soft); }
+  li.li-del, li.li-del * { background: var(--mddiff-del-soft); color: var(--mddiff-del-fg); text-decoration: line-through; }
   li.li-ins::before, li.li-del::before { content: ""; position: absolute; top: 0; bottom: 0;
     left: -2.4em; width: 3px; border-radius: 2px; }
-  li.li-ins::before { background: #3fb950; }
-  li.li-del::before { background: #f85149; }
+  li.li-ins::before { background: var(--mddiff-add); }
+  li.li-del::before { background: var(--mddiff-del); }
   /* In a LOOSE list the item's text is wrapped in a <p> (or a nested list); its
      default top/bottom margin used to collapse out of the borderless item, but the
      vertical padding above now traps it, ballooning the box. Drop just the leading
@@ -134,7 +211,7 @@
   .col-head { position: sticky; top: var(--bar-h, 50px); z-index: 1; background: #0d1117; font-size: 16px;
     color: #8b949e; padding: 6px 0 8px; margin-bottom: 12px; border-bottom: 1px solid #30363d; }
   .col-head b { font-size: 18px; font-weight: 700; letter-spacing: .2px; }
-  .col-old .col-head b { color: #f85149; } .col-new .col-head b { color: #3fb950; }
+  .col-old .col-head b { color: var(--mddiff-del-ink); } .col-new .col-head b { color: var(--mddiff-add-ink); }
   /* each column reuses the merged diff body; hide the side that doesn't apply */
   .col-old ins { display: none; }
   .col-new del { display: none; }
@@ -177,8 +254,8 @@
     background: #161b22; border: 1px solid #30363d; border-radius: 4px;
     padding: 0 5px; margin-left: 8px; vertical-align: middle; white-space: nowrap;
     text-decoration: none; -webkit-text-decoration: none; }
-  .col-old .mddiff-xform::after { color: #f85149; border-color: rgba(248,81,73,.45); }
-  .col-new .mddiff-xform::after { color: #3fb950; border-color: rgba(63,185,80,.45); }
+  .col-old .mddiff-xform::after { color: var(--mddiff-del-ink); border-color: color-mix(in srgb, var(--mddiff-del) 45%, transparent); }
+  .col-new .mddiff-xform::after { color: var(--mddiff-add-ink); border-color: color-mix(in srgb, var(--mddiff-add) 45%, transparent); }
   /* heading level: element is at the new depth; restyle the OLD column to the old. */
   .col-old .xf-hlevel[data-xfo="h1"] { font-size: 2em; }
   .col-old .xf-hlevel[data-xfo="h2"] { font-size: 1.5em; }
@@ -227,8 +304,8 @@
   #mddiff-minimap { position: fixed; top: var(--bar-h, 50px); right: 0; bottom: 0; width: 24px;
     background: rgba(22,27,34,.55); border-left: 1px solid #21262d; z-index: 6; cursor: pointer; }
   #mddiff-minimap .tick { position: absolute; min-height: 2px; border-radius: 1px; }
-  #mddiff-minimap .tick.del { left: 1px; right: 50%; background: #f85149; }
-  #mddiff-minimap .tick.ins { left: 50%; right: 1px; background: #3fb950; }
+  #mddiff-minimap .tick.del { left: 1px; right: 50%; background: var(--mddiff-del); }
+  #mddiff-minimap .tick.ins { left: 50%; right: 1px; background: var(--mddiff-add); }
   #mddiff-vp { position: absolute; left: 0; right: 0; min-height: 14px; pointer-events: none;
     background: rgba(139,148,158,.20); border: 1px solid rgba(139,148,158,.45); border-radius: 2px; }
   /* Floating table-of-contents (right edge, just left of the diff minimap). Built
@@ -271,41 +348,61 @@
      no box sizes change, so no realign/minimap rebuild is needed (the ruler ticks
      recolour via CSS). text-decoration (strikethrough) is inherited from the dark
      rules, not overridden. */
-  body.light { background: #ffffff; color: #1f2328; }
+  body.light { background: #ffffff; color: #1f2328;
+    --mddiff-add: #2da44e; --mddiff-del: #cf222e;
+    /* light-theme derivations: dark text for contrast, pale tints over white */
+    --mddiff-add-fg: color-mix(in srgb, var(--mddiff-add) 56%, black);
+    --mddiff-add-bg: color-mix(in srgb, var(--mddiff-add) 42%, white);
+    --mddiff-add-soft: color-mix(in srgb, var(--mddiff-add) 14%, white);
+    --mddiff-del-fg: var(--mddiff-del);
+    --mddiff-del-bg: color-mix(in srgb, var(--mddiff-del) 26%, white);
+    --mddiff-del-soft: color-mix(in srgb, var(--mddiff-del) 12%, white);
+    /* darken the green for TEXT so it clears WCAG AA on the light bar (the plain
+       #2da44e fill accent is only ~2.8:1); the red ink already clears AA, so it
+       stays the accent (--mddiff-del-ink from body). */
+    --mddiff-add-ink: color-mix(in srgb, var(--mddiff-add) 72%, black);
+    --mddiff-code-default: #b45a1e; }
   body.light .mddiff-bar { background: #f6f8fa; border-bottom-color: #d0d7de; color: #656d76; }
   body.light .mddiff-bar b { color: #1f2328; }
-  body.light .mddiff-bar .add { color: #1a7f37; } body.light .mddiff-bar .del { color: #cf222e; }
   body.light .mddiff-bar .cost { color: #656d76; }
   body.light .mddiff-bar button { background: #f6f8fa; color: #24292f; border-color: #d0d7de; }
   body.light .mddiff-bar button.active { background: #0969da; border-color: #0969da; color: #fff; }
+  body.light #mddiff-customize { background: #f6f8fa; border-color: #d0d7de; box-shadow: 0 6px 22px rgba(140,149,159,.35); }
+  body.light #mddiff-customize .cz-row span { color: #1f2328; }
+  body.light #mddiff-customize select { background: #fff; color: #24292f; border-color: #d0d7de; }
+  body.light #mddiff-customize input[type=color] { background: #fff; border-color: #d0d7de; }
+  body.light #mddiff-customize .cz-reset { color: #8c959f; }
+  body.light #mddiff-customize .cz-reset:hover { color: #1f2328; }
   body.light h1, body.light h2, body.light h3, body.light h4 { border-bottom-color: #d8dee4; }
   body.light a { color: #0969da; }
-  body.light code { background: #eff1f3; color: #1f2328; }
+  body.light code { background: #eff1f3; }  /* colour comes from the code rule via --mddiff-code-default (light = #b45a1e) */
+  /* The diff palette is derived with color-mix() (see the accent vars) — a hard
+     requirement, met by every browser mddiff runs in: the daemon opens in the
+     user's modern Chrome, the extension in a recent Electron webview. A partial
+     pre-2023 fallback was tried and removed: it couldn't cover the accent-as-text
+     and xform-badge shades, and its exact literals diverged from the derived output
+     on modern browsers — worse than requiring color-mix outright. */
   body.light pre { background: #f6f8fa; }
   body.light pre code { background: none; }
   body.light blockquote { border-left-color: #d0d7de; color: #656d76; }
   body.light th, body.light td { border-color: #d0d7de; }
   body.light .mddiff-xform::after { background: #f6f8fa; border-color: #d0d7de; color: #656d76; }
-  body.light .col-old .mddiff-xform::after { color: #cf222e; border-color: rgba(207,34,46,.4); }
-  body.light .col-new .mddiff-xform::after { color: #1a7f37; border-color: rgba(26,127,55,.4); }
+  /* Per-side xform badge colour in LIGHT: the neutral rule above (specificity 0,2,2)
+     out-ranks the base .col-old/.col-new .mddiff-xform::after (0,2,1), so without a
+     body.light-scoped rule (0,3,2) the badges render gray. Uses the -ink vars like
+     the legend/header. */
+  body.light .col-old .mddiff-xform::after { color: var(--mddiff-del-ink); }
+  body.light .col-new .mddiff-xform::after { color: var(--mddiff-add-ink); }
   body.light .col-old p.xf-bq[data-xfo="bq"] { border-left-color: #d0d7de; color: #656d76; }
-  body.light ins, body.light ins * { background: #abf2bc; color: #116329; }
-  body.light del, body.light del * { background: #ffcecb; color: #cf222e; }
   body.light s, body.light s * { color: #656d76; }
-  body.light ins.mdblock { background: #e6ffec; border-left-color: #2da44e; }
-  body.light del.mdblock { background: #ffebe9; border-left-color: #cf222e; }
+  /* Diff-colour overrides removed here: the accent + derived vars are redefined
+     for light under body.light (above), so the single dark-scope rule set renders
+     light correctly. Only the NEUTRAL light rules (prose text in added blocks,
+     links, strikethrough) stay theme-specific. */
   body.light ins.mdblock, body.light ins.mdblock * { color: #1f2328; }
-  body.light ins.mdblock a, body.light ins.mdblock a * { color: #0969da; text-decoration: underline; }
-  body.light del.mdblock, body.light del.mdblock * { color: #cf222e; }
-  body.light li.li-ins { background: #e6ffec; }
-  body.light li.li-del, body.light li.li-del * { background: #ffebe9; color: #cf222e; }
-  body.light li.li-ins::before { background: #2da44e; }
-  body.light li.li-del::before { background: #cf222e; }
+  body.light ins.mdblock a, body.light ins.mdblock a *, body.light a ins, body.light a ins *, body.light ins a, body.light ins a * { color: #0969da; text-decoration: underline; }
   body.light .col-head { background: #ffffff; color: #656d76; border-bottom-color: #d0d7de; }
-  body.light .col-old .col-head b { color: #cf222e; } body.light .col-new .col-head b { color: #1a7f37; }
   body.light #mddiff-minimap { background: rgba(234,238,242,.7); border-left-color: #d0d7de; }
-  body.light #mddiff-minimap .tick.del { background: #cf222e; }
-  body.light #mddiff-minimap .tick.ins { background: #2da44e; }
   body.light #mddiff-vp { background: rgba(140,149,159,.18); border-color: rgba(140,149,159,.45); }
   body.light #mddiff-toc { background: rgba(255,255,255,.72); border-color: rgba(140,149,159,.3); }
   body.light #mddiff-toc a { color: #656d76; }
@@ -404,10 +501,33 @@
 <body>
 <div class="mddiff-bar"><b>polaris-handbook.before.md</b> → <b>polaris-handbook.after.md</b> &nbsp;·&nbsp;
   <span class="add">■ added</span> &nbsp; <span class="del">■ removed</span>&nbsp;·&nbsp; <span class="cost" title="time to render this diff page (server-side)">⏱ —</span>
-  <button id="btn-theme" class="theme" type="button" title="Switch to light theme">☀︎</button><button id="btn-lines" class="theme lines" type="button" title="Toggle source line numbers">#</button>
+  <button id="btn-theme" class="theme" type="button" title="Switch to light theme">☀︎</button><button id="btn-customize" class="theme" type="button" title="Customize fonts & colors" aria-label="Customize fonts and colors">⚙︎</button><button id="btn-lines" class="theme lines" type="button" title="Toggle source line numbers">#</button>
   <span class="views">
     <button id="btn-left" type="button" title="Show only the left (old) file, deletions still shaded">Left</button><button id="btn-inline" type="button">Inline</button><button id="btn-split" type="button">Side by side</button><button id="btn-right" type="button" title="Show only the right (new) file, additions still shaded">Right</button>
-  </span><div class="swap-row"><button id="btn-swap" type="button" class="swap" title="Swap which document is on the left">⇄ Swap sides</button></div></div>
+  </span><div class="swap-row"><button id="btn-swap" type="button" class="swap" title="Swap which document is on the left">⇄ Swap sides</button></div><div id="mddiff-customize" hidden>
+    <div class="cz-sec">Font</div>
+    <div class="cz-row"><span>Text</span><select id="cz-font">
+      <option value="">System</option>
+      <option value='Georgia, Cambria, "Times New Roman", serif'>Serif</option>
+      <option value="ui-monospace, SFMono-Regular, Menlo, monospace">Monospace</option>
+    </select></div>
+    <div class="cz-row"><span>Code</span><select id="cz-mono">
+      <option value="">System mono</option>
+      <option value='"Courier New", Courier, monospace'>Courier</option>
+      <option value='Consolas, "Liberation Mono", monospace'>Consolas</option>
+    </select></div>
+    <div class="cz-sec">Diff color</div>
+    <div class="cz-row"><span>Added</span><span class="cz-color">
+      <input type="color" id="cz-add" value="#3fb950"><button type="button" class="cz-reset" id="cz-add-x" title="Reset to default">reset</button>
+    </span></div>
+    <div class="cz-row"><span>Removed</span><span class="cz-color">
+      <input type="color" id="cz-del" value="#f85149"><button type="button" class="cz-reset" id="cz-del-x" title="Reset to default">reset</button>
+    </span></div>
+    <div class="cz-sec">Element color</div>
+    <div class="cz-row"><span>Inline code</span><span class="cz-color">
+      <input type="color" id="cz-code" value="#f07828"><button type="button" class="cz-reset" id="cz-code-x" title="Reset to default">reset</button>
+    </span></div>
+  </div></div>
 <div id="inline-view" class="view"><h1 data-oldline="1" data-newline="1" data-align="1" id="polaris-platform-operations-handbook">Polaris Platform — Operations Handbook</h1>
 <blockquote data-oldline="3" data-newline="3" data-align="2">
 <p><strong>Audience:</strong> on-call engineers and release managers.
@@ -1535,6 +1655,16 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
   function unpinTable(t) {
     var cg = t.querySelector('colgroup.mddiff-cols'); if (cg) cg.remove();
     t.style.tableLayout = ''; t.style.width = '';
+    // ALSO clear any full-bleed break-out styles left by fitInlineTables/
+    // fitSoloTables — on the table AND its shade-box (mdblock) parent. Without this,
+    // switching Left/Right -> Side-by-side kept the table's solo break-out
+    // (max-content width + marginLeft:50% + translateX(-50%)), so it stayed
+    // ~full-window, overflowed its half-column, overlapped the other column, and
+    // clipped off-screen. This fn is the shared reset for the split re-sync and the
+    // solo reset, so fixing it here covers both.
+    var p = t.parentNode, target = (p && p.nodeType === 1 && p.classList.contains('mdblock')) ? p : t;
+    target.style.maxWidth = ''; target.style.marginLeft = ''; target.style.transform = ''; target.style.boxSizing = '';
+    if (target !== t) { target.style.width = ''; t.style.maxWidth = ''; }
   }
   // Drop any table column/row pinning left by a prior split-view align() so a
   // solo (Left/Right) view lays its tables out naturally within the capped
@@ -1739,6 +1869,60 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
     }
   }
 
+  // Break ONE wide table out of a capped, centred readable column so it isn't
+  // trapped scrolling to read a single row. Shared by the inline view
+  // (fitInlineTables) and the solo Left/Right views (fitSoloTables) — both cap
+  // prose to a ~900px measure and centre it, so a table wider than that needs the
+  // full window. 'columnW' is the table's in-flow room, 'fullW' the break-out width
+  // (window minus gutters); 'centre' false leaves the table in flow growing
+  // rightward (inline + line-numbers mode, which is left-aligned), true centres it
+  // across the window (every other case, incl. every solo table). A wholly-added /
+  // -removed table is wrapped in its ins/del.mdblock SHADE box — break THAT out so
+  // the highlight grows with the table; the inner table (max-width:100%) then fills
+  // the box. A plain table (unchanged, or a row/column diff) is its own target.
+  function breakoutTable(t, columnW, fullW, centre) {
+    if (t.closest('td')) return;             // a nested table wraps in its cell — never broken out on its own
+    var p = t.parentNode;
+    var target = (p && p.nodeType === 1 && p.classList.contains('mdblock')) ? p : t;
+    // Reset target + table to the CSS default (width:max-content, max-width:100%)
+    // first, so a resize / re-run re-measures rather than compounding the last fit.
+    var oldCg = t.querySelector('colgroup.mddiff-cols'); if (oldCg) oldCg.remove();
+    t.style.tableLayout = '';
+    target.style.maxWidth = ''; target.style.width = ''; target.style.marginLeft = ''; target.style.transform = ''; target.style.boxSizing = '';
+    if (target !== t) { t.style.maxWidth = ''; t.style.width = ''; }
+    if (fullW <= columnW) return;            // window too narrow to gain anything
+    t.style.maxWidth = 'none';               // measure the unconstrained table width
+    var natural = t.offsetWidth;
+    // While still uncapped, capture the per-column natural + min-content widths —
+    // needed only when the table can't fit even at full-bleed (the pin below).
+    var nat = null, floor = null;
+    if (natural > fullW + 1) {
+      nat = colW(t);
+      if (nat.length) { t.style.width = 'min-content'; floor = colW(t); t.style.width = ''; }
+    }
+    t.style.maxWidth = '';
+    if (natural > columnW + 1) {
+      // width:max-content shrink-wraps the target to its content (the table, plus
+      // the shade box's padding), capped at fullW. box-sizing:border-box makes the
+      // cap apply to the VISIBLE box — a shade box's 12px padding + 3px border would
+      // otherwise push its border edge fullW+27px wide, eating the gutter.
+      target.style.width = 'max-content';
+      target.style.maxWidth = fullW + 'px';
+      target.style.boxSizing = 'border-box';
+      if (centre) { target.style.marginLeft = '50%'; target.style.transform = 'translateX(-50%)'; }
+      // If the content can't fit even at full-bleed — a column that won't wrap, e.g.
+      // a nested table — the max-content cap just lets the table scroll sideways AND
+      // drags every prose row off-screen with it (all rows share the column widths).
+      // Pin the columns to a fitted geometry instead, so every cell wraps to its
+      // column. The single-table analogue of syncTableColumns; floors that overflow
+      // fullW fall through to the scrollbar, the last resort.
+      if (nat && nat.length) {
+        var fit = fitColumns(nat, floor, fullW);
+        if (fit) pinTable(t, fit.w, fit.sum);
+      }
+    }
+  }
+
   // Inline view: let a WIDE table break out of the readable column. Prose reads
   // best at a capped measure (body max-width: 900px), so the inline view stays
   // narrow and centred — but that traps a wide table (a big parameter reference,
@@ -1763,7 +1947,7 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
     var columnW = iv.clientWidth;
     // GUT clears the 24px right-edge minimap; mirrored on the left so the
     // broken-out table stays centred in the window.
-    var GUT = 36, fullW = window.innerWidth - GUT * 2;
+    var GUT = 36, fullW = window.innerWidth - GUT * 2, centre = true;
     // When the line-number gutter is on the inline view is LEFT-ALIGNED (CSS
     // body.show-lines) so the numbers sit at the page's left edge. A broken-out table
     // must then grow RIGHTWARD from the content's left edge (just right of the gutter):
@@ -1775,57 +1959,25 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
       var padL = parseFloat(getComputedStyle(iv).paddingLeft) || 0;
       columnW = iv.clientWidth - padL;   // in-flow width available to a table (gutter excluded)
       fullW = window.innerWidth - GUT - (iv.getBoundingClientRect().left + padL);
+      centre = false;                    // left-aligned → grow rightward, don't centre back under the gutter
     }
     var tables = iv.querySelectorAll('table');
-    for (var i = 0; i < tables.length; i++) {
-      var t = tables[i];
-      if (t.closest('td')) continue;           // a nested table wraps inside its cell — never broken out on its own
-      var p = t.parentNode;
-      var target = (p && p.nodeType === 1 && p.classList.contains('mdblock')) ? p : t;
-      // Reset both target and table to the CSS default first (width:max-content,
-      // max-width:100%) so a resize re-measures rather than compounding the last fit.
-      var oldCg = t.querySelector('colgroup.mddiff-cols'); if (oldCg) oldCg.remove();
-      t.style.tableLayout = '';
-      target.style.maxWidth = ''; target.style.width = ''; target.style.marginLeft = ''; target.style.transform = ''; target.style.boxSizing = '';
-      if (target !== t) { t.style.maxWidth = ''; t.style.width = ''; }
-      if (fullW <= columnW) continue;          // window too narrow to gain anything
-      t.style.maxWidth = 'none';               // measure the unconstrained table width
-      var natural = t.offsetWidth;
-      // While still uncapped, capture the per-column natural + min-content widths —
-      // needed only when the table can't fit even at full-bleed (the pin below).
-      var nat = null, floor = null;
-      if (natural > fullW + 1) {
-        nat = colW(t);
-        if (nat.length) { t.style.width = 'min-content'; floor = colW(t); t.style.width = ''; }
-      }
-      t.style.maxWidth = '';
-      if (natural > columnW + 1) {
-        // width:max-content shrink-wraps the target to its content (the table,
-        // plus the shade box's padding), capped at fullW; centre it across the
-        // window. The inner table's max-width:100% then fills the shaded box.
-        // box-sizing:border-box makes the fullW cap apply to the VISIBLE box —
-        // a shade box's 12px padding + 3px border would otherwise push its border
-        // edge fullW+27px wide, eating the gutter and crowding the right minimap.
-        target.style.width = 'max-content';
-        target.style.maxWidth = fullW + 'px';
-        target.style.boxSizing = 'border-box';
-        // Centre across the window — EXCEPT in lines mode, where the table stays in its
-        // flow position (left edge already at content-left, right of the gutter) so it
-        // grows rightward without centring back under the numbers; the loop-top reset
-        // cleared any prior 50%/translateX.
-        if (!lines) { target.style.marginLeft = '50%'; target.style.transform = 'translateX(-50%)'; }
-        // If the content can't fit even at full-bleed — a column that won't wrap,
-        // e.g. a nested table — the max-content cap above just lets the table scroll
-        // sideways AND drags every prose row off-screen with it (all rows share the
-        // column widths). Pin the columns to a fitted geometry instead, so every
-        // cell wraps to its column. The single-table analogue of syncTableColumns;
-        // floors that overflow fullW fall through to the scrollbar, the last resort.
-        if (nat && nat.length) {
-          var fit = fitColumns(nat, floor, fullW);
-          if (fit) pinTable(t, fit.w, fit.sum);
-        }
-      }
-    }
+    for (var i = 0; i < tables.length; i++) breakoutTable(tables[i], columnW, fullW, centre);
+  }
+  // Solo Left/Right views: the single visible column is capped to the same ~900px
+  // measure and centred (body.left-only / right-only CSS), so a wide table is
+  // trapped scrolling exactly as in the inline view above — the reported "table not
+  // fully displayed in Left/Right" bug. Break it out full-bleed too. The solo column
+  // is ALWAYS centred (unlike the inline view it is never left-aligned in lines
+  // mode), so the breakout always centres — no lines-mode branch. Self-gates on a
+  // solo view being active (a no-op in inline / split).
+  function fitSoloTables() {
+    var solo = document.body.classList.contains('left-only') ? colOld
+             : document.body.classList.contains('right-only') ? colNew : null;
+    if (!solo) return;
+    var GUT = 36, fullW = window.innerWidth - GUT * 2;
+    var tables = solo.querySelectorAll('table');
+    for (var i = 0; i < tables.length; i++) breakoutTable(tables[i], solo.clientWidth, fullW, true);
   }
 
   // Diff overview minimap: one bar per change, positioned AND sized in
@@ -2136,8 +2288,8 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
     // Remember the chosen view so a reload (Cmd+R re-renders the page from disk)
     // and the next diff keep it, instead of snapping back to the launch view.
     try { localStorage.setItem('mddiff-view', v); } catch (e) {}
-    if (v === 'split') requestAnimationFrame(function () { align(); buildMinimap(); buildToc(); });
-    else if (v === 'left' || v === 'right') requestAnimationFrame(function () { clearAlign(colOld); clearAlign(colNew); resetSoloTables(); buildMinimap(); buildToc(); });
+    if (v === 'split') requestAnimationFrame(function () { resetSoloTables(); align(); buildMinimap(); buildToc(); });
+    else if (v === 'left' || v === 'right') requestAnimationFrame(function () { clearAlign(colOld); clearAlign(colNew); resetSoloTables(); fitSoloTables(); buildMinimap(); buildToc(); });
     else requestAnimationFrame(function () { fitInlineTables(); buildMinimap(); buildToc(); });
   }
   
@@ -2147,8 +2299,8 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
   btns.right.onclick  = function () { set('right'); };
 
   var rz;
-  window.addEventListener('resize', function () { syncBarH(); clearTimeout(rz); rz = setTimeout(function () { align(); fitInlineTables(); buildMinimap(); }, 120); });
-  window.addEventListener('load', function () { syncBarH(); if (split.classList.contains('active')) align(); fitInlineTables(); buildMinimap(); buildToc(); requestAnimationFrame(jumpToHash); });
+  window.addEventListener('resize', function () { syncBarH(); clearTimeout(rz); rz = setTimeout(function () { align(); fitInlineTables(); fitSoloTables(); buildMinimap(); }, 120); });
+  window.addEventListener('load', function () { syncBarH(); if (split.classList.contains('active')) align(); fitInlineTables(); fitSoloTables(); buildMinimap(); buildToc(); requestAnimationFrame(jumpToHash); });
 
   // Restore the last chosen view; fall back to the launch view ("split")
   // when nothing's stored. This is what keeps a reload from reverting the toggle.
@@ -2189,19 +2341,99 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
   // (absolutely-positioned pseudo-elements that don't touch the reflow / minimap /
   // align), but turning the gutter on also LEFT-ALIGNS the inline view (so the gutter
   // lands at the page's left edge), which changes where a broken-out wide table sits —
-  // so re-run fitInlineTables() to reposition it. It self-gates on the inline view
-  // being active, so it's a no-op in split mode.
+  // and narrows the solo column's in-flow room by the gutter width — so re-run both
+  // table fitters to reposition. Each self-gates on its view being active, so only
+  // the one for the current view does anything (no-op in split mode).
   var linesBtn = document.getElementById('btn-lines');
   function setLines(on) {
     document.body.classList.toggle('show-lines', on);
     if (linesBtn) linesBtn.classList.toggle('active', on);
     try { localStorage.setItem('mddiff-lines', on ? '1' : '0'); } catch (e) {}
-    fitInlineTables();
+    fitInlineTables(); fitSoloTables();
   }
   if (linesBtn) linesBtn.onclick = function () { setLines(!document.body.classList.contains('show-lines')); };
   var savedLines = false;
   try { savedLines = localStorage.getItem('mddiff-lines') === '1'; } catch (e) {}
   setLines(savedLines);
+
+  // ---- Customize panel. Two control kinds on ONE seam: FONT <select>s
+  // (--mddiff-font / --mddiff-mono) and DIFF-COLOUR <input type=color>s — the two
+  // accent hues --mddiff-add / --mddiff-del, from which every tint / text / border
+  // shade is derived in CSS. Each writes its CSS custom property on <body> (on
+  // body, NOT :root, so a custom accent overrides the body.light theme default)
+  // and remembers it: localStorage in the browser (one shared origin ⇒ tabs sync),
+  // or the CZ_SEED host seed + the pref bridge in the VS Code webview, exactly like
+  // the theme / line-number toggles. A null CZ_SEED means "browser: use localStorage".
+  var CZ_SEED = null;
+  var czPanel = document.getElementById('mddiff-customize');
+  var czBtn = document.getElementById('btn-customize');
+  function czApply(prop, val) {
+    if (val) document.body.style.setProperty(prop, val);
+    else document.body.style.removeProperty(prop);
+  }
+  function czRead(storeKey, prefKey) {
+    // Authoritative host seed — and WRITE IT THROUGH to the panel's localStorage,
+    // so a later seedless re-render (webview auto-refresh / ⇄ swap passes custom=null)
+    // restores it instead of snapping back to defaults. Mirrors setTheme/setLines.
+    if (CZ_SEED) { var v = String(CZ_SEED[prefKey] || ''); try { localStorage.setItem(storeKey, v); } catch (e) {} return v; }
+    try { return localStorage.getItem(storeKey) || ''; } catch (e) { return ''; }
+  }
+  function czSave(storeKey, prefKey, val) {
+    try { localStorage.setItem(storeKey, val); } catch (e) {}
+    
+  }
+  // A colour swatch reflects the EFFECTIVE colour, read from the CSS vars (one
+  // source of truth, so it is theme-correct): the custom override if set, else the
+  // theme default var. Avoids hardcoding dark-only hexes that misrepresent — and,
+  // on first touch, mis-apply — in light theme.
+  function czHex(v) { return getComputedStyle(document.body).getPropertyValue(v).trim(); }
+  function czSwatch(c) {
+    var inp = document.getElementById(c[1]);
+    if (!inp) return;
+    var eff = czHex(c[0]) || czHex(c[5]);        // custom override, else theme default
+    if (/^#[0-9a-fA-F]{6}$/.test(eff)) inp.value = eff;
+  }
+  // Fonts: [cssProp, <select> id, localStorage key, host-pref key]
+  var CZ_FONTS = [['--mddiff-font', 'cz-font', 'mddiff-font', 'font'],
+                  ['--mddiff-mono', 'cz-mono', 'mddiff-mono', 'mono']];
+  CZ_FONTS.forEach(function (c) {
+    var sel = document.getElementById(c[1]);
+    if (!sel) return;
+    var v = czRead(c[2], c[3]);
+    sel.value = v;
+    czApply(c[0], v);   // applied even if v isn't a preset, so the page reflects it
+    // A font change re-flows cell text, so re-run the table fitters / alignment /
+    // minimap — split column pins + wide-table break-outs were measured under the
+    // OLD font and would otherwise go stale until a resize (setLines re-runs these
+    // for the same reason). Colours don't change metrics, so their inputs don't.
+    sel.onchange = function () { czApply(c[0], sel.value); czSave(c[2], c[3], sel.value); align(); fitInlineTables(); fitSoloTables(); buildMinimap(); };
+  });
+  // Diff/element colours: [customVar, <input> id, reset-btn id, localStorage key,
+  // host-pref key, DEFAULT var]. The default var is read for the swatch when no
+  // custom override is set (add/del hold their default in the accent var itself;
+  // inline-code's default lives in --mddiff-code-default).
+  var CZ_COLORS = [['--mddiff-add', 'cz-add', 'cz-add-x', 'mddiff-add', 'add', '--mddiff-add'],
+                   ['--mddiff-del', 'cz-del', 'cz-del-x', 'mddiff-del', 'del', '--mddiff-del'],
+                   ['--mddiff-code', 'cz-code', 'cz-code-x', 'mddiff-code', 'code', '--mddiff-code-default']];
+  CZ_COLORS.forEach(function (c) {
+    var inp = document.getElementById(c[1]), rst = document.getElementById(c[2]);
+    if (!inp) return;
+    var v = czRead(c[3], c[4]);
+    if (v) czApply(c[0], v);          // apply the stored/seeded override
+    czSwatch(c);                       // then show the effective colour (theme-correct)
+    inp.oninput = function () { czApply(c[0], inp.value); czSave(c[3], c[4], inp.value); };
+    if (rst) rst.onclick = function () { czApply(c[0], ''); czSave(c[3], c[4], ''); czSwatch(c); };
+  });
+  if (czBtn && czPanel) {
+    czBtn.onclick = function (e) {
+      e.stopPropagation();
+      if (czPanel.hidden) CZ_COLORS.forEach(czSwatch);   // re-sync to the CURRENT theme before opening
+      czPanel.hidden = !czPanel.hidden;
+    };
+    document.addEventListener('click', function (e) {
+      if (!czPanel.hidden && !czPanel.contains(e.target) && e.target !== czBtn) czPanel.hidden = true;
+    });
+  }
 })();
 </script>
 <script type="application/json" id="mddiff-swap-data">{"fwd":{"oldL":"polaris-handbook.before.md","newL":"polaris-handbook.after.md","title":"mddiff: polaris-handbook.before.md → polaris-handbook.after.md"},"rev":{"oldL":"polaris-handbook.after.md","newL":"polaris-handbook.before.md","title":"mddiff: polaris-handbook.after.md → polaris-handbook.before.md","body":"\u003ch1 data-oldline=\"1\" data-newline=\"1\" data-align=\"1\" id=\"polaris-platform-operations-handbook\">Polaris Platform — Operations Handbook\u003c/h1>\n\u003cblockquote data-oldline=\"3\" data-newline=\"3\" data-align=\"2\">\n\u003cp>\u003cstrong>Audience:\u003c/strong> on-call engineers and release managers.\n\u003cstrong>Status:\u003c/strong> living document, reviewed \u003cdel data-operation-index=\"1\">every\u003c/del>\u003cins data-operation-index=\"1\">each\u003c/ins> quarter.\u003c/p>\n\u003c/blockquote>\n\u003cp data-oldline=\"6\" data-newline=\"6\" data-align=\"3\">Polaris is the internal service that \u003cdel data-operation-index=\"1\">receives,\u003c/del>\u003cins data-operation-index=\"1\">recieves,\u003c/ins> renders, and delivers\ndocumentation builds to every downstream team. This handbook is the single\nreference for operating it in production: how it is structured, how to deploy a\nchange, and what to do when something breaks at 3 a.m.\u003c/p>\n\u003ch2 data-oldline=\"11\" data-newline=\"11\" data-align=\"4\" id=\"contents\">Contents\u003c/h2>\n\u003cul data-oldline=\"13\" data-newline=\"13\" data-align=\"5\">\u003cli data-align=\"6\">\u003ca href=\"#overview\">Overview\u003c/a>\u003c/li>\u003cli data-align=\"7\">\u003ca href=\"#architecture\">Architecture\u003c/a>\u003c/li>\u003cli data-align=\"8\">\u003ca href=\"#deploying-a-change\">Deploying a \u003cdel data-operation-index=\"1\">release\u003c/del>\u003cins data-operation-index=\"1\">change\u003c/ins>\u003c/a>\u003c/li>\u003cli data-align=\"9\">\u003ca href=\"#configuration\">Configuration\u003c/a>\u003c/li>\u003cli data-align=\"10\">\u003ca href=\"#provisioning-channels\">Provisioning channels\u003c/a>\u003c/li>\u003cli data-align=\"11\">\u003ca href=\"#scheduler-parameters\">Scheduler parameters\u003c/a>\u003c/li>\u003cli data-align=\"12\">\u003ca href=\"#capacity-planning\">Capacity planning\u003c/a>\u003c/li>\u003cli data-align=\"13\">\u003ca href=\"#cache-warm-up\">Cache warm-up\u003c/a>\u003c/li>\u003cli data-align=\"14\">\u003ca href=\"#render-benchmarks\">Render benchmarks\u003c/a>\u003c/li>\u003cli data-align=\"15\">\u003ca href=\"#incident-response\">Incident response\u003c/a>\u003c/li>\u003cli data-align=\"16\">\u003ca href=\"#cli-reference\">CLI reference\u003c/a>\u003c/li>\u003cli data-align=\"17\">\u003ca href=\"#service-tiers\">Service tiers\u003c/a>\u003c/li>\u003cli class=\"li-del\">\u003ca href=\"#observability\">Observability\u003c/a>\u003c/li>\u003cli class=\"li-ins\">\u003ca href=\"#deprecations\">Deprecations\u003c/a>\u003c/li>\u003cli data-align=\"18\">\u003ca href=\"#glossary\">Glossary\u003c/a>\u003c/li>\u003c/ul>\u003ch2 data-oldline=\"28\" data-newline=\"28\" data-align=\"19\" id=\"overview\">Overview\u003c/h2>\n\u003cp data-oldline=\"30\" data-newline=\"30\" data-align=\"20\">Polaris ingests Markdown from roughly forty repositories, renders it to HTML,\nand serves the result behind a \u003cdel data-operation-index=\"1\">small\u003c/del>\u003cins data-operation-index=\"1\">thin\u003c/ins> caching layer. The render path is\ndeliberately stateless so that any \u003cdel data-operation-index=\"3\">worker\u003c/del>\u003cins data-operation-index=\"3\">node\u003c/ins> can \u003cdel data-operation-index=\"5\">pick up\u003c/del>\u003cins data-operation-index=\"5\">serve\u003c/ins> any \u003cdel data-operation-index=\"7\">job from the shared\nqueue,\u003c/del>\u003cins data-operation-index=\"7\">request,\u003c/ins> and a build is\nnever tied to the machine that produced it.\u003c/p>\n\u003cp data-oldline=\"35\" data-newline=\"35\" data-align=\"21\">The platform has three moving parts: an \u003cstrong>ingest\u003c/strong> worker that \u003cdel data-operation-index=\"1\">polls each\u003c/del>\u003cins data-operation-index=\"1\">watches the\u003c/ins>\nsource \u003cdel data-operation-index=\"3\">repository for new commits,\u003c/del>\u003cins data-operation-index=\"3\">repositories,\u003c/ins> a \u003cstrong>render\u003c/strong> pool that turns Markdown into HTML, and an\n\u003cstrong>edge\u003c/strong> tier that \u003cdel data-operation-index=\"5\">keeps rendered\u003c/del>\u003cins data-operation-index=\"5\">caches and serves the finished\u003c/ins> pages \u003cdel data-operation-index=\"7\">hot in cache and hands them straight back\n\u003c/del>to \u003cdel data-operation-index=\"9\">every reader on request.\u003c/del>\u003cins data-operation-index=\"9\">readers.\u003c/ins> Each part\ncan be operated, scaled, and rolled back on its own.\u003cdel data-operation-index=\"11\"> Splitting them this way\nkeeps a renderer crash from ever touching ingest.\u003c/del>\u003c/p>\n\u003cp data-oldline=\"42\" data-newline=\"40\" data-align=\"22\">\u003cins data-operation-index=\"1\">At steady state Polaris serves a few million page views a day across the three\nregions, with the bulk concentrated in the hour after each Monday release. \u003c/ins>None\nof that traffic ever reaches a renderer when the cache is warm, which is exactly\nwhy the edge tier, not the render pool, is sized for the worst case.\u003c/p>\n\u003cp data-oldline=\"45\" data-newline=\"45\" data-align=\"23\">The edge tier is what \u003cdel data-operation-index=\"1\">soaks up\u003c/del>\u003cins data-operation-index=\"1\">absorbs\u003c/ins> that Monday surge, and it does so without ever\nwaking a renderer. A warm cache turns almost every request into a single\nin-memory lookup, so the median page leaves the edge in well under a millisecond.\nWhen a purge \u003cdel data-operation-index=\"3\">clears\u003c/del>\u003cins data-operation-index=\"3\">empties\u003c/ins> part of the cache, the affected routes briefly fall through\nto the render pool until they are \u003cdel data-operation-index=\"5\">warmed again.\u003c/del>\u003cins data-operation-index=\"5\">repopulated.\u003c/ins> That brief window is the only time\nreaders and renderers share a fate, which is exactly why purges are scheduled and\nnever casual. Capacity is therefore sized \u003cdel data-operation-index=\"7\">around\u003c/del>\u003cins data-operation-index=\"7\">for\u003c/ins> the cache, not the render pool, and\nthe forecast is revisited at every \u003cdel data-operation-index=\"9\">release review.\u003c/del>\u003cins data-operation-index=\"9\">release.\u003c/ins>\u003c/p>\n\u003ch2 data-oldline=\"54\" data-newline=\"54\" data-align=\"24\" id=\"architecture\">Architecture\u003c/h2>\n\u003cdel data-oldline=\"56\" data-align=\"25\" class=\"mdblock\">\u003cp>Every request arrives at the edge tier, which consults its cache first and only\ndrops through to a renderer on a miss. Renderers are entirely fungible; they keep\nno session state, so the fleet can be grown or drained on demand without any\ncoordination between nodes or warming work done beforehand.\u003c/p>\n\u003c/del>\u003cins data-newline=\"56\" data-align=\"25\" class=\"mdblock\">\u003cp>Each request enters through the edge tier, which checks its cache first and only\nfalls through to a renderer on a miss. Renderers are completely interchangeable;\nthey hold no session state, so the pool can be scaled up or drained at will\nwithout coordinating between nodes or warming anything in advance.\u003c/p>\n\u003c/ins>\u003cdel data-oldline=\"61\" data-align=\"26\" class=\"mdblock\">\u003cp>The edge tier is the only component readers ever talk to directly, and it is\nsized for peak fan-out rather than average load so a thundering herd after a\ncache purge never reaches the renderers.\u003c/p>\n\u003c/del>\u003cins data-newline=\"61\" data-align=\"26\" class=\"mdblock\">\u003cblockquote>\n\u003cp>Renderers are cattle, not pets. If one misbehaves, terminate it — the pool\nreplaces it within a minute and no request is lost.\u003c/p>\n\u003c/blockquote>\n\u003c/ins>\u003cp data-oldline=\"65\" data-newline=\"64\" data-align=\"27\">The ingest worker is the only stateful component, and it keeps nothing more than\na cursor into each repository&#39;s commit history.\u003cins data-operation-index=\"1\"> A poisoned commit therefore\nblocks only that one repository, never the whole queue.\u003c/ins>\u003c/p>\n\u003ch2 data-oldline=\"68\" data-newline=\"68\" data-align=\"28\" id=\"deploying-a-change\">Deploying a \u003cdel data-operation-index=\"1\">release\u003c/del>\u003cins data-operation-index=\"1\">change\u003c/ins>\u003c/h2>\n\u003cp data-oldline=\"70\" data-newline=\"70\" data-align=\"29\">Deployment is a strictly ordered process. Do not skip steps, and never deploy to\nall regions at once.\u003c/p>\n\u003col data-oldline=\"73\" data-newline=\"73\" data-align=\"30\">\u003cli data-align=\"31\">Cut a release branch and tag it \u003ccode>polaris-vX.Y.Z\u003c/code>.\u003c/li>\u003cli data-align=\"32\">\u003cdel data-operation-index=\"0\">Replay\u003c/del>\u003cins data-operation-index=\"0\">Run\u003c/ins> the \u003cdel data-operation-index=\"2\">last quarter of production traffic against\u003c/del>\u003cins data-operation-index=\"2\">full test suite and confirm\u003c/ins> the \u003cdel data-operation-index=\"4\">candidate build and\nblock the release on any regression it surfaces.\u003c/del>\u003cins data-operation-index=\"4\">smoke check is green.\u003c/ins>\u003c/li>\u003cli data-align=\"33\">Promote the build to the \u003ccode>staging\u003c/code> edge and watch the dashboards.\u003c/li>\u003cli data-align=\"34\">Promote to \u003ccode>production\u003c/code> one region at a time, starting with \u003ccode>us-west\u003c/code>\u003cdel data-operation-index=\"1\">, and\npause for a full health check between each region before continuing.\u003c/del>\u003cins data-operation-index=\"1\">.\u003c/ins>\u003c/li>\u003cli class=\"li-del\">Tag the release as \u003ccode>verified\u003c/code> once the canary has cleared everywhere.\u003c/li>\u003cli data-align=\"35\">Update the status page once every region reports healthy.\u003c/li>\u003c/ol>\u003cp data-oldline=\"82\" data-newline=\"79\" data-align=\"36\">Promotion to a single region itself has two phases:\u003c/p>\n\u003cul data-oldline=\"84\" data-newline=\"81\" data-align=\"37\">\u003cli data-align=\"38\">Drain ten percent of traffic onto the new build as a canary.\u003c/li>\u003cli data-align=\"39\">Hold for fifteen minutes, then shift the remaining traffic.\u003c/li>\u003cli class=\"li-del\">Roll back instantly if the error rate rises above baseline.\u003c/li>\u003c/ul>\u003cp data-oldline=\"88\" data-newline=\"84\" data-align=\"40\">A region only counts as promoted once its gate clears:\u003c/p>\n\u003cblockquote data-oldline=\"90\" data-newline=\"86\" data-align=\"41\">\n\u003cp>\u003cstrong>Definition of \u003ccode>\u003cdel data-operation-index=\"1\">STABLE\u003c/del>\u003cins data-operation-index=\"1\">GREEN\u003c/ins>\u003c/code>.\u003c/strong> A deploy is \u003ccode>\u003cdel data-operation-index=\"3\">STABLE\u003c/del>\u003cins data-operation-index=\"3\">GREEN\u003c/ins>\u003c/code> — not a status the platform reports, but our own composite gate, owned by \u003ca href=\"../tools/release-gate.py\">\u003ccode>release-gate.py\u003c/code>\u003c/a> (\u003ccode>--require-\u003cdel data-operation-index=\"5\">stable\u003c/del>\u003cins data-operation-index=\"5\">green\u003c/ins>\u003c/code> mode). It is ✅ \u003ccode>\u003cdel data-operation-index=\"7\">STABLE\u003c/del>\u003cins data-operation-index=\"7\">GREEN\u003c/ins>\u003c/code> only when \u003cstrong>all four\u003c/strong> checks pass:\u003c/p>\n\u003col>\n\u003cli>the new revision answers \u003ccode>/healthz\u003c/code> on every renderer;\u003c/li>\n\u003cli>error rate over the last 5 minutes is below \u003ccode>0.1%\u003c/code>;\u003c/li>\n\u003cli>p99 latency is within \u003ccode>10%\u003c/code> of the previous release;\u003c/li>\n\u003cli>no renderer has restarted in the trailing 10 minutes.\u003c/li>\n\u003c/ol>\n\u003cp>It means the rollout is \u003ccode>\u003cdel data-operation-index=\"1\">STABLE\u003c/del>\u003cins data-operation-index=\"1\">GREEN\u003c/ins>\u003c/code> enough to leave unattended.\u003cdel data-operation-index=\"3\"> The soak window and the slow-burn alert threshold must also clear first, so \u003c/del>\u003ccode data-diff-node=\"del\" data-operation-index=\"3\">\u003cdel data-operation-index=\"3\">STABLE\u003c/del>\u003c/code>\u003cdel data-operation-index=\"3\"> marks the fully-settled end state, not the first passing check.\u003c/del> Nothing downstream re-checks once it is \u003ccode>\u003cdel data-operation-index=\"5\">STABLE\u003c/del>\u003cins data-operation-index=\"5\">GREEN\u003c/ins>\u003c/code>.\u003c/p>\n\u003c/blockquote>\n\u003ch2 data-oldline=\"99\" data-newline=\"95\" data-align=\"42\" id=\"configuration\">Configuration\u003c/h2>\n\u003cp data-oldline=\"101\" data-newline=\"97\" data-align=\"43\">The render pool is tuned with a small set of environment variables. The defaults\nare conservative; \u003cdel data-operation-index=\"1\">change\u003c/del>\u003cins data-operation-index=\"1\">raise\u003c/ins> them only \u003cdel data-operation-index=\"3\">after a load test, never on a hunch.\u003c/del>\u003cins data-operation-index=\"3\">with evidence from the dashboards.\u003c/ins>\u003c/p>\n\u003ctable data-oldline=\"104\" data-newline=\"100\" data-align=\"44\">\n\u003cthead>\n\u003ctr>\n\u003cth>Variable\u003c/th>\u003cth>Default\u003c/th>\u003cth>Purpose\u003c/th>\u003cth class=\"col-del\">\u003cdel>Restart needed?\u003c/del>\u003c/th>\n\u003c/tr>\n\u003c/thead>\n\u003ctbody>\n\u003ctr>\n\u003ctd>\u003ccode>RENDER_CONCURRENCY\u003c/code>\u003c/td>\u003ctd>\u003ccode>8\u003c/code>\u003c/td>\u003ctd>Renders running per node\u003c/td>\u003ctd class=\"col-del\">\u003cdel>Yes\u003c/del>\u003c/td>\n\u003c/tr>\n\u003ctr>\n\u003ctd>\u003ccode>CACHE_TTL_SECONDS\u003c/code>\u003c/td>\u003ctd>\u003ccode>\u003cdel data-operation-index=\"1\">600\u003c/del>\u003cins data-operation-index=\"1\">300\u003c/ins>\u003c/code>\u003c/td>\u003ctd>How long the edge keeps a page\u003c/td>\u003ctd class=\"col-del\">\u003cdel>No\u003c/del>\u003c/td>\n\u003c/tr>\n\u003ctr>\n\u003ctd>\u003ccode>INGEST_INTERVAL\u003c/code>\u003c/td>\u003ctd>\u003ccode>30\u003c/code>\u003c/td>\u003ctd>Seconds between repository polls\u003c/td>\u003ctd class=\"col-del\">\u003cdel>No\u003c/del>\u003c/td>\n\u003c/tr>\n\u003ctr class=\"tr-del\">\n\u003ctd>\u003cdel>\u003ccode>LOG_LEVEL\u003c/code>\u003c/del>\u003c/td>\u003ctd>\u003cdel>\u003ccode>info\u003c/code>\u003c/del>\u003c/td>\u003ctd>\u003cdel>Verbosity of render logs\u003c/del>\u003c/td>\u003ctd class=\"col-del\">\u003cdel>No\u003c/del>\u003c/td>\n\u003c/tr>\n\u003c/tbody>\n\u003c/table>\n\u003ch2 data-oldline=\"111\" data-newline=\"106\" data-align=\"45\" id=\"provisioning-channels\">Provisioning channels\u003c/h2>\n\u003cp data-oldline=\"113\" data-newline=\"108\" data-align=\"46\">A render setting reaches a node through one of two channels. Both carry the same\nkeys; they differ only in how far the value reaches once it lands.\u003c/p>\n\u003ctable data-oldline=\"116\" data-newline=\"111\" data-align=\"47\">\n\u003cthead>\n\u003ctr>\n\u003cth>Channel\u003c/th>\u003cth>Where the value lives\u003c/th>\u003cth>Scope\u003c/th>\n\u003c/tr>\n\u003c/thead>\n\u003ctbody>\n\u003ctr>\n\u003ctd>Cluster default\u003c/td>\u003ctd>\u003ccode>polaris.yaml\u003c/code> under \u003ccode>render.*\u003c/code> (in our deployment: \u003ccode>ops/polaris/regions/us-west/polaris.yaml\u003c/code> → \u003ccode>render.concurrency\u003c/code>)\u003c/td>\u003ctd>Cluster-wide default for every renderer in the region.\u003c/td>\n\u003c/tr>\n\u003ctr>\n\u003ctd>Per-deploy override\u003c/td>\u003ctd>Passed to \u003ccode>pol deploy --set render.concurrency=N\u003c/code> at promote time, then recorded in the deploy log under that release tag\u003c/td>\u003ctd>Per-deploy / per-region. \u003cdel>\u003cstrong>Overrides the cluster default\u003c/strong>\u003c/del>\u003cins>Overrides the cluster default\u003c/ins> for that one promotion.\u003c/td>\n\u003c/tr>\n\u003c/tbody>\n\u003c/table>\n\u003ch2 data-oldline=\"121\" data-newline=\"116\" data-align=\"48\" id=\"scheduler-parameters\">Scheduler parameters\u003c/h2>\n\u003cp data-oldline=\"123\" data-newline=\"118\" data-align=\"49\">The render scheduler decides how many builds a node works on at once and how it\nsheds load when the queue backs up. These knobs are read at startup; a couple are\nre-read on \u003ccode>SIGHUP\u003c/code>.\u003c/p>\n\u003ctable data-oldline=\"127\" data-newline=\"122\" data-align=\"50\">\n\u003cthead>\n\u003ctr>\n\u003cth>Parameter\u003c/th>\u003cth>Default\u003c/th>\u003cth>Hot-reload\u003c/th>\u003cth>Description\u003c/th>\n\u003c/tr>\n\u003c/thead>\n\u003ctbody>\n\u003ctr>\n\u003ctd>\u003ccode>render_batch_window\u003c/code>\u003c/td>\u003ctd>\u003ccode>250ms\u003c/code>\u003c/td>\u003ctd>yes\u003c/td>\u003ctd>How long the scheduler waits to accumulate jobs before dispatching a batch to a worker. A longer window improves batching efficiency but adds latency to the first render in \u003cdel data-operation-index=\"1\">the\u003c/del>\u003cins data-operation-index=\"1\">each\u003c/ins> batch.\u003c/td>\n\u003c/tr>\n\u003ctr>\n\u003ctd>\u003ccode>max_render_batch\u003c/code>\u003c/td>\u003ctd>\u003ccode>\u003cdel data-operation-index=\"1\">24\u003c/del>\u003cins data-operation-index=\"1\">16\u003c/ins>\u003c/code>\u003c/td>\u003ctd>no\u003c/td>\u003ctd>Maximum number of builds dispatched to a single worker in one batch. Bounds peak memory per worker; raising it trades memory for throughput.\u003cdel data-operation-index=\"1\"> What changes as the batch fills:\u003c/del>\u003cbr>\u003cbr>\u003ctable data-diff-node=\"del\" data-operation-index=\"1\">\u003cthead data-diff-node=\"del\" data-operation-index=\"1\">\u003ctr data-diff-node=\"del\" data-operation-index=\"1\">\u003cth data-diff-node=\"del\" data-operation-index=\"1\">\u003cdel data-operation-index=\"1\">Phase\u003c/del>\u003c/th>\u003cth data-diff-node=\"del\" data-operation-index=\"1\">\u003cdel data-operation-index=\"1\">What still happens\u003c/del>\u003c/th>\u003cth data-diff-node=\"del\" data-operation-index=\"1\">\u003cdel data-operation-index=\"1\">What changes\u003c/del>\u003c/th>\u003c/tr>\u003c/thead>\u003ctbody data-diff-node=\"del\" data-operation-index=\"1\">\u003ctr data-diff-node=\"del\" data-operation-index=\"1\">\u003ctd data-diff-node=\"del\" data-operation-index=\"1\">\u003cdel data-operation-index=\"1\">Filling\u003c/del>\u003c/td>\u003ctd data-diff-node=\"del\" data-operation-index=\"1\">\u003cdel data-operation-index=\"1\">The scheduler keeps adding jobs to the open batch as workers report free slots.\u003c/del>\u003c/td>\u003ctd data-diff-node=\"del\" data-operation-index=\"1\">\u003cdel data-operation-index=\"1\">Instead of dispatching when the time window expires, it now waits until the batch reaches its max size or the window expires, whichever comes first.\u003c/del>\u003c/td>\u003c/tr>\u003ctr data-diff-node=\"del\" data-operation-index=\"1\">\u003ctd data-diff-node=\"del\" data-operation-index=\"1\">\u003cdel data-operation-index=\"1\">Draining\u003c/del>\u003c/td>\u003ctd data-diff-node=\"del\" data-operation-index=\"1\">\u003cdel data-operation-index=\"1\">Workers render the batch and report progress back to the scheduler.\u003c/del>\u003c/td>\u003ctd data-diff-node=\"del\" data-operation-index=\"1\">\u003cdel data-operation-index=\"1\">No longer capped at the window. The scheduler holds new jobs until at least one worker frees a slot, so a single slow build no longer stalls the whole node.\u003c/del>\u003c/td>\u003c/tr>\u003c/tbody>\u003c/table>\u003c/td>\n\u003c/tr>\n\u003ctr>\n\u003ctd>\u003ccode>queue_backpressure\u003c/code>\u003c/td>\u003ctd>\u003ccode>soft\u003c/code>\u003c/td>\u003ctd>yes\u003c/td>\u003ctd>How the scheduler reacts when the pending queue passes its high-water mark. \u003ccode>soft\u003c/code> slows ingest polling; \u003ccode>hard\u003c/code> rejects new jobs outright until the queue drains.\u003c/td>\n\u003c/tr>\n\u003c/tbody>\n\u003c/table>\n\u003ch2 data-oldline=\"133\" data-newline=\"128\" data-align=\"51\" id=\"capacity-planning\">Capacity planning\u003c/h2>\n\u003cp data-oldline=\"135\" data-newline=\"130\" data-align=\"52\">Capacity is owned by the on-call lead and revisited at every release review.\u003c/p>\n\u003cp data-oldline=\"137\" data-newline=\"132\" data-align=\"53\">Headroom is tracked against the rolling Monday peak; we provision for twice that\npeak, which has \u003cins data-operation-index=\"1\">comfortably and reliably \u003c/ins>absorbed every surge so far this year.\u003c/p>\n\u003cp data-oldline=\"140\" data-newline=\"135\" data-align=\"54\">Scaling is still manual: an operator adds nodes to the render pool and then waits\n\u003cdel data-operation-index=\"1\">a good while \u003c/del>for them to warm.\u003c/p>\n\u003cp data-oldline=\"143\" data-newline=\"138\" data-align=\"55\">The underlying forecast is rough, \u003cins data-operation-index=\"1\">frankly stale, \u003c/ins>only\u003cins data-operation-index=\"3\"> loosely\u003c/ins> tuned, and\u003cins data-operation-index=\"5\"> openly\u003c/ins>\noptimistic about cache behaviour.\u003c/p>\n\u003cp data-oldline=\"146\" data-newline=\"141\" data-align=\"56\">Storage grows \u003cdel data-operation-index=\"1\">slowly but \u003c/del>predictably and \u003cdel data-operation-index=\"3\">for the most part \u003c/del>needs\u003cdel data-operation-index=\"5\"> almost\u003c/del> no attention day to day.\u003c/p>\n\u003cdel data-oldline=\"149\" data-align=\"57\" class=\"mdblock\">\u003cp>For now the review itself is \u003cstrong>formal, scheduled, and surprisingly thorough\u003c/strong> in\npractice.\u003c/p>\n\u003c/del>\u003cins data-newline=\"143\" data-align=\"57\" class=\"mdblock\">\u003cp>For now the review itself is \u003cem>informal and quick\u003c/em> in practice.\u003c/p>\n\u003c/ins>\u003ch2 data-oldline=\"152\" data-newline=\"145\" data-align=\"58\" id=\"cache-warm-up\">Cache warm-up\u003c/h2>\n\u003cp data-oldline=\"154\" data-newline=\"147\" data-align=\"59\">Before a deploy drains the old pool, warm the new one. The runner walks a\nfallback chain top-down and stops at the first source that answers.\u003c/p>\n\u003cul data-oldline=\"157\" data-newline=\"150\" data-align=\"60\">\u003cli data-align=\"61\">\u003cp>\u003cstrong>Warm set size\u003c/strong> — how many routes to pre-render into the edge cache. Walk the\nchain in strict top-down order and never skip a step you have not actually\nchecked. The deploy report records only the bare number; the source (which step\nanswered) goes in the run log.\u003c/p>\n\u003col>\u003cli data-align=\"62\">\u003cp>\u003cstrong>Pinned override\u003c/strong> — read \u003ccode>warmup.count\u003c/code> from the channel config if an\noperator set it for this deploy.\u003c/p>\n\u003cul>\n\u003cli>\u003cstrong>Use it\u003c/strong> if the key is present.\u003c/li>\n\u003cli>\u003cstrong>Fall through\u003c/strong> only if the key is absent (the common case — most deploys\ninherit the default).\u003c/li>\n\u003c/ul>\n\u003c/li>\u003cli data-align=\"63\">\u003cp>\u003cstrong>Last good run\u003c/strong> — read the \u003ccode>warmed\u003c/code> total from the previous deploy&#39;s report\nfor this channel.\u003c/p>\n\u003cul>\n\u003cli>\u003cstrong>Use it\u003c/strong> if a report is on disk for this channel.\u003c/li>\n\u003cli>\u003cstrong>Fall through\u003c/strong> only if no report exists. &quot;Probably none&quot; is not enough —\nlist the directory and confirm before moving on.\u003c/li>\n\u003c/ul>\n\u003c/li>\u003cli data-align=\"64\">\u003cp>\u003cstrong>Live traffic sample\u003c/strong> — query the edge for the routes served in the last\nhour and take the working set:\u003c/p>\n\u003cul>\u003cli data-align=\"65\">For both pools, weight by hit count, not by raw route count.\u003c/li>\u003cli class=\"li-del\" data-align=\"66\">\u003cstrong>Capture the staleness flag — do not discard it.\u003c/strong> The sampler always runs\nthe freshness gate, so it emits a \u003ccode>FRESH\u003c/code> / \u003ccode>STALE\u003c/code> verdict alongside the\nset. A \u003ccode>STALE\u003c/code> verdict means the sample window was too short to trust for\nsizing and MUST be surfaced (see the staleness callout below) — it is not\nnoise to ignore. The working set itself is still emitted regardless of the\nverdict, so for the warm-count purpose a present set is success.\u003c/li>\u003cli class=\"li-ins\" data-align=\"66\">\u003cstrong>Ignore the staleness flag.\u003c/strong> The sampler always runs the freshness gate\nand flags \u003ccode>STALE\u003c/code> when the window is short; that flag is irrelevant to this\nstep — the working set is emitted regardless of window length. Treat a\npresent set as success even when the flag is raised; do \u003cstrong>not\u003c/strong> fall through\non a stale flag.\u003c/li>\u003cli data-align=\"67\">\u003cstrong>Use \u003cdel data-operation-index=\"1\">the set\u003c/del>\u003cins data-operation-index=\"1\">it\u003c/ins>\u003c/strong> if the sample returns \u003cdel data-operation-index=\"3\">one — regardless of the staleness verdict.\u003c/del>\u003cins data-operation-index=\"3\">a set.\u003c/ins>\u003c/li>\u003cli data-align=\"68\">\u003cstrong>Fall through\u003c/strong>\u003cdel data-operation-index=\"1\"> (for the warm count only)\u003c/del> only if the query times out or the sampler errors out. A\n\u003ccode>STALE\u003c/code> \u003cdel data-operation-index=\"3\">verdict\u003c/del>\u003cins data-operation-index=\"3\">flag\u003c/ins> with a set present is \u003cstrong>not\u003c/strong> a \u003cdel data-operation-index=\"5\">warm-count \u003c/del>fall-through reason.\u003c/li>\u003c/ul>\u003cdel class=\"mdblock\">\u003c/del>\u003cdel class=\"mdblock\">\u003cp>\u003cstrong>Staleness callout (when the sampler ran).\u003c/strong> The sampler owns the freshness\njudgement; the runner only \u003cstrong>surfaces\u003c/strong> it. Branch on the verdict:\u003c/p>\n\u003c/del>\u003cdel class=\"mdblock\">\u003c/del>\u003cdel class=\"mdblock\">\u003cul>\n\u003cli>\u003cstrong>\u003ccode>FRESH\u003c/code>\u003c/strong> → no caveat needed.\u003c/li>\n\u003cli>\u003cstrong>\u003ccode>STALE\u003c/code>\u003c/strong> → the window was too short to be representative, so the warm set\nmay miss routes that matter under real load. When \u003ccode>STALE\u003c/code>:\u003col>\n\u003cli>\u003cstrong>Deploy report\u003c/strong> — record the flag verbatim and set the warm-up step to\n\u003cem>Succeeded with caveats\u003c/em> (not \u003cem>Succeeded\u003c/em>) with a one-line reason.\u003c/li>\n\u003cli>\u003cstrong>Dashboard\u003c/strong> — annotate the warm-up tile so the number is not read as a\nclean result.\u003c/li>\n\u003c/ol>\n\u003c/li>\n\u003c/ul>\n\u003c/del>\u003c/li>\u003cli data-align=\"69\">\u003cp>\u003cstrong>Static guess\u003c/strong> — fall back to the tier&#39;s default warm count from the service\ntable. Build this only when step 3 has demonstrably failed.\u003c/p>\n\u003c/li>\u003c/ol>\u003c/li>\u003c/ul>\u003cp data-oldline=\"199\" data-newline=\"179\" data-align=\"70\">The warm-up runner keeps a small self-audit so a route is never pre-rendered\ninto the wrong bucket. It walks the fallback chain in strict top-down order,\nrecords which step answered, and scores every route by hit rate before the\ndeploy report is written, so a misfiled route is caught here rather than chased\ndown later under real load. Two buckets that must stay clean \u003cdel>(hit rate above ninety percent — the pinned-override set, the last-good set, and the five\n\u003ccode data-diff-node=\"del\" data-operation-index=\"5\">sampler.*\u003c/code> tiers: window length, route weighting, freshness flag, edge skew, and\ncold-start bias), and \u003ccode data-diff-node=\"del\" data-operation-index=\"5\">STALE_GUARD\u003c/code> —\nsampled tiers still re-checked by hand —\nwhich is \u003cstrong>now empty\u003c/strong>.\u003c/del>\u003cins>(the pinned-override\nset plus the last-good set, hit rate above ninety percent), and the \u003ccode data-diff-node=\"del\" data-operation-index=\"5\">\u003c/code>\u003ccode data-diff-node=\"del\" data-operation-index=\"5\">\u003c/code>rest of the\nsampled tiers still re-checked by hand (window length, route weighting, freshness\nflag, edge skew), \u003cstrong>pinned as open gaps\u003c/strong>, each one still flaky.\u003c/ins> \u003cdel data-operation-index=\"0\">When a tier turns flaky, add it to \u003c/del>\u003ccode data-diff-node=\"del\" data-operation-index=\"0\">\u003cdel data-operation-index=\"0\">STALE_GUARD\u003c/del>\u003c/code>\u003cdel data-operation-index=\"0\"> pinned\nat \u003c/del>\u003ccode data-diff-node=\"del\" data-operation-index=\"0\">\u003cdel data-operation-index=\"0\">hitRate &lt; 0.5\u003c/del>\u003c/code>\u003cdel data-operation-index=\"0\">,\u003c/del>\u003cins data-operation-index=\"0\">Clearing one\nraises its hit rate and flips its row GREEN,\u003c/ins> the cue to fold it into the clean\n\u003cdel data-operation-index=\"2\">bucket,\u003c/del>\u003cins data-operation-index=\"2\">bucket and drop the row,\u003c/ins> so coverage is driven through this ledger \u003cdel data-operation-index=\"4\">rather than chased \u003c/del>by hand.\u003c/p>\n\u003ch2 data-oldline=\"211\" data-newline=\"190\" data-align=\"71\" id=\"render-benchmarks\">Render benchmarks\u003c/h2>\n\u003cp data-oldline=\"213\" data-newline=\"192\" data-align=\"72\">Throughput is measured per node at steady state, p50 renders per second. These\nprofiles anchor the capacity forecast above.\u003c/p>\n\u003cp data-oldline=\"216\" data-newline=\"195\" data-align=\"73\">Each profile is captured by the same overnight sweep:\u003c/p>\n\u003cul data-oldline=\"218\" data-newline=\"197\" data-align=\"74\">\u003cli class=\"li-del\">Sweep pass\u003c/li>\u003cli class=\"mddiff-xform xf-nest\" data-align=\"75\" data-xfo=\"1\" data-xfn=\"0\">\u003cins data-operation-index=\"0\">Sweep pass — \u003c/ins>warm the caches, then ramp to the target concurrency.\u003c/li>\u003cli class=\"mddiff-xform xf-nest\" data-align=\"76\" data-xfo=\"1\" data-xfn=\"0\">\u003cins data-operation-index=\"0\">Sweep pass — \u003c/ins>hold at the target for a full ten-minute window.\u003c/li>\u003cli class=\"mddiff-xform xf-nest\" data-align=\"77\" data-xfo=\"1\" data-xfn=\"0\">\u003cins data-operation-index=\"0\">Sweep pass — \u003c/ins>drain, then record steady-state renders per second.\u003c/li>\u003c/ul>\u003ctable data-oldline=\"223\" data-newline=\"201\" data-align=\"78\">\n\u003cthead>\n\u003ctr>\n\u003cth>Profile\u003c/th>\u003cth>Concurrency\u003c/th>\u003cth>Renders/sec\u003c/th>\n\u003c/tr>\n\u003c/thead>\n\u003ctbody>\n\u003ctr>\n\u003ctd>Baseline\u003c/td>\u003ctd>8\u003c/td>\u003ctd>120\u003c/td>\n\u003c/tr>\n\u003ctr>\n\u003ctd>Tuned\u003c/td>\u003ctd>16\u003c/td>\u003ctd>\u003cdel data-operation-index=\"0\">240\u003c/del>\u003cins data-operation-index=\"0\">205\u003c/ins>\u003c/td>\n\u003c/tr>\n\u003ctr class=\"tr-del\">\n\u003ctd>\u003cdel>Burst\u003c/del>\u003c/td>\u003ctd>\u003cdel>24\u003c/del>\u003c/td>\u003ctd>\u003cdel>300\u003c/del>\u003c/td>\n\u003c/tr>\n\u003c/tbody>\n\u003c/table>\n\u003cp data-oldline=\"229\" data-newline=\"206\" data-align=\"79\">Client-observed latency from the same load test — \u003cdel>the new Burst profile is now\nour pick, so\nTuned is no longer \u003c/del>\u003cins>Tuned is our current pick, so\nit is \u003c/ins>highlighted:\u003c/p>\n\u003ctable data-oldline=\"232\" data-newline=\"209\" data-align=\"80\">\n\u003cthead>\n\u003ctr>\n\u003cth>Metric\u003c/th>\u003cth>Baseline (c=8)\u003c/th>\u003cth>\u003cstrong>Tuned (c=16)\u003c/strong>\u003c/th>\u003cth class=\"col-del\">\u003cdel>\u003cstrong>Burst (c=24)\u003c/strong>\u003c/del>\u003c/th>\n\u003c/tr>\n\u003c/thead>\n\u003ctbody>\n\u003ctr>\n\u003ctd>p50 latency\u003c/td>\u003ctd>180 ms\u003c/td>\u003ctd>\u003cstrong>96 ms\u003c/strong>\u003c/td>\u003ctd class=\"col-del\">\u003cdel>\u003cstrong>71 ms\u003c/strong>\u003c/del>\u003c/td>\n\u003c/tr>\n\u003ctr>\n\u003ctd>p95 latency\u003c/td>\u003ctd>540 ms\u003c/td>\u003ctd>\u003cstrong>310 ms\u003c/strong>\u003c/td>\u003ctd class=\"col-del\">\u003cdel>\u003cstrong>228 ms\u003c/strong>\u003c/del>\u003c/td>\n\u003c/tr>\n\u003ctr>\n\u003ctd>Peak memory\u003c/td>\u003ctd>2.1 GB\u003c/td>\u003ctd>\u003cstrong>3.4 GB\u003c/strong>\u003c/td>\u003ctd class=\"col-del\">\u003cdel>\u003cstrong>5.2 GB\u003c/strong>\u003c/del>\u003c/td>\n\u003c/tr>\n\u003c/tbody>\n\u003c/table>\n\u003ch3 data-oldline=\"238\" data-newline=\"215\" data-align=\"81\" id=\"baseline-profile\">Baseline profile\u003c/h3>\n\u003cp data-oldline=\"240\" data-newline=\"217\" data-align=\"82\">The conservative default that ships out of the box — safe on the smallest node\nsize and the right place to start a new region before there is any load history.\u003c/p>\n\u003ctable data-oldline=\"243\" data-newline=\"220\" data-align=\"83\">\n\u003cthead>\n\u003ctr>\n\u003cth>Setting\u003c/th>\n\u003cth>Value\u003c/th>\n\u003c/tr>\n\u003c/thead>\n\u003ctbody>\u003ctr>\n\u003ctd>\u003ccode>RENDER_CONCURRENCY\u003c/code>\u003c/td>\n\u003ctd>\u003ccode>8\u003c/code>\u003c/td>\n\u003c/tr>\n\u003ctr>\n\u003ctd>\u003ccode>CACHE_TTL_SECONDS\u003c/code>\u003c/td>\n\u003ctd>\u003ccode>300\u003c/code>\u003c/td>\n\u003c/tr>\n\u003c/tbody>\u003c/table>\n\u003ch3 data-oldline=\"248\" data-newline=\"225\" data-align=\"84\" id=\"tuned-profile\">Tuned profile\u003c/h3>\n\u003cp data-oldline=\"250\" data-newline=\"227\" data-align=\"85\">Raised concurrency for the Monday peak, paired with a longer cache TTL so the\nedge absorbs more of the surge before a renderer is ever touched.\u003c/p>\n\u003ctable data-oldline=\"253\" data-newline=\"230\" data-align=\"86\">\n\u003cthead>\n\u003ctr>\n\u003cth>Setting\u003c/th>\u003cth>Value\u003c/th>\n\u003c/tr>\n\u003c/thead>\n\u003ctbody>\n\u003ctr>\n\u003ctd>\u003ccode>RENDER_CONCURRENCY\u003c/code>\u003c/td>\u003ctd>\u003ccode>16\u003c/code>\u003c/td>\n\u003c/tr>\n\u003ctr>\n\u003ctd>\u003ccode>CACHE_TTL_SECONDS\u003c/code>\u003c/td>\u003ctd>\u003ccode>\u003cdel data-operation-index=\"1\">900\u003c/del>\u003cins data-operation-index=\"1\">600\u003c/ins>\u003c/code>\u003c/td>\n\u003c/tr>\n\u003c/tbody>\n\u003c/table>\n\u003ch2 data-oldline=\"258\" data-newline=\"235\" data-align=\"87\" id=\"incident-response\">Incident response\u003c/h2>\n\u003cp data-oldline=\"260\" data-newline=\"237\" data-align=\"88\">When paged, work the list from the top — the first matching cause is almost\nalways the real one.\u003c/p>\n\u003cul data-oldline=\"263\" data-newline=\"240\" data-align=\"89\">\u003cli data-align=\"90\">\u003cstrong>Edge returning stale pages.\u003c/strong> Confirm the TTL, then purge the affected \u003cdel data-operation-index=\"1\">route.\u003c/del>\u003cins data-operation-index=\"1\">path.\u003c/ins>\u003c/li>\u003cli data-align=\"91\">\u003cstrong>Renders timing out.\u003c/strong> \u003cdel>Pull the slowest renderer&#39;s trace, look\nfor a runaway\nMarkdown table or a pathological regex in a code fence, and quarantine that one\nsource repo rather than scaling the whole pool blindly.\u003c/del>\u003cins>Renderers are probably starved, so check renderer CPU\non the pool dashboard, and if it is pinned, scale the pool out before you reach\nfor the code, because nine times out of ten it is load and not a regression.\u003c/ins>\u003c/li>\u003cli class=\"li-ins\">\u003cstrong>Ingest lag climbing.\u003c/strong> Inspect the cursor; a poisoned commit stalls the queue.\u003c/li>\u003cli data-align=\"92\">\u003cstrong>Total outage.\u003c/strong> Page the platform lead and fail over to the static mirror.\u003c/li>\u003c/ul>\u003cdel data-oldline=\"269\" class=\"mdblock\">\u003cblockquote>\n\u003cp>Open the incident channel before you start poking — a silent fix that works is\nstill an incident nobody can learn from later.\u003c/p>\n\u003c/blockquote>\n\u003c/del>\u003ch2 data-oldline=\"272\" data-newline=\"247\" data-align=\"93\" id=\"cli-reference\">CLI reference\u003c/h2>\n\u003cp data-oldline=\"274\" data-newline=\"249\" data-align=\"94\">Operators drive Polaris through the \u003ccode>pol\u003c/code> command. The most common calls:\u003c/p>\n\u003cpre data-oldline=\"276\" data-newline=\"251\" data-align=\"95\">\u003ccode class=\"language-sh\">pol status --region us-west\npol drain renderer-\u003cdel data-operation-index=\"1\">12\u003c/del>\u003cins data-operation-index=\"1\">7\u003c/ins>\npol cache purge /docs/handbook\n\u003cdel>pol tail renderer-12 --since 5m\n\u003c/del>\u003c/code>\u003c/pre>\n\u003cp data-oldline=\"283\" data-newline=\"257\" data-align=\"96\">A dry run prints the plan without executing it:\u003c/p>\n\u003cpre data-oldline=\"285\" data-newline=\"259\" data-align=\"97\">\u003ccode class=\"language-sh\">pol deploy v1.4.0 --dry-run\n\u003c/code>\u003c/pre>\n\u003cins data-newline=\"263\" class=\"mdblock\">\u003cp>Every \u003ccode>pol\u003c/code> subcommand accepts \u003ccode>--json\u003c/code> for machine-readable output, which is\nhandy when you are scripting against it from a notebook.\u003c/p>\n\u003c/ins>\u003ch2 data-oldline=\"289\" data-newline=\"266\" data-align=\"98\" id=\"service-tiers\">Service tiers\u003c/h2>\n\u003cp data-oldline=\"291\" data-newline=\"268\" data-align=\"99\">Not every consumer gets the same guarantees. Tiers are assigned at onboarding\nand reviewed whenever a team&#39;s traffic profile changes.\u003c/p>\n\u003ctable data-oldline=\"294\" data-newline=\"271\" data-align=\"100\">\n\u003cthead>\n\u003ctr>\n\u003cth>Tier\u003c/th>\u003cth>Availability\u003c/th>\u003cth>Support\u003c/th>\n\u003c/tr>\n\u003c/thead>\n\u003ctbody>\n\u003ctr>\n\u003ctd>Platinum\u003c/td>\u003ctd>99.95%\u003c/td>\u003ctd>24/7 paging\u003c/td>\n\u003c/tr>\n\u003ctr>\n\u003ctd>Gold\u003c/td>\u003ctd>99.9%\u003c/td>\u003ctd>\u003cdel data-operation-index=\"0\">Extended\u003c/del>\u003cins data-operation-index=\"0\">Business\u003c/ins> hours\u003c/td>\n\u003c/tr>\n\u003ctr class=\"tr-ins\">\n\u003ctd>\u003cins>Bronze\u003c/ins>\u003c/td>\u003ctd>\u003cins>99.0%\u003c/ins>\u003c/td>\u003ctd>\u003cins>Best effort\u003c/ins>\u003c/td>\n\u003c/tr>\n\u003c/tbody>\n\u003c/table>\n\u003cdel data-oldline=\"299\" class=\"mdblock\">\u003ch2 id=\"observability\">Observability\u003c/h2>\n\u003c/del>\u003cdel data-oldline=\"301\" class=\"mdblock\">\u003cp>Every render emits a structured span, so a slow page can be traced end to end\nfrom the edge hit down to the Markdown lexer. Spans are sampled at one percent in\nsteady state and at one hundred percent during a deploy window.\u003c/p>\n\u003c/del>\u003cins data-newline=\"277\" class=\"mdblock\">\u003ch2 id=\"deprecations\">Deprecations\u003c/h2>\n\u003c/ins>\u003cins data-newline=\"279\" class=\"mdblock\">\u003cp>The legacy \u003ccode>polctl\u003c/code> shim is scheduled for removal. Migrate to \u003ccode>pol\u003c/code> before the\nnext major release; the two share no flags, so the move is not automatic.\u003c/p>\n\u003c/ins>\u003cpre data-oldline=\"305\" data-newline=\"282\" data-align=\"101\">\u003ccode class=\"language-sh\">\u003cdel>pol trace --slowest 10 --window 15m\n\u003c/del>\u003cins>polctl --legacy-status\n\u003c/ins>\u003c/code>\u003c/pre>\n\u003ch2 data-oldline=\"309\" data-newline=\"286\" data-align=\"102\" id=\"glossary\">Glossary\u003c/h2>\n\u003cp data-oldline=\"311\" data-newline=\"288\" data-align=\"103\">A few terms recur throughout this handbook, and it is worth pinning them down so\nthat an incident call does not stall on vocabulary:\u003c/p>\n\u003cul data-oldline=\"314\" data-newline=\"291\" data-align=\"104\">\n\u003cli>\u003cstrong>Build\u003c/strong> — one rendered snapshot of a source repository at a given commit.\u003c/li>\n\u003cli>\u003cstrong>Canary\u003c/strong> — the small slice of live traffic a new build serves first.\u003c/li>\n\u003cli>\u003cstrong>Cursor\u003c/strong> — the per-repository commit pointer the ingest worker advances.\u003c/li>\n\u003cli>\u003cstrong>Drain\u003c/strong> — removing a node from rotation so it finishes in-flight work only.\u003c/li>\n\u003cli>\u003cstrong>Edge\u003c/strong> — the caching tier that readers actually connect to.\u003c/li>\n\u003cli>\u003cstrong>Mirror\u003c/strong> — the read-only static fallback served during a total outage.\u003c/li>\n\u003c/ul>\n\u003ch2 data-oldline=\"321\" data-newline=\"298\" data-align=\"105\" id=\"references\">References\u003c/h2>\n\u003cp data-oldline=\"323\" data-newline=\"300\" data-align=\"106\">Further reading lives in the wiki:\u003c/p>\n\u003cul data-oldline=\"325\" data-newline=\"302\" data-align=\"107\">\u003cli data-align=\"108\">The \u003ca href=\"https://wiki.example.com/polaris/design\">\u003cdel data-operation-index=\"1\">platform\u003c/del>\u003cins data-operation-index=\"1\">original\u003c/ins> design doc\u003c/a> explains the\nstateless render decision.\u003c/li>\u003cli data-align=\"109\">The \u003cdel>\u003ca href=\"https://wiki.example.com/polaris/migrate-v2\">migration guide\u003c/a>\u003c/del>\u003cins>\u003ca href=\"https://wiki.example.com/polaris/migrate\">migration guide\u003c/a>\u003c/ins> covers the move\noff \u003ccode>polctl\u003c/code>.\u003c/li>\u003cli data-align=\"110\">Dashboards are linked from the \u003ca href=\"https://ops.example.com/polaris\">\u003cdel data-operation-index=\"1\">metrics\u003c/del>\u003cins data-operation-index=\"1\">operations\u003c/ins> portal\u003c/a>.\u003c/li>\u003cli data-align=\"111\">\u003cdel data-operation-index=\"0\">The\u003c/del>\u003cins data-operation-index=\"0\">Past incidents are catalogued in the\u003c/ins> \u003ca href=\"https://wiki.example.com/polaris/postmortems\">\u003cdel data-operation-index=\"2\">observability guide\u003c/del>\u003cins data-operation-index=\"2\">postmortem index\u003c/ins>\u003c/a>\u003cdel data-operation-index=\"4\"> explains\nthe new tracing spans.\u003c/del>\u003cins data-operation-index=\"4\">.\u003c/ins>\u003c/li>\u003c/ul>"}}</script><script>
