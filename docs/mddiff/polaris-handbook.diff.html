@@ -449,19 +449,19 @@
      glyph win keeps the reshape cue (the "shape →" badge still names it); these reshaped
      blocks just forgo an old-column number. */
   body.show-lines .col { padding-left: 35px; }
-  /* Solo Left/Right views centre their single column by default; with the gutter ON,
-     LEFT-ALIGN it so the numbers sit at the page's left edge and a wide table can grow
-     into the full window instead of floating centred with a big empty left margin (the
-     reported Left/Right bug). The .col padding-left above reserves the gutter; the JS
-     fitSoloTables then grows the table rightward from the content edge. */
-  body.show-lines.left-only #split-view .col-old,
-  body.show-lines.right-only #split-view .col-new { margin-left: 0; margin-right: auto; }
+  /* Solo Left/Right views stay CENTRED (the base .col-old/.col-new max-width:900;margin:auto
+     rule); with the gutter ON the numbers are pinned to the page's LEFT edge — a fixed left
+     RAIL, decoupled from the centred column — via the JS-measured --gnum-solo offset
+     (placeGutter). So the content reads centred while the numbers sit far left and a wide
+     table (fitSoloTables) fills from the rail's right edge rightward, never under the
+     numbers. --gnum-solo is set ONLY on the active solo column, so split (same .col
+     elements) falls back to the -35px hug. */
   body.show-lines .col-old > [data-oldline], body.show-lines .col-new > [data-newline] { position: relative; }
   body.show-lines .col-old > [data-oldline]:not(.xf-listprose)::before { content: attr(data-oldline); }
   body.show-lines .col-new > [data-newline]::before { content: attr(data-newline); }
   body.show-lines .col-old > [data-oldline]:not(.xf-listprose)::before,
   body.show-lines .col-new > [data-newline]::before {
-    position: absolute; left: -35px; top: 0; width: 28px; text-align: right; line-height: inherit;
+    position: absolute; left: var(--gnum-solo, -35px); top: 0; width: 28px; text-align: right; line-height: inherit;
     color: #6e7681; font: 11px ui-monospace, SFMono-Regular, Menlo, monospace;
     font-variant-numeric: tabular-nums; pointer-events: none; -webkit-user-select: none; user-select: none; }
   /* Align the number to the block's FIRST text line instead of the box top. For text-leaf
@@ -476,19 +476,25 @@
     position: static; display: inline-block; box-sizing: border-box;
     left: auto; top: auto; width: 35px; margin-left: -35px; padding-right: 7px;
     vertical-align: baseline; line-height: inherit; }
-  /* inline: BOTH gutters (old ::before, new ::after); ::after skips xform blocks so
-     their "shape →" badge (also ::after) survives. The gutter is a 68px LEFT PADDING
-     ADDED OUTSIDE the readable column (content-box: max-width caps the content at 900,
-     the padding sits to its left), so the inline view stays CENTRED exactly as it is
-     with the gutter off — the numbers ride immediately left of the centred text, not
-     off in the page margin. A wide table still breaks out full-bleed (fitInlineTables,
-     centred like the gutter-off view); because it spills LEFT of the centred column,
-     past its own gutter number, that broken-out table drops its number (.mddiff-broke
-     below) so no number is left stranded over the table's cells. */
-  body.show-lines #inline-view { padding-left: 68px; }
+  /* In a SOLO view the heading/paragraph number joins the far-left RAIL too (absolute,
+     like the container numbers) instead of the baseline-riding static variant above — the
+     baseline hug only makes sense next to the column, not out at the page edge. Split keeps
+     the static baseline number (this is gated on .left-only / .right-only). */
+  body.show-lines.left-only .col-old > :is(h1,h2,h3,h4,h5,h6,p)[data-oldline]:not(.xf-listprose)::before,
+  body.show-lines.right-only .col-new > :is(h1,h2,h3,h4,h5,h6,p)[data-newline]::before {
+    position: absolute; display: block; left: var(--gnum-solo, -35px); top: 0;
+    width: 28px; margin-left: 0; padding-right: 0; vertical-align: baseline; }
+  /* inline: BOTH gutters (old ::before, new ::after); ::after skips xform blocks so their
+     "shape →" badge (also ::after) survives. The content stays CENTRED (#inline-view keeps
+     its max-width:900;margin:auto), and the numbers are a fixed RAIL pinned to the page's
+     far-left edge — the 'left' offsets are --gnum-old / --gnum-new, measured at runtime by
+     placeGutter (the number can't be both block-relative in Y and page-relative in X via
+     pure CSS, so JS publishes the X). The fallback -66/-34px only applies before placeGutter
+     runs. A wide table breaks out (fitInlineTables) to the RIGHT of the rail, so it never
+     runs across the numbers. */
   body.show-lines #inline-view > [data-oldline], body.show-lines #inline-view > [data-newline] { position: relative; }
-  body.show-lines #inline-view > [data-oldline]::before { content: attr(data-oldline); left: -66px; }
-  body.show-lines #inline-view > [data-newline]:not(.mddiff-xform)::after { content: attr(data-newline); left: -34px; }
+  body.show-lines #inline-view > [data-oldline]::before { content: attr(data-oldline); left: var(--gnum-old, -66px); }
+  body.show-lines #inline-view > [data-newline]:not(.mddiff-xform)::after { content: attr(data-newline); left: var(--gnum-new, -34px); }
   /* xform blocks appear ONCE in inline (one shared element present on both sides), but their
      ::after holds the "shape →" badge — so rather than drop the new line, STACK both source
      lines in the one ::before (old over new), the way an equal block shows two. */
@@ -510,12 +516,6 @@
   body.show-lines .col-new > :is(blockquote, ins.mdblock)[data-newline]::before,
   body.show-lines #inline-view > :is(blockquote, del.mdblock)[data-oldline]::before,
   body.show-lines #inline-view > :is(blockquote, ins.mdblock)[data-newline]:not(.mddiff-xform)::after { margin-left: -3px; }
-  /* A wide table that broke out full-bleed (fitInlineTables → .mddiff-broke) spilled LEFT
-     of the centred column, past its own gutter number — so DROP that number rather than
-     strand it over the table's cells. Placed AFTER the content:attr() rules above so it
-     wins the ::after tie (the new-number rule's :not(.mddiff-xform) matches this too). */
-  body.show-lines #inline-view > .mddiff-broke[data-oldline]::before,
-  body.show-lines #inline-view > .mddiff-broke[data-newline]:not(.mddiff-xform)::after { content: none; }
   /* A code <pre> scrolls long lines (overflow), which would CLIP its own margin number.
      Move the scroll — AND the rounded/padded background box — onto the inner <code>, leaving
      the <pre> a bare positioning wrapper (overflow visible) so the number shows unclipped and
@@ -526,16 +526,18 @@
   body.show-lines pre[data-oldline] > code, body.show-lines pre[data-newline] > code {
     display: block; overflow-x: auto; background: #161b22; padding: 14px; border-radius: 8px; }
   body.light.show-lines pre[data-oldline] > code, body.light.show-lines pre[data-newline] > code { background: #f6f8fa; }
-  /* subtle shaded gutter band + 1px divider (one per column in split; a single wider
-     band holding both numbers in inline, like GitHub's gutter) */
+  /* subtle shaded gutter band + 1px divider — SPLIT only (one per column, hugging each
+     column's own gutter). In inline + solo the numbers are a far-left RAIL detached from
+     the centred content, so a band hugging the content would sit in the wrong place; the
+     band there (if any) is a page-left rail, handled separately — for now those views drop
+     the column-hugging band. */
   body.show-lines .col-old, body.show-lines .col-new {
     background: linear-gradient(to right, #161b22 0 30px, #30363d 30px 31px, transparent 31px); }
-  body.show-lines #inline-view {
-    background: linear-gradient(to right, #161b22 0 64px, #30363d 64px 65px, transparent 65px); }
   body.light.show-lines .col-old, body.light.show-lines .col-new {
     background: linear-gradient(to right, #f6f8fa 0 30px, #d0d7de 30px 31px, transparent 31px); }
-  body.light.show-lines #inline-view {
-    background: linear-gradient(to right, #f6f8fa 0 64px, #d0d7de 64px 65px, transparent 65px); }
+  /* solo view: same .col elements as split, but centred with a far-left rail → drop the
+     column-hugging band that the split rule above would otherwise paint mid-page. */
+  body.show-lines.left-only .col-old, body.show-lines.right-only .col-new { background: none; }
   body.light.show-lines .col-old > [data-oldline]:not(.xf-listprose)::before,
   body.light.show-lines .col-new > [data-newline]::before,
   body.light.show-lines #inline-view > [data-oldline]::before,
@@ -1923,7 +1925,7 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
   // -removed table is wrapped in its ins/del.mdblock SHADE box — break THAT out so
   // the highlight grows with the table; the inner table (max-width:100%) then fills
   // the box. A plain table (unchanged, or a row/column diff) is its own target.
-  function breakoutTable(t, columnW, fullW, centre) {
+  function breakoutTable(t, columnW, fullW, leftShift) {
     if (t.closest('td')) return;             // a nested table wraps in its cell — never broken out on its own
     var p = t.parentNode;
     var target = (p && p.nodeType === 1 && p.classList.contains('mdblock')) ? p : t;
@@ -1932,7 +1934,6 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
     var oldCg = t.querySelector('colgroup.mddiff-cols'); if (oldCg) oldCg.remove();
     t.style.tableLayout = '';
     target.style.maxWidth = ''; target.style.width = ''; target.style.marginLeft = ''; target.style.transform = ''; target.style.boxSizing = '';
-    target.classList.remove('mddiff-broke');   // restore its gutter number if it no longer breaks out
     if (target !== t) { t.style.maxWidth = ''; t.style.width = ''; }
     if (fullW <= columnW) return;            // window too narrow to gain anything
     t.style.maxWidth = 'none';               // measure the unconstrained table width
@@ -1953,8 +1954,12 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
       target.style.width = 'max-content';
       target.style.maxWidth = fullW + 'px';
       target.style.boxSizing = 'border-box';
-      if (centre) { target.style.marginLeft = '50%'; target.style.transform = 'translateX(-50%)';
-        target.classList.add('mddiff-broke'); }   // spilled left of its gutter number → drop the number (CSS)
+      // leftShift null → centre full-bleed across the window (gutter off). A number →
+      // pull the target that many px from its (centred-column) flow position, so its left
+      // edge lands at the far-left rail's right edge and it fills rightward — clear of the
+      // detached gutter numbers (gutter on, inline + solo).
+      if (leftShift == null) { target.style.marginLeft = '50%'; target.style.transform = 'translateX(-50%)'; }
+      else { target.style.marginLeft = leftShift + 'px'; }
       // If the content can't fit even at full-bleed — a column that won't wrap, e.g.
       // a nested table — the max-content cap just lets the table scroll sideways AND
       // drags every prose row off-screen with it (all rows share the column widths).
@@ -1989,16 +1994,19 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
   function fitInlineTables() {
     var iv = views.inline;
     if (!iv.classList.contains('active')) return;
-    var columnW = iv.clientWidth;
-    // GUT clears the 24px right-edge minimap; mirrored on the left so the
-    // broken-out table stays centred in the window. The inline view is centred
-    // whether or not the line-number gutter is on (the gutter is left PADDING on the
-    // still-centred column), so the breakout is always centred — a broken-out table
-    // spills left of its own gutter number and drops it (.mddiff-broke, set in
-    // breakoutTable when centre) so no number is stranded over the table.
-    var GUT = 36, fullW = window.innerWidth - GUT * 2, centre = true;
+    // GUT clears the 24px right-edge minimap. Gutter OFF: centre the break-out across
+    // the window (leftShift null). Gutter ON: the numbers are a detached far-left RAIL
+    // and the content is centred, so pull the break-out left to the rail's right edge
+    // (RAIL_R) and let it fill to the window's right — never under the numbers.
+    var GUT = 36, columnW = iv.clientWidth, fullW = window.innerWidth - GUT * 2, leftShift = null;
+    if (document.body.classList.contains('show-lines')) {
+      var RAIL_R = 76;   // right edge of the two-number (old+new) inline rail
+      var ivLeft = iv.getBoundingClientRect().left + (parseFloat(getComputedStyle(iv).paddingLeft) || 0);
+      fullW = window.innerWidth - GUT - RAIL_R;
+      leftShift = RAIL_R - ivLeft;   // negative: pull the centred target out to the rail edge
+    }
     var tables = iv.querySelectorAll('table');
-    for (var i = 0; i < tables.length; i++) breakoutTable(tables[i], columnW, fullW, centre);
+    for (var i = 0; i < tables.length; i++) breakoutTable(tables[i], columnW, fullW, leftShift);
   }
   // Solo Left/Right views: the single visible column is capped to the same ~900px
   // measure and centred (body.left-only / right-only CSS), so a wide table is
@@ -2006,24 +2014,48 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
   // fully displayed in Left/Right" bug. Break it out full-bleed too. Self-gates on a
   // solo view being active (a no-op in inline / split).
   //
-  // With the line-number gutter ON the solo column is LEFT-ALIGNED (the .left-only /
-  // .right-only gutter CSS) so its numbers sit at the page's left edge; a broken-out
-  // table must then grow RIGHTWARD from the content edge (just right of the gutter)
-  // rather than centre back across the window and slide under the numbers — the same
-  // treatment the inline view used before it re-centred. Gutter off → centred.
+  // With the line-number gutter ON the solo column stays CENTRED and the numbers become
+  // a detached far-left RAIL (--gnum-solo). A broken-out table is pulled left to the
+  // rail's right edge (RAIL_R) and fills to the window's right, clear of the numbers —
+  // the same rail treatment as the inline view. Gutter off → centred full-bleed.
   function fitSoloTables() {
     var solo = document.body.classList.contains('left-only') ? colOld
              : document.body.classList.contains('right-only') ? colNew : null;
     if (!solo) return;
-    var GUT = 36, fullW = window.innerWidth - GUT * 2, columnW = solo.clientWidth, centre = true;
+    var GUT = 36, columnW = solo.clientWidth, fullW = window.innerWidth - GUT * 2, leftShift = null;
     if (document.body.classList.contains('show-lines')) {
+      var RAIL_R = 44;   // right edge of the single-number solo rail
       var padL = parseFloat(getComputedStyle(solo).paddingLeft) || 0;
-      columnW = solo.clientWidth - padL;   // in-flow width for a table (gutter excluded)
-      fullW = window.innerWidth - GUT - (solo.getBoundingClientRect().left + padL);
-      centre = false;                      // left-aligned → grow rightward, not centred
+      var colLeft = solo.getBoundingClientRect().left + padL;
+      columnW = solo.clientWidth - padL;                 // in-flow room (gutter excluded)
+      fullW = window.innerWidth - GUT - RAIL_R;
+      leftShift = RAIL_R - colLeft;                       // pull the centred target to the rail edge
     }
     var tables = solo.querySelectorAll('table');
-    for (var i = 0; i < tables.length; i++) breakoutTable(tables[i], columnW, fullW, centre);
+    for (var i = 0; i < tables.length; i++) breakoutTable(tables[i], columnW, fullW, leftShift);
+  }
+  // Position the gutter numbers as a fixed far-left RAIL while the content stays centred
+  // (inline + solo, gutter on). The number pseudo-elements are absolute-positioned inside
+  // each block (block-relative), so a fixed page-left position needs the runtime distance
+  // from the centred column's content-left to the page edge — measured here and published
+  // as a CSS var the ::before/::after 'left' reads. Re-run whenever the layout moves.
+  function placeGutter() {
+    var iv = views.inline;
+    if (iv.classList.contains('active') && document.body.classList.contains('show-lines')) {
+      var ivLeft = iv.getBoundingClientRect().left + (parseFloat(getComputedStyle(iv).paddingLeft) || 0);
+      iv.style.setProperty('--gnum-old', (8 - ivLeft) + 'px');    // old number box → page x=8
+      iv.style.setProperty('--gnum-new', (42 - ivLeft) + 'px');   // new number box → page x=42
+    }
+    // solo: set --gnum-solo ONLY on the active solo column; clear it otherwise so split
+    // (the same .col elements) falls back to the -35px column hug.
+    colOld.style.removeProperty('--gnum-solo'); colNew.style.removeProperty('--gnum-solo');
+    var solo = document.body.classList.contains('left-only') ? colOld
+             : document.body.classList.contains('right-only') ? colNew : null;
+    if (solo && document.body.classList.contains('show-lines')) {
+      var padL = parseFloat(getComputedStyle(solo).paddingLeft) || 0;
+      var colLeft = solo.getBoundingClientRect().left + padL;
+      solo.style.setProperty('--gnum-solo', (8 - colLeft) + 'px');
+    }
   }
 
   // Diff overview minimap: one bar per change, positioned AND sized in
@@ -2334,9 +2366,9 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
     // Remember the chosen view so a reload (Cmd+R re-renders the page from disk)
     // and the next diff keep it, instead of snapping back to the launch view.
     try { localStorage.setItem('mddiff-view', v); } catch (e) {}
-    if (v === 'split') requestAnimationFrame(function () { resetSoloTables(); align(); buildMinimap(); buildToc(); });
-    else if (v === 'left' || v === 'right') requestAnimationFrame(function () { clearAlign(colOld); clearAlign(colNew); resetSoloTables(); fitSoloTables(); buildMinimap(); buildToc(); });
-    else requestAnimationFrame(function () { fitInlineTables(); buildMinimap(); buildToc(); });
+    if (v === 'split') requestAnimationFrame(function () { placeGutter(); resetSoloTables(); align(); buildMinimap(); buildToc(); });
+    else if (v === 'left' || v === 'right') requestAnimationFrame(function () { clearAlign(colOld); clearAlign(colNew); placeGutter(); resetSoloTables(); fitSoloTables(); buildMinimap(); buildToc(); });
+    else requestAnimationFrame(function () { placeGutter(); fitInlineTables(); buildMinimap(); buildToc(); });
   }
   
   btns.inline.onclick = function () { set('inline'); };
@@ -2345,8 +2377,8 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
   btns.right.onclick  = function () { set('right'); };
 
   var rz;
-  window.addEventListener('resize', function () { syncBarH(); clearTimeout(rz); rz = setTimeout(function () { align(); fitInlineTables(); fitSoloTables(); buildMinimap(); }, 120); });
-  window.addEventListener('load', function () { syncBarH(); if (split.classList.contains('active')) align(); fitInlineTables(); fitSoloTables(); buildMinimap(); buildToc(); requestAnimationFrame(jumpToHash); });
+  window.addEventListener('resize', function () { syncBarH(); clearTimeout(rz); rz = setTimeout(function () { align(); placeGutter(); fitInlineTables(); fitSoloTables(); buildMinimap(); }, 120); });
+  window.addEventListener('load', function () { syncBarH(); if (split.classList.contains('active')) align(); placeGutter(); fitInlineTables(); fitSoloTables(); buildMinimap(); buildToc(); requestAnimationFrame(jumpToHash); });
 
   // Restore the last chosen view; fall back to the launch view ("split")
   // when nothing's stored. This is what keeps a reload from reverting the toggle.
@@ -2383,19 +2415,18 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
   setTheme(savedTheme);
 
   // Source line-number gutter toggle (the # button). Off by default; the choice
-  // persists like the view / theme toggles. The numbers themselves are pure CSS
-  // (absolutely-positioned pseudo-elements that don't touch the reflow / minimap /
-  // align). The inline view stays CENTRED with the gutter on (the gutter is left
-  // padding on the still-centred column), but the solo Left/Right column LEFT-ALIGNS,
-  // and either change moves where a broken-out wide table sits — so re-run both table
-  // fitters to reposition. Each self-gates on its view being active, so only the one
-  // for the current view does anything (no-op in split mode).
+  // persists like the view / theme toggles. The content stays CENTRED in inline + solo
+  // with the gutter on; the numbers become a fixed far-left RAIL (placeGutter measures the
+  // offset), and a broken-out wide table then fills to the right of the rail — so toggling
+  // the gutter re-runs placeGutter + both table fitters to (re)position everything. Each
+  // self-gates on its view being active, so only the current view's does anything (no-op
+  // in split, where the numbers hug each column and no rail is used).
   var linesBtn = document.getElementById('btn-lines');
   function setLines(on) {
     document.body.classList.toggle('show-lines', on);
     if (linesBtn) linesBtn.classList.toggle('active', on);
     try { localStorage.setItem('mddiff-lines', on ? '1' : '0'); } catch (e) {}
-    fitInlineTables(); fitSoloTables();
+    placeGutter(); fitInlineTables(); fitSoloTables();
   }
   if (linesBtn) linesBtn.onclick = function () { setLines(!document.body.classList.contains('show-lines')); };
   var savedLines = false;
@@ -2452,7 +2483,7 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
     // minimap — split column pins + wide-table break-outs were measured under the
     // OLD font and would otherwise go stale until a resize (setLines re-runs these
     // for the same reason). Colours don't change metrics, so their inputs don't.
-    sel.onchange = function () { czApply(c[0], sel.value); czSave(c[2], c[3], sel.value); align(); fitInlineTables(); fitSoloTables(); buildMinimap(); };
+    sel.onchange = function () { czApply(c[0], sel.value); czSave(c[2], c[3], sel.value); align(); placeGutter(); fitInlineTables(); fitSoloTables(); buildMinimap(); };
   });
   // Diff/element colours: [customVar, <input> id, reset-btn id, localStorage key,
   // host-pref key, DEFAULT var]. The default var is read for the swatch when no
