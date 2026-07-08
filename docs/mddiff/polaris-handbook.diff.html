@@ -144,16 +144,36 @@
   /* an added block reads as normal prose; a removed block as red, struck-through text */
   ins.mdblock, ins.mdblock * { color: #c9d1d9; text-decoration: none; }
   del.mdblock, del.mdblock * { color: var(--mddiff-del-fg); text-decoration: line-through; }
-  /* …but a link is still a link — keep the blue + underline rather than inheriting
-     the diff/prose colour above. Two nestings need it: (a) the whole link sits inside
-     a wholly-added block (ins.mdblock a — most visible on a newly-added file whose
-     entire TOC/links render inside one ins.mdblock, else plain text); (b) an INLINE
-     word-diff wrapped the link's own text in <ins> — the markup is <a><ins>text</ins></a>
-     (link added/reworded mid-paragraph, e.g. a "CAGRA primer" reference), so the plain
-     ins colour above would paint the link text green with no underline. Handle both
-     nesting directions (a ins / ins a). The green add background stays, so an added
-     link still reads as "added". */
+  /* GENERAL RULE for identity-coloured inline elements inside ADDED shading: a link
+     (blue) and inline code (orange) each keep their OWN colour rather than being
+     repainted the prose/diff colour by the ins rules above. This is the general fix
+     for "the colour gets covered when shaded" — the two markdown inline elements that
+     carry an identity colour are <a> and <code>; bold/em deliberately inherit the diff
+     colour, so this pair is the whole class. Each needs it in three nestings:
+       (a) the element sits inside a wholly-added block — ins.mdblock a / ins.mdblock
+           code (most visible on a newly-added file whose entire TOC/links + inline
+           code render inside ins.mdblock, or an added heading full of code spans);
+       (b) an INLINE word-diff added the element mid-paragraph, so the ins is the
+           element's PARENT — <ins><a></a></ins> (ins a) — and the plain ins colour
+           above would paint it green;
+       (c) the same word-diff added the element's own TEXT, so the ins is the CHILD —
+           <a><ins>text</ins></a> / <code><ins>text</ins></code> (a ins / code ins).
+     The green add background stays, so an added link/code still reads as "added".
+     Removed shading stays uniformly red + struck (no del selectors) — a link and code
+     inside a del read as "going away", same as the surrounding removed text. */
   ins.mdblock a, ins.mdblock a *, a ins, a ins *, ins a, ins a * { color: #58a6ff; text-decoration: underline; }
+  ins.mdblock code, ins.mdblock code *, code ins, code ins *, ins code, ins code * {
+    color: var(--mddiff-code, var(--mddiff-code-default)); }
+  /* EXCEPTION: an ADDED per-line mark INSIDE a fenced code BLOCK is not inline-code
+     identity — the block is prose-coloured (--mddiff-code = currentColor inside pre),
+     so an added line must keep the DIFF colour, not fall to prose. Only the ins side
+     needs restoring: the identity rule above added code ins (which also reaches pre code
+     ins), but no code del — so a REMOVED line in a fenced block still gets its red from
+     the plain del rule and needs no exception here. Outranks the identity rule (pre code
+     ins > code ins) in BOTH themes — no body.light twin needed because nothing raises the
+     inline-code rule's specificity for the fenced case (the light override below is
+     scoped to ins.mdblock only, which a lone changed line in an unchanged block lacks). */
+  pre code ins, pre code ins * { color: var(--mddiff-add-fg); }
   /* added / removed list items (removed = red, struck through, matching del blocks).
      No LEFT padding: the colored box paints its padding, so any left padding would
      either indent the text past the sibling bullets, or — if cancelled with a
@@ -230,6 +250,7 @@
   body.left-only #split-view, body.right-only #split-view { display: block; }
   body.left-only #split-view .col-new, body.right-only #split-view .col-old { display: none; }
   body.left-only #split-view .col-old, body.right-only #split-view .col-new { max-width: 900px; margin: 0 auto; }
+  /* (with the line-number gutter ON the solo column LEFT-ALIGNS instead — see LINES_CSS) */
   /* table diffs: drop whole added/removed columns & rows per side, so each
      projected table stays rectangular (no phantom empty cells). The change
      classes are stamped by diffTable; cell-level marks reuse the ins/del rules. */
@@ -401,6 +422,15 @@
      links, strikethrough) stay theme-specific. */
   body.light ins.mdblock, body.light ins.mdblock * { color: #1f2328; }
   body.light ins.mdblock a, body.light ins.mdblock a *, body.light a ins, body.light a ins *, body.light ins a, body.light ins a * { color: #0969da; text-decoration: underline; }
+  /* inline code keeps its identity colour inside an added BLOCK in light too — needed
+     because body.light ins.mdblock * above outranks the theme-neutral code rule; the
+     var re-derives the light default (--mddiff-code-default = #b45a1e). Scoped to
+     ins.mdblock ONLY: the inline word-diff nestings (code ins / ins code) are already
+     theme-adaptive through that same var in the dark-scope rule, so raising their
+     light specificity here would just start a fight with the pre-code diff-mark
+     exception. Mirrors the link rule directly above (which is bright-blue-per-theme, so
+     it DOES need all six). */
+  body.light ins.mdblock code, body.light ins.mdblock code * { color: var(--mddiff-code, var(--mddiff-code-default)); }
   body.light .col-head { background: #ffffff; color: #656d76; border-bottom-color: #d0d7de; }
   body.light #mddiff-minimap { background: rgba(234,238,242,.7); border-left-color: #d0d7de; }
   body.light #mddiff-vp { background: rgba(140,149,159,.18); border-color: rgba(140,149,159,.45); }
@@ -419,6 +449,13 @@
      glyph win keeps the reshape cue (the "shape →" badge still names it); these reshaped
      blocks just forgo an old-column number. */
   body.show-lines .col { padding-left: 35px; }
+  /* Solo Left/Right views centre their single column by default; with the gutter ON,
+     LEFT-ALIGN it so the numbers sit at the page's left edge and a wide table can grow
+     into the full window instead of floating centred with a big empty left margin (the
+     reported Left/Right bug). The .col padding-left above reserves the gutter; the JS
+     fitSoloTables then grows the table rightward from the content edge. */
+  body.show-lines.left-only #split-view .col-old,
+  body.show-lines.right-only #split-view .col-new { margin-left: 0; margin-right: auto; }
   body.show-lines .col-old > [data-oldline], body.show-lines .col-new > [data-newline] { position: relative; }
   body.show-lines .col-old > [data-oldline]:not(.xf-listprose)::before { content: attr(data-oldline); }
   body.show-lines .col-new > [data-newline]::before { content: attr(data-newline); }
@@ -440,15 +477,15 @@
     left: auto; top: auto; width: 35px; margin-left: -35px; padding-right: 7px;
     vertical-align: baseline; line-height: inherit; }
   /* inline: BOTH gutters (old ::before, new ::after); ::after skips xform blocks so
-     their "shape →" badge (also ::after) survives. */
+     their "shape →" badge (also ::after) survives. The gutter is a 68px LEFT PADDING
+     ADDED OUTSIDE the readable column (content-box: max-width caps the content at 900,
+     the padding sits to its left), so the inline view stays CENTRED exactly as it is
+     with the gutter off — the numbers ride immediately left of the centred text, not
+     off in the page margin. A wide table still breaks out full-bleed (fitInlineTables,
+     centred like the gutter-off view); because it spills LEFT of the centred column,
+     past its own gutter number, that broken-out table drops its number (.mddiff-broke
+     below) so no number is left stranded over the table's cells. */
   body.show-lines #inline-view { padding-left: 68px; }
-  /* With line numbers on the inline view stops centring and LEFT-ALIGNS, so the
-     number gutter sits at the page's left edge (a code/file-review layout) instead of
-     mid-window. That is what lets a wide table break out full-bleed WITHOUT sliding
-     back UNDER the centred gutter and overlapping the numbers (the reported bug):
-     fitInlineTables() then grows the table RIGHTWARD from the content edge rather than
-     centring it across the window. */
-  body.show-lines #inline-view { margin-left: 0; margin-right: auto; }
   body.show-lines #inline-view > [data-oldline], body.show-lines #inline-view > [data-newline] { position: relative; }
   body.show-lines #inline-view > [data-oldline]::before { content: attr(data-oldline); left: -66px; }
   body.show-lines #inline-view > [data-newline]:not(.mddiff-xform)::after { content: attr(data-newline); left: -34px; }
@@ -473,6 +510,12 @@
   body.show-lines .col-new > :is(blockquote, ins.mdblock)[data-newline]::before,
   body.show-lines #inline-view > :is(blockquote, del.mdblock)[data-oldline]::before,
   body.show-lines #inline-view > :is(blockquote, ins.mdblock)[data-newline]:not(.mddiff-xform)::after { margin-left: -3px; }
+  /* A wide table that broke out full-bleed (fitInlineTables → .mddiff-broke) spilled LEFT
+     of the centred column, past its own gutter number — so DROP that number rather than
+     strand it over the table's cells. Placed AFTER the content:attr() rules above so it
+     wins the ::after tie (the new-number rule's :not(.mddiff-xform) matches this too). */
+  body.show-lines #inline-view > .mddiff-broke[data-oldline]::before,
+  body.show-lines #inline-view > .mddiff-broke[data-newline]:not(.mddiff-xform)::after { content: none; }
   /* A code <pre> scrolls long lines (overflow), which would CLIP its own margin number.
      Move the scroll — AND the rounded/padded background box — onto the inner <code>, leaving
      the <pre> a bare positioning wrapper (overflow visible) so the number shows unclipped and
@@ -1889,6 +1932,7 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
     var oldCg = t.querySelector('colgroup.mddiff-cols'); if (oldCg) oldCg.remove();
     t.style.tableLayout = '';
     target.style.maxWidth = ''; target.style.width = ''; target.style.marginLeft = ''; target.style.transform = ''; target.style.boxSizing = '';
+    target.classList.remove('mddiff-broke');   // restore its gutter number if it no longer breaks out
     if (target !== t) { t.style.maxWidth = ''; t.style.width = ''; }
     if (fullW <= columnW) return;            // window too narrow to gain anything
     t.style.maxWidth = 'none';               // measure the unconstrained table width
@@ -1909,7 +1953,8 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
       target.style.width = 'max-content';
       target.style.maxWidth = fullW + 'px';
       target.style.boxSizing = 'border-box';
-      if (centre) { target.style.marginLeft = '50%'; target.style.transform = 'translateX(-50%)'; }
+      if (centre) { target.style.marginLeft = '50%'; target.style.transform = 'translateX(-50%)';
+        target.classList.add('mddiff-broke'); }   // spilled left of its gutter number → drop the number (CSS)
       // If the content can't fit even at full-bleed — a column that won't wrap, e.g.
       // a nested table — the max-content cap just lets the table scroll sideways AND
       // drags every prose row off-screen with it (all rows share the column widths).
@@ -1946,38 +1991,39 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
     if (!iv.classList.contains('active')) return;
     var columnW = iv.clientWidth;
     // GUT clears the 24px right-edge minimap; mirrored on the left so the
-    // broken-out table stays centred in the window.
+    // broken-out table stays centred in the window. The inline view is centred
+    // whether or not the line-number gutter is on (the gutter is left PADDING on the
+    // still-centred column), so the breakout is always centred — a broken-out table
+    // spills left of its own gutter number and drops it (.mddiff-broke, set in
+    // breakoutTable when centre) so no number is stranded over the table.
     var GUT = 36, fullW = window.innerWidth - GUT * 2, centre = true;
-    // When the line-number gutter is on the inline view is LEFT-ALIGNED (CSS
-    // body.show-lines) so the numbers sit at the page's left edge. A broken-out table
-    // must then grow RIGHTWARD from the content's left edge (just right of the gutter):
-    // centring it across the window — the no-lines path below — would slide it back
-    // UNDER the gutter and overlap the numbers (the reported bug). So narrow the
-    // breakout region to [content-left .. window − GUT] and leave the table in flow.
-    var lines = document.body.classList.contains('show-lines');
-    if (lines) {
-      var padL = parseFloat(getComputedStyle(iv).paddingLeft) || 0;
-      columnW = iv.clientWidth - padL;   // in-flow width available to a table (gutter excluded)
-      fullW = window.innerWidth - GUT - (iv.getBoundingClientRect().left + padL);
-      centre = false;                    // left-aligned → grow rightward, don't centre back under the gutter
-    }
     var tables = iv.querySelectorAll('table');
     for (var i = 0; i < tables.length; i++) breakoutTable(tables[i], columnW, fullW, centre);
   }
   // Solo Left/Right views: the single visible column is capped to the same ~900px
   // measure and centred (body.left-only / right-only CSS), so a wide table is
   // trapped scrolling exactly as in the inline view above — the reported "table not
-  // fully displayed in Left/Right" bug. Break it out full-bleed too. The solo column
-  // is ALWAYS centred (unlike the inline view it is never left-aligned in lines
-  // mode), so the breakout always centres — no lines-mode branch. Self-gates on a
+  // fully displayed in Left/Right" bug. Break it out full-bleed too. Self-gates on a
   // solo view being active (a no-op in inline / split).
+  //
+  // With the line-number gutter ON the solo column is LEFT-ALIGNED (the .left-only /
+  // .right-only gutter CSS) so its numbers sit at the page's left edge; a broken-out
+  // table must then grow RIGHTWARD from the content edge (just right of the gutter)
+  // rather than centre back across the window and slide under the numbers — the same
+  // treatment the inline view used before it re-centred. Gutter off → centred.
   function fitSoloTables() {
     var solo = document.body.classList.contains('left-only') ? colOld
              : document.body.classList.contains('right-only') ? colNew : null;
     if (!solo) return;
-    var GUT = 36, fullW = window.innerWidth - GUT * 2;
+    var GUT = 36, fullW = window.innerWidth - GUT * 2, columnW = solo.clientWidth, centre = true;
+    if (document.body.classList.contains('show-lines')) {
+      var padL = parseFloat(getComputedStyle(solo).paddingLeft) || 0;
+      columnW = solo.clientWidth - padL;   // in-flow width for a table (gutter excluded)
+      fullW = window.innerWidth - GUT - (solo.getBoundingClientRect().left + padL);
+      centre = false;                      // left-aligned → grow rightward, not centred
+    }
     var tables = solo.querySelectorAll('table');
-    for (var i = 0; i < tables.length; i++) breakoutTable(tables[i], solo.clientWidth, fullW, true);
+    for (var i = 0; i < tables.length; i++) breakoutTable(tables[i], columnW, fullW, centre);
   }
 
   // Diff overview minimap: one bar per change, positioned AND sized in
@@ -2339,11 +2385,11 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
   // Source line-number gutter toggle (the # button). Off by default; the choice
   // persists like the view / theme toggles. The numbers themselves are pure CSS
   // (absolutely-positioned pseudo-elements that don't touch the reflow / minimap /
-  // align), but turning the gutter on also LEFT-ALIGNS the inline view (so the gutter
-  // lands at the page's left edge), which changes where a broken-out wide table sits —
-  // and narrows the solo column's in-flow room by the gutter width — so re-run both
-  // table fitters to reposition. Each self-gates on its view being active, so only
-  // the one for the current view does anything (no-op in split mode).
+  // align). The inline view stays CENTRED with the gutter on (the gutter is left
+  // padding on the still-centred column), but the solo Left/Right column LEFT-ALIGNS,
+  // and either change moves where a broken-out wide table sits — so re-run both table
+  // fitters to reposition. Each self-gates on its view being active, so only the one
+  // for the current view does anything (no-op in split mode).
   var linesBtn = document.getElementById('btn-lines');
   function setLines(on) {
     document.body.classList.toggle('show-lines', on);
