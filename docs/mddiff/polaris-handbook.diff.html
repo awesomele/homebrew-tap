@@ -1918,14 +1918,13 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
   // trapped scrolling to read a single row. Shared by the inline view
   // (fitInlineTables) and the solo Left/Right views (fitSoloTables) — both cap
   // prose to a ~900px measure and centre it, so a table wider than that needs the
-  // full window. 'columnW' is the table's in-flow room, 'fullW' the break-out width
-  // (window minus gutters); 'centre' false leaves the table in flow growing
-  // rightward (inline + line-numbers mode, which is left-aligned), true centres it
-  // across the window (every other case, incl. every solo table). A wholly-added /
-  // -removed table is wrapped in its ins/del.mdblock SHADE box — break THAT out so
-  // the highlight grows with the table; the inner table (max-width:100%) then fills
-  // the box. A plain table (unchanged, or a row/column diff) is its own target.
-  function breakoutTable(t, columnW, fullW, leftShift) {
+  // more room. 'columnW' is the table's in-flow room, 'fullW' the width it may break out
+  // to (breakoutRoom below). The break-out is ALWAYS centred on the readable column — one
+  // rule at every width, in every view. A wholly-added / -removed table is wrapped in its
+  // ins/del.mdblock SHADE box — break THAT out so the highlight grows with the table; the
+  // inner table (max-width:100%) then fills the box. A plain table (unchanged, or a
+  // row/column diff) is its own target.
+  function breakoutTable(t, columnW, fullW) {
     if (t.closest('td')) return;             // a nested table wraps in its cell — never broken out on its own
     var p = t.parentNode;
     var target = (p && p.nodeType === 1 && p.classList.contains('mdblock')) ? p : t;
@@ -1954,12 +1953,13 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
       target.style.width = 'max-content';
       target.style.maxWidth = fullW + 'px';
       target.style.boxSizing = 'border-box';
-      // leftShift null → centre full-bleed across the window (gutter off). A number →
-      // pull the target that many px from its (centred-column) flow position, so its left
-      // edge lands at the far-left rail's right edge and it fills rightward — clear of the
-      // detached gutter numbers (gutter on, inline + solo).
-      if (leftShift == null) { target.style.marginLeft = '50%'; target.style.transform = 'translateX(-50%)'; }
-      else { target.style.marginLeft = leftShift + 'px'; }
+      // CENTRE it on the readable column it grew out of — marginLeft 50% of the column,
+      // then translateX(-50%) of the target's own width. This is the ONLY placement:
+      // 'fullW' is the SYMMETRIC room about that same axis (breakoutRoom), so a centred
+      // break-out provably cannot reach either margin at any width, which is what lets
+      // the alignment be one unconditional rule. Never pin a break-out to a side to
+      // "make room" — that is the bug this replaced (see breakoutRoom).
+      target.style.marginLeft = '50%'; target.style.transform = 'translateX(-50%)';
       // If the content can't fit even at full-bleed — a column that won't wrap, e.g.
       // a nested table — the max-content cap just lets the table scroll sideways AND
       // drags every prose row off-screen with it (all rows share the column widths).
@@ -1973,13 +1973,43 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
     }
   }
 
+  var GUT = 36;   // page margin a break-out must leave clear on the right (the 24px minimap)
+  // How much room a break-out may take, measured about the CENTRE of the readable
+  // column — the axis breakoutTable centres on. The answer is the SYMMETRIC band about
+  // that axis: twice the SMALLER of the two side gaps.
+  //
+  // That symmetry is the whole design, and its absence was the root cause of two bugs.
+  // The page's margins are NOT symmetric about the column's centre: the right reserves
+  // the minimap (GUT), and with the line-number gutter on the LEFT additionally reserves
+  // the number rail — which is wider, and which the centred column knows nothing about.
+  // Spend that raw asymmetric width on a centred table and its left edge lands under the
+  // numbers. Both previous fixes patched the collision at placement time (0.2.43 let the
+  // table float over the numbers; 0.2.44 pinned every break-out flush to the rail, which
+  // stranded a barely-over-width table at the page edge) — but a table that is never
+  // ALLOWED to be wider than the symmetric band cannot collide in the first place, so
+  // placement stays one unconditional "centre it" with no side-pinning and no width
+  // threshold that flips the alignment. The cost is the only honest one: the very widest
+  // table gives up the sliver of extra room on its roomier side (~50px of 1788 at a
+  // 1900px window) to buy a layout that reads the same at every width.
+  //
+  // 'minLeft' is the leftmost page x a table may occupy: the plain gutter, or the number
+  // rail's right edge when the gutter is on. Everything else is measured, not assumed.
+  function breakoutRoom(el, minLeft) {
+    var cs = getComputedStyle(el);
+    var padL = parseFloat(cs.paddingLeft) || 0, padR = parseFloat(cs.paddingRight) || 0;
+    var columnW = el.clientWidth - padL - padR;                        // the table's in-flow room
+    var axis = el.getBoundingClientRect().left + padL + columnW / 2;   // what marginLeft:50% centres on
+    return { columnW: columnW,
+             fullW: 2 * Math.min(axis - minLeft, window.innerWidth - GUT - axis) };
+  }
+
   // Inline view: let a WIDE table break out of the readable column. Prose reads
   // best at a capped measure (body max-width: 900px), so the inline view stays
   // narrow and centred — but that traps a wide table (a big parameter reference,
   // say) in the column and forces it to scroll horizontally to read one row. So
-  // for any table whose natural content is wider than the column, break it out
-  // full-bleed: centre it across the viewport and give it the full window width
-  // (the same room the side-by-side view gets), capped so the PAGE never scrolls
+  // for any table whose natural content is wider than the column, break it out:
+  // keep it centred on the column and let it grow to the widest it can be while
+  // still clearing both page margins (breakoutRoom), so the PAGE never scrolls
   // sideways — a table wider even than that keeps its own overflow scrollbar, the
   // intended last resort. Narrow tables that already fit are left untouched, in
   // normal flow (left-aligned with the prose). Measured, not hard-coded, so it
@@ -1994,19 +2024,13 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
   function fitInlineTables() {
     var iv = views.inline;
     if (!iv.classList.contains('active')) return;
-    // GUT clears the 24px right-edge minimap. Gutter OFF: centre the break-out across
-    // the window (leftShift null). Gutter ON: the numbers are a detached far-left RAIL
-    // and the content is centred, so pull the break-out left to the rail's right edge
-    // (RAIL_R) and let it fill to the window's right — never under the numbers.
-    var GUT = 36, columnW = iv.clientWidth, fullW = window.innerWidth - GUT * 2, leftShift = null;
-    if (document.body.classList.contains('show-lines')) {
-      var RAIL_R = 76;   // right edge of the two-number (old+new) inline rail
-      var ivLeft = iv.getBoundingClientRect().left + (parseFloat(getComputedStyle(iv).paddingLeft) || 0);
-      fullW = window.innerWidth - GUT - RAIL_R;
-      leftShift = RAIL_R - ivLeft;   // negative: pull the centred target out to the rail edge
-    }
+    // The left margin to clear: the plain gutter, or — with the numbers on — the far-left
+    // number rail they occupy. breakoutRoom turns it into a symmetric, centre-safe width.
+    var minLeft = GUT;
+    if (document.body.classList.contains('show-lines')) minLeft = 76;   // right edge of the two-number (old+new) inline rail
+    var room = breakoutRoom(iv, minLeft);
     var tables = iv.querySelectorAll('table');
-    for (var i = 0; i < tables.length; i++) breakoutTable(tables[i], columnW, fullW, leftShift);
+    for (var i = 0; i < tables.length; i++) breakoutTable(tables[i], room.columnW, room.fullW);
   }
   // Solo Left/Right views: the single visible column is capped to the same ~900px
   // measure and centred (body.left-only / right-only CSS), so a wide table is
@@ -2015,24 +2039,17 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
   // solo view being active (a no-op in inline / split).
   //
   // With the line-number gutter ON the solo column stays CENTRED and the numbers become
-  // a detached far-left RAIL (--gnum-solo). A broken-out table is pulled left to the
-  // rail's right edge (RAIL_R) and fills to the window's right, clear of the numbers —
-  // the same rail treatment as the inline view. Gutter off → centred full-bleed.
+  // a detached far-left RAIL (--gnum-solo). Same treatment as the inline view: the rail
+  // is just a bigger left margin handed to breakoutRoom, and the table stays centred.
   function fitSoloTables() {
     var solo = document.body.classList.contains('left-only') ? colOld
              : document.body.classList.contains('right-only') ? colNew : null;
     if (!solo) return;
-    var GUT = 36, columnW = solo.clientWidth, fullW = window.innerWidth - GUT * 2, leftShift = null;
-    if (document.body.classList.contains('show-lines')) {
-      var RAIL_R = 44;   // right edge of the single-number solo rail
-      var padL = parseFloat(getComputedStyle(solo).paddingLeft) || 0;
-      var colLeft = solo.getBoundingClientRect().left + padL;
-      columnW = solo.clientWidth - padL;                 // in-flow room (gutter excluded)
-      fullW = window.innerWidth - GUT - RAIL_R;
-      leftShift = RAIL_R - colLeft;                       // pull the centred target to the rail edge
-    }
+    var minLeft = GUT;
+    if (document.body.classList.contains('show-lines')) minLeft = 44;   // right edge of the single-number solo rail
+    var room = breakoutRoom(solo, minLeft);
     var tables = solo.querySelectorAll('table');
-    for (var i = 0; i < tables.length; i++) breakoutTable(tables[i], columnW, fullW, leftShift);
+    for (var i = 0; i < tables.length; i++) breakoutTable(tables[i], room.columnW, room.fullW);
   }
   // Position the gutter numbers as a fixed far-left RAIL while the content stays centred
   // (inline + solo, gutter on). The number pseudo-elements are absolute-positioned inside
