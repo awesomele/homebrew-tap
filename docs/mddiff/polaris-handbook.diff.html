@@ -144,6 +144,10 @@
   /* an added block reads as normal prose; a removed block as red, struck-through text */
   ins.mdblock, ins.mdblock * { color: #c9d1d9; text-decoration: none; }
   del.mdblock, del.mdblock * { color: var(--mddiff-del-fg); text-decoration: line-through; }
+  /* …but an author strikethrough INSIDE added text keeps its strike: the ins rules
+     above reset text-decoration and out-rank the bare s rule, which silently erased
+     a newly-added ~~strike~~ from the new column (it read as plain, unstruck text). */
+  ins s, ins s *, ins.mdblock s, ins.mdblock s * { text-decoration: line-through; }
   /* GENERAL RULE for identity-coloured inline elements inside ADDED shading: a link
      (blue) and inline code (orange) each keep their OWN colour rather than being
      repainted the prose/diff colour by the ins rules above. This is the general fix
