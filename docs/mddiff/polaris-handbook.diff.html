@@ -2154,6 +2154,18 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
     window.addEventListener('mousemove', function (e) { if (scrubbing) scrubTo(e.clientY); });
     window.addEventListener('mouseup', function () { scrubbing = false; });
     window.addEventListener('scroll', updateViewport, { passive: true });
+    // Ticks are absolute positions measured at build time, so ANY later reflow
+    // (a late font, a table refit, the panel laid out before it was visible)
+    // leaves them pointing at where a change USED to be — the viewport box then
+    // sits on a green tick while the change is off-screen. Rebuild whenever the
+    // document's height (body) or the ruler's own height (mm) changes. Building
+    // only repositions fixed-ruler children, so it can't feed back into the
+    // observed sizes.
+    if (window.ResizeObserver) {
+      var mmRo;
+      var ro = new ResizeObserver(function () { clearTimeout(mmRo); mmRo = setTimeout(buildMinimap, 80); });
+      ro.observe(document.body); ro.observe(mm);
+    }
   }
 
   // Floating table-of-contents: a heading outline that slides out to the left of
