@@ -2560,7 +2560,7 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
     if (!inp) return;
     function set(v) { czApply('--mddiff-bg-dark', +v > 0 ? v + '%' : ''); }
     var v = czRead('mddiff-bgdark', 'bgdark');
-    if (/^d+$/.test(v)) { inp.value = v; set(v); }
+    if (/^\d+$/.test(v)) { inp.value = v; set(v); }
     inp.oninput = function () { set(inp.value); czSave('mddiff-bgdark', 'bgdark', inp.value === '0' ? '' : inp.value); };
     if (rst) rst.onclick = function () { inp.value = '0'; set('0'); czSave('mddiff-bgdark', 'bgdark', ''); };
   })();
