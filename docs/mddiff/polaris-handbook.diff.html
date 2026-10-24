@@ -2372,11 +2372,16 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
   });
   // A deep link (URL ending in #heading) must also land in the ACTIVE view, not
   // the hidden first copy — redo the jump once layout has settled.
+  // A host with no navigable URL (the VS Code webview following a cross-file
+  // `other.md#heading` link) passes the fragment as `hash`; it stands in for
+  // location.hash. Omitted (the CLI/daemon, whose URL carries the real #) ⇒
+  // location.hash only, exactly as before.
   function jumpToHash() {
     if (!location.hash || location.hash.length < 2) return;
+    var h = location.hash.slice(1);
     var scope = tocScope();   // solo-aware: the visible column in Left/Right
     if (!scope) return;
-    var target = findById(scope, decodeId(location.hash.slice(1)));
+    var target = findById(scope, decodeId(h));
     if (target) scrollToTarget(scope, target, false);
   }
 
