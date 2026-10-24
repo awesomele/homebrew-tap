@@ -2353,10 +2353,20 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
     // fragment points at. (This is also why exact-id alone is insufficient: our
     // slug collapses a "→"/"×"'s double space to one hyphen while GitHub keeps
     // both, so the fragment has "m--required" vs our id's "m-required".)
-    var els = scope.querySelectorAll('[id]'), cands = [];
+    //
+    // Non-removed headings go FIRST: in the inline view a REMOVED heading (inside
+    // <del> / li-del) is visible too and may share its old-side slug with the
+    // current heading (a moved section, a deleted duplicate — see diff.js
+    // addHeadingIds), so `#setup` must land on the current Setup, not its struck
+    // old copy. A removed heading stays reachable when nothing current matches.
+    // The OLD column (side-by-side left / Left-only) IS the old document, where a
+    // removed heading is simply part of it — plain document order there.
+    var els = scope.querySelectorAll('[id]'), cands = [], gone = [];
+    var oldDoc = scope.classList && scope.classList.contains('col-old');
     for (var i = 0; i < els.length; i++)
       if (els[i].offsetParent !== null)
-        cands.push({ id: els[i].id, text: els[i].innerText, el: els[i] });
+        (!oldDoc && els[i].closest('del, li.li-del') ? gone : cands).push({ id: els[i].id, text: els[i].innerText, el: els[i] });
+    cands = cands.concat(gone);
     var hit = resolveAnchor(id, cands);
     return hit ? hit.el : null;
   }
