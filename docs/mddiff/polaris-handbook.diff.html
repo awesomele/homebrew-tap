@@ -19,7 +19,12 @@
      longer shifts the buttons. */
   body { max-width: none; margin: 0; padding: 24px 36px 80px 28px;
     font: 16px/1.65 var(--mddiff-font);
-    color: #c9d1d9; background: #0d1117;
+    color: #c9d1d9; background: var(--mddiff-bg);
+    /* Page background. Dark theme: the base #0d1117 mixed toward black by the
+       customize panel's "Darkness" slider (--mddiff-bg-dark, a percentage written
+       inline on <body>; unset = 0% = the original colour). Declared on body for the
+       same reason as the derived diff shades below. body.light pins it to white. */
+    --mddiff-bg: color-mix(in srgb, #0d1117, black var(--mddiff-bg-dark, 0%));
     /* Diff-colour shades are DERIVED from the two accent hues here, on <body> —
        NOT on :root — deliberately: the customize panel writes a custom accent as
        an inline style on <body>, and a derived var's inner var(--mddiff-add) is
@@ -92,6 +97,7 @@
   #mddiff-customize .cz-reset { background: none; border: 0; padding: 0; cursor: pointer;
     color: #6e7681; font-size: 11px; }
   #mddiff-customize .cz-reset:hover { color: #c9d1d9; }
+  #mddiff-customize input[type=range] { width: 96px; cursor: pointer; accent-color: #1f6feb; }
   h1,h2,h3,h4 { border-bottom: 1px solid #21262d; padding-bottom: .3em; margin-top: 1.4em; }
   /* An in-page jump (a TOC link) lands the heading flush against the sticky bar;
      reserve the bar's height so it isn't hidden under it. The page JS computes a
@@ -232,7 +238,7 @@
   #inline-view.active { display: block; }
   #split-view.active { display: flex; gap: 32px; align-items: flex-start; }
   .col { flex: 1 1 0; min-width: 0; }
-  .col-head { position: sticky; top: var(--bar-h, 50px); z-index: 1; background: #0d1117; font-size: 16px;
+  .col-head { position: sticky; top: var(--bar-h, 50px); z-index: 1; background: var(--mddiff-bg); font-size: 16px;
     color: #8b949e; padding: 6px 0 8px; margin-bottom: 12px; border-bottom: 1px solid #30363d; }
   .col-head b { font-size: 18px; font-weight: 700; letter-spacing: .2px; }
   .col-old .col-head b { color: var(--mddiff-del-ink); } .col-new .col-head b { color: var(--mddiff-add-ink); }
@@ -345,7 +351,7 @@
        content is behind, so the panel stays transparent without the entries
        overlapping the body text underneath. The rgba fill alone is the fallback
        where backdrop-filter is unsupported. */
-    background: rgba(13,17,23,.72); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    background: color-mix(in srgb, var(--mddiff-bg) 72%, transparent); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
     border: 1px solid rgba(110,118,129,.22); border-radius: 6px;
     font-size: 13px; line-height: 1.5;
     transform: translateX(calc(100% + 28px)); opacity: 0; pointer-events: none;
@@ -373,7 +379,7 @@
      no box sizes change, so no realign/minimap rebuild is needed (the ruler ticks
      recolour via CSS). text-decoration (strikethrough) is inherited from the dark
      rules, not overridden. */
-  body.light { background: #ffffff; color: #1f2328;
+  body.light { color: #1f2328; --mddiff-bg: #ffffff;
     --mddiff-add: #2da44e; --mddiff-del: #cf222e;
     /* light-theme derivations: dark text for contrast, pale tints over white */
     --mddiff-add-fg: color-mix(in srgb, var(--mddiff-add) 56%, black);
@@ -398,6 +404,7 @@
   body.light #mddiff-customize input[type=color] { background: #fff; border-color: #d0d7de; }
   body.light #mddiff-customize .cz-reset { color: #8c959f; }
   body.light #mddiff-customize .cz-reset:hover { color: #1f2328; }
+  body.light #mddiff-customize .cz-dark-only { display: none; }  /* the darkness slider is dark-theme only */
   body.light h1, body.light h2, body.light h3, body.light h4 { border-bottom-color: #d8dee4; }
   body.light a { color: #0969da; }
   body.light code { background: #eff1f3; }  /* colour comes from the code rule via --mddiff-code-default (light = #b45a1e) */
@@ -576,6 +583,12 @@
     <div class="cz-row"><span>Inline code</span><span class="cz-color">
       <input type="color" id="cz-code" value="#f07828"><button type="button" class="cz-reset" id="cz-code-x" title="Reset to default">reset</button>
     </span></div>
+    <div class="cz-dark-only">
+    <div class="cz-sec">Background</div>
+    <div class="cz-row"><span>Darkness</span><span class="cz-color">
+      <input type="range" id="cz-bgdark" min="0" max="100" step="5" value="0" title="Make the dark background darker (0 = default, 100 = black)"><button type="button" class="cz-reset" id="cz-bgdark-x" title="Reset to default">reset</button>
+    </span></div>
+    </div>
   </div></div>
 <div id="inline-view" class="view"><h1 data-oldline="1" data-newline="1" data-align="1" id="polaris-platform-operations-handbook">Polaris Platform — Operations Handbook</h1>
 <blockquote data-oldline="3" data-newline="3" data-align="2">
@@ -2539,6 +2552,18 @@ the <a href="https://wiki.example.com/polaris/postmortems" data-diff-node="del" 
     inp.oninput = function () { czApply(c[0], inp.value); czSave(c[3], c[4], inp.value); };
     if (rst) rst.onclick = function () { czApply(c[0], ''); czSave(c[3], c[4], ''); czSwatch(c); };
   });
+  // Dark-background darkness slider: 0–100 = % mixed toward black, written as
+  // --mddiff-bg-dark on <body>. Dark theme only — body.light pins --mddiff-bg, so
+  // the value is inert there, and its row is hidden (.cz-dark-only).
+  (function () {
+    var inp = document.getElementById('cz-bgdark'), rst = document.getElementById('cz-bgdark-x');
+    if (!inp) return;
+    function set(v) { czApply('--mddiff-bg-dark', +v > 0 ? v + '%' : ''); }
+    var v = czRead('mddiff-bgdark', 'bgdark');
+    if (/^d+$/.test(v)) { inp.value = v; set(v); }
+    inp.oninput = function () { set(inp.value); czSave('mddiff-bgdark', 'bgdark', inp.value === '0' ? '' : inp.value); };
+    if (rst) rst.onclick = function () { inp.value = '0'; set('0'); czSave('mddiff-bgdark', 'bgdark', ''); };
+  })();
   if (czBtn && czPanel) {
     czBtn.onclick = function (e) {
       e.stopPropagation();
