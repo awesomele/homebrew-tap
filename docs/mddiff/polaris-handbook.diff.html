@@ -316,6 +316,17 @@
   .col-old li.xf-nest[data-xfo="1"], .col-new li.xf-nest[data-xfn="1"] { margin-left: 1.6em; }
   li.xf-nest[data-xfn="1"]::after { content: " ↳ nested"; }
   li.xf-nest[data-xfn="0"]::after { content: " ↰ un-nested"; }
+  /* subtree re-indent (diff.js outlineDiff): the whole list is flat <li>s, each carrying
+     its depth on each side (data-lvo / data-lvn; absent = top level). Indent + bullet glyph
+     per depth, per column; inline shows the new depth (a removed item, its old one). */
+  .col-old li[data-lvo="1"], .col-new li[data-lvn="1"], #inline-view li[data-lvn="1"], #inline-view li.li-del[data-lvo="1"] { margin-left: 1.6em; list-style-type: circle; }
+  .col-old li[data-lvo="2"], .col-new li[data-lvn="2"], #inline-view li[data-lvn="2"], #inline-view li.li-del[data-lvo="2"] { margin-left: 3.2em; list-style-type: square; }
+  .col-old li[data-lvo="3"], .col-new li[data-lvn="3"], #inline-view li[data-lvn="3"], #inline-view li.li-del[data-lvo="3"] { margin-left: 4.8em; list-style-type: square; }
+  .col-old li[data-lvo="4"], .col-new li[data-lvn="4"], #inline-view li[data-lvn="4"], #inline-view li.li-del[data-lvo="4"] { margin-left: 6.4em; list-style-type: square; }
+  .col-old li[data-lvo="5"], .col-new li[data-lvn="5"], #inline-view li[data-lvn="5"], #inline-view li.li-del[data-lvo="5"] { margin-left: 8.0em; list-style-type: square; }
+  .col-old li[data-lvo="6"], .col-new li[data-lvn="6"], #inline-view li[data-lvn="6"], #inline-view li.li-del[data-lvo="6"] { margin-left: 9.6em; list-style-type: square; }
+  li.xf-nest[data-xfdir="in"]::after { content: " ↳ nested"; }
+  li.xf-nest[data-xfdir="out"]::after { content: " ↰ un-nested"; }
   /* Only the FIRST content block (after the sticky filename header) starts flush
      at the column top; every other heading keeps its natural top margin so it
      isn't cramped against the block above it (most visibly a table). Row alignment
