@@ -18,6 +18,8 @@
 
 The demo shows what mddiff is built for: reviewing AI-generated Markdown changes as rendered documents, with clearer handling for rewrites, tables, lists, code blocks, and larger structural edits.
 
+👉 **[View the Mermaid diagram diff](https://awesomele.github.io/homebrew-tap/mddiff/mermaid-diagrams.diff.html)** — ` ```mermaid ` fences render as drawn charts, and a changed chart is diffed node by node and edge by edge, down to the words inside a relabelled node.
+
 ## Why mddiff
 
 AI coding agents now generate and rewrite large amounts of Markdown: plans, specs, skills, reports, implementation notes, changelogs, and documentation.

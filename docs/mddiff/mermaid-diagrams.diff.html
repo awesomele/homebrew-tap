@@ -1,0 +1,2631 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>mddiff: before → after</title>
+<style>
+  :root { color-scheme: dark;
+    /* Customizable via the 🎛 panel (persisted per-user). Fonts default to the
+       original stacks. Diff colours flow from TWO accent hues (--mddiff-add /
+       --mddiff-del); every tint / text / border shade is DERIVED from them with
+       color-mix, so the panel only overrides the two hues and the rest re-derives
+       — per theme, in pure CSS. The derived vars are redefined under body.light
+       (below), so a single diff-colour rule set serves both themes. */
+    --mddiff-font: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    --mddiff-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+    --mddiff-add: #3fb950; --mddiff-del: #f85149; }
+  /* The body spans the FULL window in both views — only its side padding is
+     reserved (28px left, 36px right so the fixed 24px minimap clears the right
+     edge). The readable-column cap lives on #inline-view below, not here, so the
+     sticky toolbar (a full-width child of the body) keeps its view toggle pinned
+     to the same spot whether you're inline or side-by-side — switching views no
+     longer shifts the buttons. */
+  body { max-width: none; margin: 0; padding: 24px 36px 80px 28px;
+    font: 16px/1.65 var(--mddiff-font);
+    color: #c9d1d9; background: var(--mddiff-bg);
+    /* Page background. Dark theme: the base #0d1117 mixed toward black by the
+       customize panel's "Darkness" slider (--mddiff-bg-dark, a percentage written
+       inline on <body>; unset = 0% = the original colour). Declared on body for the
+       same reason as the derived diff shades below. body.light pins it to white. */
+    --mddiff-bg: color-mix(in srgb, #0d1117, black var(--mddiff-bg-dark, 0%));
+    /* Diff-colour shades are DERIVED from the two accent hues here, on <body> —
+       NOT on :root — deliberately: the customize panel writes a custom accent as
+       an inline style on <body>, and a derived var's inner var(--mddiff-add) is
+       substituted against the accent value present ON THE ELEMENT WHERE THE
+       DERIVED VAR IS DECLARED. Declared on :root it would bake the :root default
+       and a body-level custom accent could never re-derive it (only the SOLID
+       var(--mddiff-add) rules would update). Declared on <body>, every shade
+       re-derives from the effective accent. body.light re-declares these with the
+       light recipe (wins by specificity), so one diff-colour rule set serves both
+       themes and both stay custom-aware. Keep these on body. */
+    --mddiff-add-fg: color-mix(in srgb, var(--mddiff-add) 78%, white);
+    --mddiff-add-bg: color-mix(in srgb, var(--mddiff-add) 30%, transparent);
+    --mddiff-add-soft: color-mix(in srgb, var(--mddiff-add) 10%, transparent);
+    --mddiff-del-fg: var(--mddiff-del);
+    --mddiff-del-bg: color-mix(in srgb, var(--mddiff-del) 28%, transparent);
+    --mddiff-del-soft: color-mix(in srgb, var(--mddiff-del) 10%, transparent);
+    /* ACCENT-AS-TEXT (legend, column headers, xform badge): the bright accent is
+       legible on the DARK surface, so ink = the accent here; body.light darkens the
+       GREEN for contrast on white (the red already clears AA). Fills/rails keep the
+       plain accent. */
+    --mddiff-add-ink: var(--mddiff-add);
+    --mddiff-del-ink: var(--mddiff-del);
+    /* Inline-code DEFAULT colour, in a var so the CSS rule, the picker swatch and the
+       reset all read ONE source (per theme). */
+    --mddiff-code-default: #f07828; }
+  .mddiff-bar { position: sticky; top: 0; z-index: 5; margin: -24px -36px 24px -28px; padding: 12px 36px 12px 28px;
+    background: #161b22; border-bottom: 1px solid #30363d; font-size: 13px; color: #8b949e; }
+  .mddiff-bar b { color: #c9d1d9; }
+  .mddiff-bar .add { color: var(--mddiff-add-ink); } .mddiff-bar .del { color: var(--mddiff-del-ink); }
+  .mddiff-bar .cost { color: #8b949e; font-variant-numeric: tabular-nums; cursor: default; }
+  .mddiff-bar .views { float: right; }
+  .mddiff-bar button { background: #21262d; color: #c9d1d9; border: 1px solid #30363d;
+    padding: 3px 11px; font-size: 12px; cursor: pointer; }
+  .mddiff-bar button:first-child { border-radius: 6px 0 0 6px; }
+  .mddiff-bar button:last-child { border-radius: 0 6px 6px 0; border-left: 0; }
+  .mddiff-bar button.active { background: #1f6feb; border-color: #1f6feb; color: #fff; }
+  .mddiff-bar button.swap { border-radius: 6px; border-left: 1px solid #30363d; }
+  /* theme toggle: a standalone icon button at the right, NOT part of the view
+     pill — its own radius/border so the first-child/last-child pill rules (which
+     it could otherwise match as a sibling of .views) don't square its corners. */
+  .mddiff-bar button.theme { float: right; border-radius: 6px; border-left: 1px solid #30363d;
+    margin-left: 10px; padding: 0 9px; height: 24px; box-sizing: border-box;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 16px; line-height: 1; }
+  /* Uniform box + flex-centring so all three glyphs share ONE vertical centre and
+     ONE button height regardless of glyph size — the per-glyph padding/line-height
+     that varied before left the glyphs sitting at different heights. Only font-size
+     varies per glyph: the sun/moon reads well at 16px; the wide '#' looks oversized
+     there so it stays at 13px; the gear reads small so it is ~20% larger. */
+  .mddiff-bar button.lines { font-size: 13px; }
+  #btn-customize { font-size: 19px; }
+  .mddiff-bar .swap-row { clear: both; padding-top: 8px; }
+  /* Customize panel: a dropdown anchored under the 🎛 button. The sticky bar is a
+     positioned ancestor, so the panel is absolutely placed against it. Hidden via
+     the [hidden] attr until the button opens it; a document click closes it. */
+  #mddiff-customize { position: absolute; top: calc(100% + 6px); right: 36px; z-index: 6;
+    background: #21262d; border: 1px solid #30363d; border-radius: 8px; padding: 10px 14px;
+    box-shadow: 0 6px 22px rgba(0,0,0,.45); min-width: 210px; }
+  #mddiff-customize[hidden] { display: none; }
+  #mddiff-customize .cz-sec { font-size: 11px; text-transform: uppercase; letter-spacing: .04em;
+    color: #6e7681; margin: 4px 0 2px; }
+  #mddiff-customize .cz-row { display: flex; justify-content: space-between; align-items: center;
+    gap: 16px; margin: 7px 0; }
+  #mddiff-customize .cz-row span { color: #c9d1d9; }
+  #mddiff-customize select { background: #161b22; color: #c9d1d9; border: 1px solid #30363d;
+    border-radius: 5px; padding: 2px 6px; font-size: 12px; cursor: pointer; }
+  #mddiff-customize .cz-color { display: inline-flex; align-items: center; gap: 8px; }
+  #mddiff-customize input[type=color] { width: 34px; height: 22px; padding: 0; cursor: pointer;
+    border: 1px solid #30363d; border-radius: 5px; background: #161b22; }
+  #mddiff-customize .cz-reset { background: none; border: 0; padding: 0; cursor: pointer;
+    color: #6e7681; font-size: 11px; }
+  #mddiff-customize .cz-reset:hover { color: #c9d1d9; }
+  #mddiff-customize input[type=range] { width: 96px; cursor: pointer; accent-color: #1f6feb; }
+  h1,h2,h3,h4 { border-bottom: 1px solid #21262d; padding-bottom: .3em; margin-top: 1.4em; }
+  /* An in-page jump (a TOC link) lands the heading flush against the sticky bar;
+     reserve the bar's height so it isn't hidden under it. The page JS computes a
+     more precise offset (it also clears the split column header), but this keeps
+     a native/no-JS jump readable too. */
+  h1,h2,h3,h4,h5,h6 { scroll-margin-top: calc(var(--bar-h, 50px) + 12px); }
+  a { color: #58a6ff; }
+  /* Inline code text colour is customizable (--mddiff-code, default =
+     --mddiff-code-default, the warm orange, per theme). Kept at this low
+     specificity ON PURPOSE so a diff mark still wins inside a change: the ins/del
+     colour rules below share specificity but come later in source, so changed code
+     shows the diff colour, unchanged code the custom one. Inside pre, the var is
+     set to currentColor so fenced code BLOCKS inherit the prose colour (NOT the
+     orange) — the panel's Code control is inline-only. NOTE: initial was WRONG here
+     — it yields the guaranteed-invalid value, so var() fell through to the orange
+     literal and blocks rendered orange. */
+  code { background: #161b22; padding: .15em .4em; border-radius: 6px; font-size: 85%;
+    font-family: var(--mddiff-mono); color: var(--mddiff-code, var(--mddiff-code-default)); }
+  pre { background: #161b22; padding: 14px; border-radius: 8px; overflow: auto; --mddiff-code: currentColor; }
+  pre code { background: none; padding: 0; }
+  blockquote { border-left: 3px solid #30363d; margin: 0; padding: 0 1em; color: #8b949e; }
+  /* A default display:table ignores the flex column's width and overflows it,
+     so two wide tables collide in the middle of the split view. Make each table
+     a block that caps at its container and scrolls its own overflow instead. */
+  table { display: block; width: max-content; max-width: 100%; overflow-x: auto;
+    border-collapse: collapse; } th,td { border: 1px solid #30363d; padding: 6px 12px;
+    vertical-align: top; }  /* top so a row equalized to the taller side keeps its text tops aligned */
+  /* A table NESTED inside a cell must WRAP to its (pinned) column, never widen
+     it. With the top-level rule above a nested table would be a max-content
+     block that scrolls — forcing the outer column to the nested table's full
+     width: syncTableColumns then can't fit it (its floor overflows) and the
+     inline view drags every prose row off-screen with it. Make it a plain table
+     that fits its cell and wraps; width:auto (not max-content) is what lets it
+     shrink to min-content while the column is being measured, so the pin fits. */
+  td table, th table { display: table; width: auto; max-width: 100%; overflow-x: visible; }
+  img { max-width: 100%; }
+  ins, ins * { background: var(--mddiff-add-bg); color: var(--mddiff-add-fg); text-decoration: none;
+    border-radius: 3px; }
+  del, del * { background: var(--mddiff-del-bg); color: var(--mddiff-del-fg); text-decoration: line-through;
+    border-radius: 3px; }
+  /* author strikethrough (~~text~~) renders as <s>, NOT <del>, so it is never
+     mistaken for a deletion: shown in both side-by-side columns as plain muted
+     struck text, distinct from the red diff <del> marks above. */
+  s, s * { text-decoration: line-through; color: #8b949e; }
+  /* whole-block changes (rewritten / added / removed paragraphs & blocks) */
+  ins.mdblock, del.mdblock { display: block; border-radius: 6px; padding: 2px 12px; margin: 6px 0; }
+  ins.mdblock { background: var(--mddiff-add-soft); border-left: 3px solid var(--mddiff-add); }
+  del.mdblock { background: var(--mddiff-del-soft); border-left: 3px solid var(--mddiff-del); }
+  ins.mdblock *, del.mdblock * { background: none; border-radius: 0; }
+  /* an added block reads as normal prose; a removed block as red, struck-through text */
+  ins.mdblock, ins.mdblock * { color: #c9d1d9; text-decoration: none; }
+  del.mdblock, del.mdblock * { color: var(--mddiff-del-fg); text-decoration: line-through; }
+  /* …but an author strikethrough INSIDE added text keeps its strike: the ins rules
+     above reset text-decoration and out-rank the bare s rule, which silently erased
+     a newly-added ~~strike~~ from the new column (it read as plain, unstruck text). */
+  ins s, ins s *, ins.mdblock s, ins.mdblock s * { text-decoration: line-through; }
+  /* GENERAL RULE for identity-coloured inline elements inside ADDED shading: a link
+     (blue) and inline code (orange) each keep their OWN colour rather than being
+     repainted the prose/diff colour by the ins rules above. This is the general fix
+     for "the colour gets covered when shaded" — the two markdown inline elements that
+     carry an identity colour are <a> and <code>; bold/em deliberately inherit the diff
+     colour, so this pair is the whole class. Each needs it in three nestings:
+       (a) the element sits inside a wholly-added block — ins.mdblock a / ins.mdblock
+           code (most visible on a newly-added file whose entire TOC/links + inline
+           code render inside ins.mdblock, or an added heading full of code spans);
+       (b) an INLINE word-diff added the element mid-paragraph, so the ins is the
+           element's PARENT — <ins><a></a></ins> (ins a) — and the plain ins colour
+           above would paint it green;
+       (c) the same word-diff added the element's own TEXT, so the ins is the CHILD —
+           <a><ins>text</ins></a> / <code><ins>text</ins></code> (a ins / code ins).
+     The green add background stays, so an added link/code still reads as "added".
+     Removed shading stays uniformly red + struck (no del selectors) — a link and code
+     inside a del read as "going away", same as the surrounding removed text. */
+  ins.mdblock a, ins.mdblock a *, a ins, a ins *, ins a, ins a * { color: #58a6ff; text-decoration: underline; }
+  ins.mdblock code, ins.mdblock code *, code ins, code ins *, ins code, ins code * {
+    color: var(--mddiff-code, var(--mddiff-code-default)); }
+  /* EXCEPTION: an ADDED per-line mark INSIDE a fenced code BLOCK is not inline-code
+     identity — the block is prose-coloured (--mddiff-code = currentColor inside pre),
+     so an added line must keep the DIFF colour, not fall to prose. Only the ins side
+     needs restoring: the identity rule above added code ins (which also reaches pre code
+     ins), but no code del — so a REMOVED line in a fenced block still gets its red from
+     the plain del rule and needs no exception here. Outranks the identity rule (pre code
+     ins > code ins) in BOTH themes — no body.light twin needed because nothing raises the
+     inline-code rule's specificity for the fenced case (the light override below is
+     scoped to ins.mdblock only, which a lone changed line in an unchanged block lacks). */
+  pre code ins, pre code ins * { color: var(--mddiff-add-fg); }
+  /* added / removed list items (removed = red, struck through, matching del blocks).
+     No LEFT padding: the colored box paints its padding, so any left padding would
+     either indent the text past the sibling bullets, or — if cancelled with a
+     negative margin — drag the outside list marker leftward with the box. Starting
+     the box flush at the content edge keeps both the bullet and the text aligned
+     with the unchanged items; the highlight just runs from the text rightward.
+     The left accent bar (the same edge that makes ins/del.mdblock blocks pop) is
+     drawn as an absolutely-positioned ::before in the marker gutter, so it gives a
+     changed item the SAME prominence as a changed paragraph WITHOUT taking layout
+     space — neither the marker nor the text shifts. It sits IN FRONT OF the marker
+     (left of the bullet / the "1." number), with a gap, rather than in the sliver
+     between marker and text — otherwise an ordered list's number is visually split
+     from its text. -2.4em sits near the left edge of the default ~40px (2.5em) list
+     gutter — a steady left rail that clears one- and two-digit numbers. */
+  li.li-del, li.li-ins { position: relative; border-radius: 6px; padding: 4px 8px 4px 0; margin: 2px 0; }
+  li.li-ins { background: var(--mddiff-add-soft); }
+  li.li-del, li.li-del * { background: var(--mddiff-del-soft); color: var(--mddiff-del-fg); text-decoration: line-through; }
+  li.li-ins::before, li.li-del::before { content: ""; position: absolute; top: 0; bottom: 0;
+    left: -2.4em; width: 3px; border-radius: 2px; }
+  li.li-ins::before { background: var(--mddiff-add); }
+  li.li-del::before { background: var(--mddiff-del); }
+  /* In a LOOSE list the item's text is wrapped in a <p> (or a nested list); its
+     default top/bottom margin used to collapse out of the borderless item, but the
+     vertical padding above now traps it, ballooning the box. Drop just the leading
+     top / trailing bottom margin (inter-paragraph gaps in multi-block items stay),
+     so the padded box hugs the content the same for tight and loose lists. */
+  li.li-ins > :first-child, li.li-del > :first-child { margin-top: 0; }
+  li.li-ins > :last-child, li.li-del > :last-child { margin-bottom: 0; }
+  /* Inline view shows BOTH halves of an edited ordered-list item — the struck
+     removed line AND the added line — so a native <ol> counts the pair twice and
+     every item after an edit shifts up by one (the added half reads "2." when it
+     should read "1."). Renumber inline ordered lists with a CSS counter: every
+     item counts, EXCEPT an added line immediately after a removed one (a modified
+     item: li-ins right after li-del) which shares the removed line's number — so
+     an edited "1." reads as 1. on both halves and the items below keep their
+     numbers. Drawn via ::marker, independent of the ::before accent bar above.
+     Scoped to #inline-view ONLY: each split column shows just one side, so its
+     native numbering is already correct. A list with a non-1 start offset is
+     seeded in JS below (CSS counters can't read the start attribute). */
+  #inline-view ol { counter-reset: mddiff-li; }
+  #inline-view ol > li { counter-increment: mddiff-li; }
+  #inline-view ol > li.li-del + li.li-ins { counter-increment: none; }
+  #inline-view ol > li::marker { content: counter(mddiff-li) ". "; }
+  /* view toggle */
+  /* The readable column: cap the INLINE diff to a comfortable measure and centre
+     it in the (full-width) body. Prose reads best at a capped width; split view
+     deliberately uses the whole window for its two columns, so the cap is scoped
+     to #inline-view, not the body. A wide table still breaks out full-bleed via
+     fitInlineTables() (it measures #inline-view's width, not the body's). */
+  #inline-view { max-width: 900px; margin: 0 auto; }
+  .view { display: none; }
+  #inline-view.active { display: block; }
+  #split-view.active { display: flex; gap: 32px; align-items: flex-start; }
+  .col { flex: 1 1 0; min-width: 0; }
+  .col-head { position: sticky; top: var(--bar-h, 50px); z-index: 1; background: var(--mddiff-bg); font-size: 16px;
+    color: #8b949e; padding: 6px 0 8px; margin-bottom: 12px; border-bottom: 1px solid #30363d; }
+  .col-head b { font-size: 18px; font-weight: 700; letter-spacing: .2px; }
+  .col-old .col-head b { color: var(--mddiff-del-ink); } .col-new .col-head b { color: var(--mddiff-add-ink); }
+  /* each column reuses the merged diff body; hide the side that doesn't apply */
+  .col-old ins { display: none; }
+  .col-new del { display: none; }
+  .col-old li.li-ins { display: none; }
+  .col-new li.li-del { display: none; }
+  /* Single-side views (Left / Right). Show ONE column of the split view — the
+     old file on Left, the new on Right — at a readable, centred measure, so you
+     can read that version on its own. The diff shading stays: the column reuses
+     the per-side CSS above (.col-old hides ins / .col-new hides del), so a removed
+     passage still reads struck-through red on the Left and an added one green on
+     the Right, even though there's no opposite column to compare against. The
+     split view becomes a plain block (no flex) so the single visible column caps
+     + centres like the inline view instead of stretching full-bleed; row
+     alignment is disabled for these (align() bails), so nothing is pushed down to
+     match a hidden column. */
+  body.left-only #split-view, body.right-only #split-view { display: block; }
+  body.left-only #split-view .col-new, body.right-only #split-view .col-old { display: none; }
+  body.left-only #split-view .col-old, body.right-only #split-view .col-new { max-width: 900px; margin: 0 auto; }
+  /* (with the line-number gutter ON the solo column LEFT-ALIGNS instead — see LINES_CSS) */
+  /* table diffs: drop whole added/removed columns & rows per side, so each
+     projected table stays rectangular (no phantom empty cells). The change
+     classes are stamped by diffTable; cell-level marks reuse the ins/del rules. */
+  .col-old .col-ins, .col-old tr.tr-ins { display: none; }
+  .col-new .col-del, .col-new tr.tr-del { display: none; }
+  /* node-htmldiff marks a block it can't wrap in <ins>/<del> — most visibly a
+     NESTED table added/removed inside a cell — by stamping data-diff-node on the
+     element itself (the <table>/<tr>/<td>) and wrapping only its text in <ins>.
+     Without this the opposite column hides that text but still draws the empty
+     table grid (a ghost skeleton). Hide the structural node too, per side. */
+  .col-old [data-diff-node="ins"] { display: none; }
+  .col-new [data-diff-node="del"] { display: none; }
+  /* Structural transforms (src/diff.js structuralTransform): a block whose CONTENT
+     is unchanged but whose SHAPE changed — heading level, list kind, prose wrapped
+     in a blockquote or a one-item bullet. ONE shared element is emitted at the NEW
+     shape, so the new column (and inline view) is right by default; here we morph the
+     OLD column back to the old shape, and a badge names the change — the only cue in
+     the single inline view, where there are no columns to compare. */
+  .mddiff-xform { position: relative; }
+  .mddiff-xform::after { content: attr(data-xfo) " → " attr(data-xfn);
+    font: 600 10px ui-monospace, SFMono-Regular, Menlo, monospace; color: #8b949e;
+    background: #161b22; border: 1px solid #30363d; border-radius: 4px;
+    padding: 0 5px; margin-left: 8px; vertical-align: middle; white-space: nowrap;
+    text-decoration: none; -webkit-text-decoration: none; }
+  .col-old .mddiff-xform::after { color: var(--mddiff-del-ink); border-color: color-mix(in srgb, var(--mddiff-del) 45%, transparent); }
+  .col-new .mddiff-xform::after { color: var(--mddiff-add-ink); border-color: color-mix(in srgb, var(--mddiff-add) 45%, transparent); }
+  /* heading level: element is at the new depth; restyle the OLD column to the old. */
+  .col-old .xf-hlevel[data-xfo="h1"] { font-size: 2em; }
+  .col-old .xf-hlevel[data-xfo="h2"] { font-size: 1.5em; }
+  .col-old .xf-hlevel[data-xfo="h3"] { font-size: 1.17em; }
+  .col-old .xf-hlevel[data-xfo="h4"] { font-size: 1em; }
+  .col-old .xf-hlevel[data-xfo="h5"] { font-size: .83em; border-bottom: none; }
+  .col-old .xf-hlevel[data-xfo="h6"] { font-size: .67em; border-bottom: none; }
+  /* list kind (ordered<->unordered): element is the new kind's tag; restyle the
+     OLD column's markers (list-style-type works on either <ol> or <ul>). */
+  .col-old .xf-listtype[data-xfo="ol"] { list-style-type: decimal; }
+  .col-old .xf-listtype[data-xfo="ul"] { list-style-type: disc; }
+  /* paragraph <-> one-item bullet. para->bullet: element is <ul>, the OLD column
+     shows it as a plain paragraph. bullet->para: element is <p>, the OLD column
+     shows a bullet glyph + hanging indent. */
+  .col-old ul.xf-listprose[data-xfo="p"], .col-old ol.xf-listprose[data-xfo="p"] { list-style: none; padding-left: 0; margin-left: 0; }
+  .col-old p.xf-listprose[data-xfo="ul"], .col-old p.xf-listprose[data-xfo="ol"] { padding-left: 1.4em; text-indent: -1.4em; }
+  .col-old p.xf-listprose[data-xfo="ul"]::before { content: "•  "; white-space: pre; }
+  .col-old p.xf-listprose[data-xfo="ol"]::before { content: "1.  "; white-space: pre; }
+  /* blockquote wrap/unwrap. wrap: element is <blockquote>, the OLD column drops the
+     rule/indent (plain paragraph). unwrap: element is <p>, the OLD column shows the
+     blockquote rule + indent. */
+  .col-old blockquote.xf-bq[data-xfo="p"] { border-left: none; padding: 0; color: inherit; }
+  .col-old p.xf-bq[data-xfo="bq"] { border-left: 3px solid #30363d; padding: 0 1em; color: #8b949e; }
+  /* nesting move (a sibling item became a nested child, or back). CSS can't
+     reparent, so the moved item stays a flat <li>, indented in whichever column it
+     is the deeper one — visually a nested bullet. The badge says which way. */
+  .col-old li.xf-nest[data-xfo="1"], .col-new li.xf-nest[data-xfn="1"] { margin-left: 1.6em; }
+  li.xf-nest[data-xfn="1"]::after { content: " ↳ nested"; }
+  li.xf-nest[data-xfn="0"]::after { content: " ↰ un-nested"; }
+  /* ...and wearing the NESTED list's marker there (data-xmk/-xmn, diff.js nestMark), not
+     the parent's: out of the parent's counter (so an ordered parent's numbering skips it —
+     list-item 0, since Chrome ignores none for the native counter; it also replaces
+     inline's mddiff-li increment, and content: normal drops inline's numbered marker),
+     a bullet glyph for a nested <ul>, its own ordinal for a nested <ol>. Inline shows the
+     new structure, so it follows the new depth. */
+  #inline-view li.xf-nest[data-xfn="1"] { margin-left: 1.6em; }
+  .col-old li.xf-nest[data-xfo="1"][data-xmk], .col-new li.xf-nest[data-xfn="1"][data-xmk], #inline-view li.xf-nest[data-xfn="1"][data-xmk] { counter-increment: list-item 0; }
+  .col-old li.xf-nest[data-xfo="1"][data-xmk="ul"]::marker, .col-new li.xf-nest[data-xfn="1"][data-xmk="ul"]::marker, #inline-view li.xf-nest[data-xfn="1"][data-xmk="ul"]::marker { content: normal; }
+  .col-old ol > li.xf-nest[data-xfo="1"][data-xmk="ul"], .col-new ol > li.xf-nest[data-xfn="1"][data-xmk="ul"], #inline-view ol > li.xf-nest[data-xfn="1"][data-xmk="ul"] { list-style-type: disc; }
+  .col-old ul > li.xf-nest[data-xfo="1"][data-xmk="ul"], .col-new ul > li.xf-nest[data-xfn="1"][data-xmk="ul"], #inline-view ul > li.xf-nest[data-xfn="1"][data-xmk="ul"] { list-style-type: circle; }
+  .col-old li.xf-nest[data-xfo="1"][data-xmk="ol"]::marker, .col-new li.xf-nest[data-xfn="1"][data-xmk="ol"]::marker, #inline-view li.xf-nest[data-xfn="1"][data-xmk="ol"]::marker { content: attr(data-xmn) ". "; }
+  /* subtree re-indent (diff.js outlineDiff): the whole list is flat <li>s, each carrying
+     its depth on each side (data-lvo / data-lvn; absent = top level). Indent + bullet glyph
+     per depth, per column; inline shows the new depth (a removed item, its old one). */
+  .col-old li[data-lvo="1"], .col-new li[data-lvn="1"], #inline-view li[data-lvn="1"], #inline-view li.li-del[data-lvo="1"] { margin-left: 1.6em; list-style-type: circle; }
+  .col-old li[data-lvo="2"], .col-new li[data-lvn="2"], #inline-view li[data-lvn="2"], #inline-view li.li-del[data-lvo="2"] { margin-left: 3.2em; list-style-type: square; }
+  .col-old li[data-lvo="3"], .col-new li[data-lvn="3"], #inline-view li[data-lvn="3"], #inline-view li.li-del[data-lvo="3"] { margin-left: 4.8em; list-style-type: square; }
+  .col-old li[data-lvo="4"], .col-new li[data-lvn="4"], #inline-view li[data-lvn="4"], #inline-view li.li-del[data-lvo="4"] { margin-left: 6.4em; list-style-type: square; }
+  .col-old li[data-lvo="5"], .col-new li[data-lvn="5"], #inline-view li[data-lvn="5"], #inline-view li.li-del[data-lvo="5"] { margin-left: 8.0em; list-style-type: square; }
+  .col-old li[data-lvo="6"], .col-new li[data-lvn="6"], #inline-view li[data-lvn="6"], #inline-view li.li-del[data-lvo="6"] { margin-left: 9.6em; list-style-type: square; }
+  li.xf-nest[data-xfdir="in"]::after { content: " ↳ nested"; }
+  li.xf-nest[data-xfdir="out"]::after { content: " ↰ un-nested"; }
+  /* Only the FIRST content block (after the sticky filename header) starts flush
+     at the column top; every other heading keeps its natural top margin so it
+     isn't cramped against the block above it (most visibly a table). Row alignment
+     adds to that margin rather than replacing it (see pushDown), so the spacing
+     and the cross-column alignment coexist. */
+  .col > :nth-child(2) { margin-top: 0; }
+  /* Hide the native PAGE scrollbar — the right-edge minimap is the scroll
+     indicator (its viewport box) + scrubber, so the scrollbar is redundant, and it
+     otherwise sits inside the floating-TOC hover band and fights it. Scrolling
+     still works via wheel / trackpad / keys / the minimap. Inner overflow (code
+     blocks, wide tables) keeps its OWN scrollbars — this targets only html/body. */
+  html, body { scrollbar-width: none; -ms-overflow-style: none; }
+  html::-webkit-scrollbar, body::-webkit-scrollbar { width: 0; height: 0; display: none; }
+  /* diff overview minimap (right edge): one bar per change, its height scaled to
+     the change's rendered size; removed on the left half, added on the right
+     (mirroring the side-by-side columns). Click to jump, drag to scrub. */
+  #mddiff-minimap { position: fixed; top: var(--bar-h, 50px); right: 0; bottom: 0; width: 24px;
+    background: rgba(22,27,34,.55); border-left: 1px solid #21262d; z-index: 6; cursor: pointer; }
+  #mddiff-minimap .tick { position: absolute; min-height: 2px; border-radius: 1px; }
+  #mddiff-minimap .tick.del { left: 1px; right: 50%; background: var(--mddiff-del); }
+  #mddiff-minimap .tick.ins { left: 50%; right: 1px; background: var(--mddiff-add); }
+  #mddiff-vp { position: absolute; left: 0; right: 0; min-height: 14px; pointer-events: none;
+    background: rgba(139,148,158,.20); border: 1px solid rgba(139,148,158,.45); border-radius: 2px; }
+  /* Floating table-of-contents (right edge, just left of the diff minimap). Built
+     from the active view's headings; revealed by hovering the right-edge band (the
+     minimap or the slim handle), available at any scroll position. Slides in from
+     the right; the diff ruler stays put. Like the minimap it's colour-only across
+     themes (body.light below), so a theme toggle needs no rebuild. */
+  #mddiff-toc { position: fixed; top: var(--bar-h, 50px); right: 24px; z-index: 6;
+    width: 260px; max-width: 42vw; max-height: calc(100vh - var(--bar-h, 50px) - 24px);
+    overflow: auto; margin: 8px 0; padding: 8px 0;
+    /* see-through "frosted glass": a faint translucent fill + a blur of whatever
+       content is behind, so the panel stays transparent without the entries
+       overlapping the body text underneath. The rgba fill alone is the fallback
+       where backdrop-filter is unsupported. */
+    background: color-mix(in srgb, var(--mddiff-bg) 72%, transparent); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    border: 1px solid rgba(110,118,129,.22); border-radius: 6px;
+    font-size: 13px; line-height: 1.5;
+    transform: translateX(calc(100% + 28px)); opacity: 0; pointer-events: none;
+    transition: transform .15s ease, opacity .15s ease; }
+  body.toc-open #mddiff-toc { transform: translateX(0); opacity: 1; pointer-events: auto; }
+  #mddiff-toc a { display: block; color: #8b949e; text-decoration: none; padding: 2px 14px;
+    border-left: 2px solid transparent; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #mddiff-toc a:hover { color: #c9d1d9; background: rgba(110,118,129,.1); }
+  #mddiff-toc a.cur { color: #58a6ff; border-left-color: #1f6feb; }
+  #mddiff-toc a.lvl-1 { font-weight: 600; color: #c9d1d9; }
+  #mddiff-toc a.lvl-2 { padding-left: 26px; } #mddiff-toc a.lvl-3 { padding-left: 38px; }
+  #mddiff-toc a.lvl-4 { padding-left: 50px; } #mddiff-toc a.lvl-5 { padding-left: 62px; }
+  #mddiff-toc a.lvl-6 { padding-left: 74px; }
+  /* slim hover handle — a persistent discoverability cue for the panel. Shown
+     whenever the doc has a TOC (.toc-ready) and the panel isn't already open. */
+  #mddiff-toc-handle { position: fixed; top: 50%; right: 24px; z-index: 6; transform: translateY(-50%);
+    display: none; width: 16px; height: 56px; line-height: 54px; text-align: center;
+    background: rgba(22,27,34,.85); color: #8b949e; border: 1px solid #30363d; border-right: 0;
+    border-radius: 6px 0 0 6px; font-size: 11px; cursor: pointer; user-select: none; }
+  #mddiff-toc-handle:hover { color: #c9d1d9; }
+  body.toc-ready:not(.toc-open) #mddiff-toc-handle { display: block; }
+  /* ---- Light ("white") theme. Default is dark; body.light flips the palette to
+     a GitHub-light scheme. Every rule is scoped under body.light, so it both wins
+     on specificity AND leaves the default (dark) output unchanged. Colours only —
+     no box sizes change, so no realign/minimap rebuild is needed (the ruler ticks
+     recolour via CSS). text-decoration (strikethrough) is inherited from the dark
+     rules, not overridden. */
+  body.light { color: #1f2328; --mddiff-bg: #ffffff;
+    --mddiff-add: #2da44e; --mddiff-del: #cf222e;
+    /* light-theme derivations: dark text for contrast, pale tints over white */
+    --mddiff-add-fg: color-mix(in srgb, var(--mddiff-add) 56%, black);
+    --mddiff-add-bg: color-mix(in srgb, var(--mddiff-add) 42%, white);
+    --mddiff-add-soft: color-mix(in srgb, var(--mddiff-add) 14%, white);
+    --mddiff-del-fg: var(--mddiff-del);
+    --mddiff-del-bg: color-mix(in srgb, var(--mddiff-del) 26%, white);
+    --mddiff-del-soft: color-mix(in srgb, var(--mddiff-del) 12%, white);
+    /* darken the green for TEXT so it clears WCAG AA on the light bar (the plain
+       #2da44e fill accent is only ~2.8:1); the red ink already clears AA, so it
+       stays the accent (--mddiff-del-ink from body). */
+    --mddiff-add-ink: color-mix(in srgb, var(--mddiff-add) 72%, black);
+    --mddiff-code-default: #b45a1e; }
+  body.light .mddiff-bar { background: #f6f8fa; border-bottom-color: #d0d7de; color: #656d76; }
+  body.light .mddiff-bar b { color: #1f2328; }
+  body.light .mddiff-bar .cost { color: #656d76; }
+  body.light .mddiff-bar button { background: #f6f8fa; color: #24292f; border-color: #d0d7de; }
+  body.light .mddiff-bar button.active { background: #0969da; border-color: #0969da; color: #fff; }
+  body.light #mddiff-customize { background: #f6f8fa; border-color: #d0d7de; box-shadow: 0 6px 22px rgba(140,149,159,.35); }
+  body.light #mddiff-customize .cz-row span { color: #1f2328; }
+  body.light #mddiff-customize select { background: #fff; color: #24292f; border-color: #d0d7de; }
+  body.light #mddiff-customize input[type=color] { background: #fff; border-color: #d0d7de; }
+  body.light #mddiff-customize .cz-reset { color: #8c959f; }
+  body.light #mddiff-customize .cz-reset:hover { color: #1f2328; }
+  body.light #mddiff-customize .cz-dark-only { display: none; }  /* the darkness slider is dark-theme only */
+  body.light h1, body.light h2, body.light h3, body.light h4 { border-bottom-color: #d8dee4; }
+  body.light a { color: #0969da; }
+  body.light code { background: #eff1f3; }  /* colour comes from the code rule via --mddiff-code-default (light = #b45a1e) */
+  /* The diff palette is derived with color-mix() (see the accent vars) — a hard
+     requirement, met by every browser mddiff runs in: the daemon opens in the
+     user's modern Chrome, the extension in a recent Electron webview. A partial
+     pre-2023 fallback was tried and removed: it couldn't cover the accent-as-text
+     and xform-badge shades, and its exact literals diverged from the derived output
+     on modern browsers — worse than requiring color-mix outright. */
+  body.light pre { background: #f6f8fa; }
+  body.light pre code { background: none; }
+  body.light blockquote { border-left-color: #d0d7de; color: #656d76; }
+  body.light th, body.light td { border-color: #d0d7de; }
+  body.light .mddiff-xform::after { background: #f6f8fa; border-color: #d0d7de; color: #656d76; }
+  /* Per-side xform badge colour in LIGHT: the neutral rule above (specificity 0,2,2)
+     out-ranks the base .col-old/.col-new .mddiff-xform::after (0,2,1), so without a
+     body.light-scoped rule (0,3,2) the badges render gray. Uses the -ink vars like
+     the legend/header. */
+  body.light .col-old .mddiff-xform::after { color: var(--mddiff-del-ink); }
+  body.light .col-new .mddiff-xform::after { color: var(--mddiff-add-ink); }
+  body.light .col-old p.xf-bq[data-xfo="bq"] { border-left-color: #d0d7de; color: #656d76; }
+  body.light s, body.light s * { color: #656d76; }
+  /* Diff-colour overrides removed here: the accent + derived vars are redefined
+     for light under body.light (above), so the single dark-scope rule set renders
+     light correctly. Only the NEUTRAL light rules (prose text in added blocks,
+     links, strikethrough) stay theme-specific. */
+  body.light ins.mdblock, body.light ins.mdblock * { color: #1f2328; }
+  body.light ins.mdblock a, body.light ins.mdblock a *, body.light a ins, body.light a ins *, body.light ins a, body.light ins a * { color: #0969da; text-decoration: underline; }
+  /* inline code keeps its identity colour inside an added BLOCK in light too — needed
+     because body.light ins.mdblock * above outranks the theme-neutral code rule; the
+     var re-derives the light default (--mddiff-code-default = #b45a1e). Scoped to
+     ins.mdblock ONLY: the inline word-diff nestings (code ins / ins code) are already
+     theme-adaptive through that same var in the dark-scope rule, so raising their
+     light specificity here would just start a fight with the pre-code diff-mark
+     exception. Mirrors the link rule directly above (which is bright-blue-per-theme, so
+     it DOES need all six). */
+  body.light ins.mdblock code, body.light ins.mdblock code * { color: var(--mddiff-code, var(--mddiff-code-default)); }
+  body.light .col-head { background: #ffffff; color: #656d76; border-bottom-color: #d0d7de; }
+  body.light #mddiff-minimap { background: rgba(234,238,242,.7); border-left-color: #d0d7de; }
+  body.light #mddiff-vp { background: rgba(140,149,159,.18); border-color: rgba(140,149,159,.45); }
+  body.light #mddiff-toc { background: rgba(255,255,255,.72); border-color: rgba(140,149,159,.3); }
+  body.light #mddiff-toc a { color: #656d76; }
+  body.light #mddiff-toc a:hover { color: #1f2328; background: rgba(208,215,222,.32); }
+  body.light #mddiff-toc a.cur { color: #0969da; border-left-color: #0969da; }
+  body.light #mddiff-toc a.lvl-1 { color: #1f2328; }
+  body.light #mddiff-toc-handle { background: rgba(246,248,250,.92); color: #656d76; border-color: #d0d7de; }
+  body.light #mddiff-toc-handle:hover { color: #1f2328; }
+  /* split: one gutter per column, each truthful to its own side. Only the numbered
+     blocks become the positioning context (NOT .col-head, which keeps position:sticky).
+     The old-column number SKIPS .xf-listprose blocks: those paint a "•"/"1." glyph in
+     their OWN ::before to simulate the old list shape, and a block has only one ::before
+     — at equal specificity the later-injected number would clobber the glyph. Letting the
+     glyph win keeps the reshape cue (the "shape →" badge still names it); these reshaped
+     blocks just forgo an old-column number. */
+  body.show-lines .col { padding-left: 35px; }
+  /* Solo Left/Right views stay CENTRED (the base .col-old/.col-new max-width:900;margin:auto
+     rule); with the gutter ON the numbers are pinned to the page's LEFT edge — a fixed left
+     RAIL, decoupled from the centred column — via the JS-measured --gnum-solo offset
+     (placeGutter). So the content reads centred while the numbers sit far left and a wide
+     table (fitSoloTables) fills from the rail's right edge rightward, never under the
+     numbers. --gnum-solo is set ONLY on the active solo column, so split (same .col
+     elements) falls back to the -35px hug. */
+  body.show-lines .col-old > [data-oldline], body.show-lines .col-new > [data-newline] { position: relative; }
+  body.show-lines .col-old > [data-oldline]:not(.xf-listprose)::before { content: attr(data-oldline); }
+  body.show-lines .col-new > [data-newline]::before { content: attr(data-newline); }
+  body.show-lines .col-old > [data-oldline]:not(.xf-listprose)::before,
+  body.show-lines .col-new > [data-newline]::before {
+    position: absolute; left: var(--gnum-solo, -35px); top: 0; width: 28px; text-align: right; line-height: inherit;
+    color: #6e7681; font: 11px ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-variant-numeric: tabular-nums; pointer-events: none; -webkit-user-select: none; user-select: none; }
+  /* Align the number to the block's FIRST text line instead of the box top. For text-leaf
+     blocks (headings, paragraphs) the number rides the first line's BASELINE: an in-flow
+     inline-block whose margin-left cancels its width has net-zero advance, so it does NOT
+     shift the text (verified) — the rendered diff stays put. Big headings no longer float
+     the number above their text. Container blocks (lists, code, blockquote, table) keep the
+     absolute top number above + line-height:inherit centers it on their shorter first line —
+     an inline-block ::before can't ride their block-level first child. */
+  body.show-lines .col-old > :is(h1,h2,h3,h4,h5,h6,p)[data-oldline]:not(.xf-listprose)::before,
+  body.show-lines .col-new > :is(h1,h2,h3,h4,h5,h6,p)[data-newline]::before {
+    position: static; display: inline-block; box-sizing: border-box;
+    left: auto; top: auto; width: 35px; margin-left: -35px; padding-right: 7px;
+    vertical-align: baseline; line-height: inherit; }
+  /* In a SOLO view the heading/paragraph number joins the far-left RAIL too (absolute,
+     like the container numbers) instead of the baseline-riding static variant above — the
+     baseline hug only makes sense next to the column, not out at the page edge. Split keeps
+     the static baseline number (this is gated on .left-only / .right-only). */
+  body.show-lines.left-only .col-old > :is(h1,h2,h3,h4,h5,h6,p)[data-oldline]:not(.xf-listprose)::before,
+  body.show-lines.right-only .col-new > :is(h1,h2,h3,h4,h5,h6,p)[data-newline]::before {
+    position: absolute; display: block; left: var(--gnum-solo, -35px); top: 0;
+    width: 28px; margin-left: 0; padding-right: 0; vertical-align: baseline; }
+  /* inline: BOTH gutters (old ::before, new ::after); ::after skips xform blocks so their
+     "shape →" badge (also ::after) survives. The content stays CENTRED (#inline-view keeps
+     its max-width:900;margin:auto), and the numbers are a fixed RAIL pinned to the page's
+     far-left edge — the 'left' offsets are --gnum-old / --gnum-new, measured at runtime by
+     placeGutter (the number can't be both block-relative in Y and page-relative in X via
+     pure CSS, so JS publishes the X). The fallback -66/-34px only applies before placeGutter
+     runs. A wide table breaks out (fitInlineTables) to the RIGHT of the rail, so it never
+     runs across the numbers. */
+  body.show-lines #inline-view > [data-oldline], body.show-lines #inline-view > [data-newline] { position: relative; }
+  body.show-lines #inline-view > [data-oldline]::before { content: attr(data-oldline); left: var(--gnum-old, -66px); }
+  body.show-lines #inline-view > [data-newline]:not(.mddiff-xform)::after { content: attr(data-newline); left: var(--gnum-new, -34px); }
+  /* xform blocks appear ONCE in inline (one shared element present on both sides), but their
+     ::after holds the "shape →" badge — so rather than drop the new line, STACK both source
+     lines in the one ::before (old over new), the way an equal block shows two. */
+  body.show-lines #inline-view > .mddiff-xform[data-oldline]::before {
+    content: attr(data-oldline) "\A " attr(data-newline); white-space: pre; font-size: 9px; line-height: 1.3; }
+  body.show-lines #inline-view > [data-oldline]::before,
+  body.show-lines #inline-view > [data-newline]:not(.mddiff-xform)::after {
+    position: absolute; top: 0; width: 28px; text-align: right; line-height: inherit;
+    color: #6e7681; font: 11px ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-variant-numeric: tabular-nums; pointer-events: none; -webkit-user-select: none; user-select: none; }
+  /* Blocks with a 3px LEFT BORDER — the blockquote's quote-bar and the whole-block
+     ins/del stripes — anchor their ABSOLUTE gutter number to the PADDING box, i.e.
+     INSIDE that border, so the number lands 3px right of the heading/paragraph
+     numbers and the gutter stops forming one vertical line. Pull it back by the
+     border width — in both views, on the ::before (old) AND ::after (new) number.
+     Borderless containers (lists, code, tables) reference the border box already,
+     so they line up without this. */
+  body.show-lines .col-old > :is(blockquote, del.mdblock)[data-oldline]::before,
+  body.show-lines .col-new > :is(blockquote, ins.mdblock)[data-newline]::before,
+  body.show-lines #inline-view > :is(blockquote, del.mdblock)[data-oldline]::before,
+  body.show-lines #inline-view > :is(blockquote, ins.mdblock)[data-newline]:not(.mddiff-xform)::after { margin-left: -3px; }
+  /* A code <pre> scrolls long lines (overflow), which would CLIP its own margin number.
+     Move the scroll — AND the rounded/padded background box — onto the inner <code>, leaving
+     the <pre> a bare positioning wrapper (overflow visible) so the number shows unclipped and
+     the scrolling box keeps its rounded corners + padding. The code's text x is unchanged: the
+     <pre> drops its 14px padding and the <code> regains it. */
+  body.show-lines pre[data-oldline], body.show-lines pre[data-newline] {
+    overflow: visible; background: none; padding: 0; }
+  body.show-lines pre[data-oldline] > code, body.show-lines pre[data-newline] > code {
+    display: block; overflow-x: auto; background: #161b22; padding: 14px; border-radius: 8px; }
+  body.light.show-lines pre[data-oldline] > code, body.light.show-lines pre[data-newline] > code { background: #f6f8fa; }
+  /* subtle shaded gutter band + 1px divider — SPLIT only (one per column, hugging each
+     column's own gutter). In inline + solo the numbers are a far-left RAIL detached from
+     the centred content, so a band hugging the content would sit in the wrong place; the
+     band there (if any) is a page-left rail, handled separately — for now those views drop
+     the column-hugging band. */
+  body.show-lines .col-old, body.show-lines .col-new {
+    background: linear-gradient(to right, #161b22 0 30px, #30363d 30px 31px, transparent 31px); }
+  body.light.show-lines .col-old, body.light.show-lines .col-new {
+    background: linear-gradient(to right, #f6f8fa 0 30px, #d0d7de 30px 31px, transparent 31px); }
+  /* solo view: same .col elements as split, but centred with a far-left rail → drop the
+     column-hugging band that the split rule above would otherwise paint mid-page. */
+  body.show-lines.left-only .col-old, body.show-lines.right-only .col-new { background: none; }
+  body.light.show-lines .col-old > [data-oldline]:not(.xf-listprose)::before,
+  body.light.show-lines .col-new > [data-newline]::before,
+  body.light.show-lines #inline-view > [data-oldline]::before,
+  body.light.show-lines #inline-view > [data-newline]:not(.mddiff-xform)::after { color: #8c959f; }
+  .mddiff-mermaid { position: relative; }
+  .mddiff-mermaid.mm-on > pre { display: none; }
+  .mddiff-mermaid.mm-on.mm-src > pre { display: block; }
+  .mddiff-mermaid.mm-src > .mm-out { display: none; }
+  .mm-out { margin: 0 0 16px; }
+  .mm-fig { overflow-x: auto; padding: 14px 12px; border-radius: 8px; text-align: center; }
+  .mm-fig + .mm-fig { margin-top: 8px; }
+  .mm-fig svg { max-width: 100%; height: auto; }
+  /* The removed/added block wrappers strike + recolour EVERY descendant (del.mdblock *);
+     a diagram's own colours and labels come from mermaid's scoped stylesheet, so keep
+     those rules off it. */
+  .mddiff-mermaid .mm-out, .mddiff-mermaid .mm-out * { text-decoration: none; color: inherit; }
+  .mddiff-mermaid .mm-out { color: #c9d1d9; }
+  body.light .mddiff-mermaid .mm-out { color: #1f2328; }
+  /* A CHANGED diagram: each side framed in its diff colour. */
+  .mm-fig.mm-del { background: var(--mddiff-del-soft); border-left: 3px solid var(--mddiff-del); }
+  .mm-fig.mm-ins { background: var(--mddiff-add-soft); border-left: 3px solid var(--mddiff-add); }
+  #inline-view .mm-fig.mm-del::before, #inline-view .mm-fig.mm-ins::before {
+    display: block; text-align: left; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; margin-bottom: 6px; }
+  #inline-view .mm-fig.mm-del::before { content: "before"; color: var(--mddiff-del-ink); }
+  #inline-view .mm-fig.mm-ins::before { content: "after"; color: var(--mddiff-add-ink); }
+  /* A changed flowchart / state / class / ER / requirement diagram is diffed element by
+     element (mmCompare): the frame stays as the side cue, minus its tint, and the
+     removed / added / changed nodes, edges, edge labels and groups are drawn in red /
+     green / amber; the rest fades back. */
+  .mddiff-mermaid { --mm-mod: #d29922; }
+  body.light .mddiff-mermaid { --mm-mod: #bf8700; }
+  .mm-fig.mm-el { background: none; }
+  .mm-fig.mm-dim :is(g.node, .edgePaths path, .edgePath path, g.edgeLabel):not(.mmd-del, .mmd-ins, .mmd-mod, .mmd-txt) { opacity: .5; }
+  /* a label's changed words (mmWords), like the prose diff: struck red on the old side,
+     green on the new — a deep tint plus an underline-weight shadow so a short word in a
+     busy chart still catches the eye; inside SVG <text> the colour goes on the glyphs.
+     Nothing here adds width (shadows, not padding/borders): mermaid sized the label. */
+  .mm-fig .mmd-wdel { background: color-mix(in srgb, var(--mddiff-del) 45%, transparent); text-decoration: line-through;
+    border-radius: 2px; box-shadow: 0 1.5px 0 var(--mddiff-del); }
+  .mm-fig .mmd-wins { background: color-mix(in srgb, var(--mddiff-add) 45%, transparent);
+    border-radius: 2px; box-shadow: 0 1.5px 0 var(--mddiff-add); }
+  .mm-fig tspan.mmd-wdel { fill: var(--mddiff-del); }
+  .mm-fig tspan.mmd-wins { fill: var(--mddiff-add); }
+  /* where the OTHER side's words went in (old side, green) / came out (new side, red): a
+     zero-width caret, drawn by a shadow so the label's text doesn't move */
+  .mm-fig .mmd-gap { display: inline-block; width: 0; height: 1.15em; vertical-align: text-bottom; }
+  .mm-fig .mmd-gapins { box-shadow: 0 0 0 1px var(--mddiff-add); }
+  .mm-fig .mmd-gapdel { box-shadow: 0 0 0 1px var(--mddiff-del); }
+  /* a box / arrow label whose TEXT alone changed: a soft GLOW in its side's colour —
+     "look inside". Deliberately not a stroke: a coloured border reads as an added /
+     removed box, and would recolour a class box's dividers too. */
+  .mm-fig.mm-del { --mm-side: var(--mddiff-del); }
+  .mm-fig.mm-ins { --mm-side: var(--mddiff-add); }
+  .mm-fig g.mmd-txt { filter: drop-shadow(0 0 5px color-mix(in srgb, var(--mm-side) 70%, transparent)); }
+  .mm-fig .mmd-del { --mm-c: var(--mddiff-del); }
+  .mm-fig .mmd-ins { --mm-c: var(--mddiff-add); }
+  .mm-fig .mmd-mod { --mm-c: var(--mm-mod); }
+  /* a marked node or group: any type's box is a <g> of rect/polygon/circle/path shapes */
+  .mm-fig g:is(.mmd-del, .mmd-ins, .mmd-mod):not(.edgeLabel) :is(rect, polygon, circle, ellipse, path):not(.divider) {
+    stroke: var(--mm-c) !important; stroke-width: 3px !important;
+    fill: color-mix(in srgb, var(--mm-c) 22%, var(--mddiff-bg, #0d1117)) !important; }
+  .mm-fig path:is(.mmd-del, .mmd-ins, .mmd-mod) { stroke: var(--mm-c) !important; stroke-width: 3px !important; }
+  .mm-fig path.mmd-del, .mm-fig g.mmd-del:not(.edgeLabel) :is(rect, polygon, circle, ellipse, path) { stroke-dasharray: 6 4 !important; }
+  .mm-fig marker:is(.mmd-del, .mmd-ins, .mmd-mod) :is(path, circle) { stroke: var(--mm-c) !important; stroke-dasharray: none !important; }
+  .mm-fig marker:is(.mmd-del, .mmd-ins, .mmd-mod) path.mm-solid { fill: var(--mm-c) !important; }
+  .mm-fig g.edgeLabel:is(.mmd-del, .mmd-ins, .mmd-mod) :is(.labelBkg, .edgeLabel, p, span) {
+    background: color-mix(in srgb, var(--mm-c) 22%, var(--mddiff-bg, #0d1117)) !important; color: var(--mm-c) !important; }
+  /* the box's own controls, top right, in the page's UI chrome (never the document's
+     text style): an optional .mm-chip (why a changed diagram is compared whole) + the
+     Source / Diagram toggle */
+  .mm-ctl { position: absolute; top: 6px; right: 6px; z-index: 1; display: flex; gap: 6px; align-items: center; }
+  .mm-chip { font: 11px/1.6 var(--mddiff-font, inherit); padding: 0 8px; border-radius: 5px; cursor: help;
+    color: #8b949e; background: rgba(22,27,34,.85); border: 1px dashed #30363d; white-space: nowrap; }
+  body.light .mm-chip { color: #656d76; background: rgba(246,248,250,.9); border-color: #d0d7de; }
+  /* the chip explains the DRAWINGS; the Source view's line diff marks every change itself */
+  .mddiff-mermaid.mm-src .mm-chip { display: none; }
+  .mm-tog { font: 11px/1.6 var(--mddiff-font, inherit);
+    padding: 0 8px; border-radius: 5px; cursor: pointer; color: #8b949e; background: rgba(22,27,34,.85);
+    border: 1px solid #30363d; opacity: .75; }
+  .mm-tog:hover { opacity: 1; color: #c9d1d9; }
+  body.light .mm-tog { color: #656d76; background: rgba(246,248,250,.9); border-color: #d0d7de; }
+  body.light .mm-tog:hover { color: #1f2328; }
+  .mm-err { font-size: 12px; color: var(--mddiff-del-ink); margin: 0 0 6px; padding-right: 80px; }
+</style></head>
+<body>
+<div class="mddiff-bar"><b>before</b> → <b>after</b> &nbsp;·&nbsp;
+  <span class="add">■ added</span> &nbsp; <span class="del">■ removed</span>&nbsp;·&nbsp; <span class="cost" title="time to render this diff page (server-side)">⏱ —</span>
+  <button id="btn-theme" class="theme" type="button" title="Switch to light theme">☀︎</button><button id="btn-customize" class="theme" type="button" title="Customize fonts & colors" aria-label="Customize fonts and colors">⚙︎</button><button id="btn-lines" class="theme lines" type="button" title="Toggle source line numbers">#</button>
+  <span class="views">
+    <button id="btn-left" type="button" title="Show only the left (old) file, deletions still shaded">Left</button><button id="btn-inline" type="button">Inline</button><button id="btn-split" type="button">Side by side</button><button id="btn-right" type="button" title="Show only the right (new) file, additions still shaded">Right</button>
+  </span><div id="mddiff-customize" hidden>
+    <div class="cz-sec">Font</div>
+    <div class="cz-row"><span>Text</span><select id="cz-font">
+      <option value="">System</option>
+      <option value='Georgia, Cambria, "Times New Roman", serif'>Serif</option>
+      <option value="ui-monospace, SFMono-Regular, Menlo, monospace">Monospace</option>
+    </select></div>
+    <div class="cz-row"><span>Code</span><select id="cz-mono">
+      <option value="">System mono</option>
+      <option value='"Courier New", Courier, monospace'>Courier</option>
+      <option value='Consolas, "Liberation Mono", monospace'>Consolas</option>
+    </select></div>
+    <div class="cz-sec">Diff color</div>
+    <div class="cz-row"><span>Added</span><span class="cz-color">
+      <input type="color" id="cz-add" value="#3fb950"><button type="button" class="cz-reset" id="cz-add-x" title="Reset to default">reset</button>
+    </span></div>
+    <div class="cz-row"><span>Removed</span><span class="cz-color">
+      <input type="color" id="cz-del" value="#f85149"><button type="button" class="cz-reset" id="cz-del-x" title="Reset to default">reset</button>
+    </span></div>
+    <div class="cz-sec">Element color</div>
+    <div class="cz-row"><span>Inline code</span><span class="cz-color">
+      <input type="color" id="cz-code" value="#f07828"><button type="button" class="cz-reset" id="cz-code-x" title="Reset to default">reset</button>
+    </span></div>
+    <div class="cz-dark-only">
+    <div class="cz-sec">Background</div>
+    <div class="cz-row"><span>Darkness</span><span class="cz-color">
+      <input type="range" id="cz-bgdark" min="0" max="100" step="5" value="0" title="Make the dark background darker (0 = default, 100 = black)"><button type="button" class="cz-reset" id="cz-bgdark-x" title="Reset to default">reset</button>
+    </span></div>
+    </div>
+  </div></div>
+<div id="inline-view" class="view"><h1 data-oldline="1" data-newline="1" data-align="1" id="orders-service-architecture-notes">Orders service — architecture notes</h1>
+<p data-oldline="3" data-newline="3" data-align="2">How an order moves through the system, and the data behind it.</p>
+<h2 data-oldline="5" data-newline="5" data-align="3" id="request-flow">Request flow</h2>
+<div data-oldline="7" data-newline="7" data-align="4" class="mddiff-mermaid" data-mmo="flowchart TD
+  client[Web client] --&gt; gw[API gateway]
+  gw --&gt; auth{Authenticated?}
+  auth -- no --&gt; reject[Return 401]
+  auth -- yes --&gt; orders[Orders service]
+  orders --&gt; db[(Orders DB)]
+  orders --&gt; legacy[Legacy billing bridge]" data-mmn="flowchart TD
+  client[Web or mobile client] --&gt; gw[API gateway]
+  gw --&gt; auth{Authenticated?}
+  auth -- no --&gt; reject[Return 401]
+  auth -- yes --&gt; limit[Rate limiter]
+  limit --&gt; orders[Orders service]
+  orders --&gt; db[(Orders DB)]
+  orders --&gt; queue[Events queue]"><pre><code class="language-mermaid">flowchart TD
+  client[Web<ins data-operation-index="1"> or mobile</ins> client] --&gt; gw[API gateway]
+  gw --&gt; auth{Authenticated?}
+  auth -- no --&gt; reject[Return 401]
+<ins>  auth -- yes --&gt; limit[Rate limiter]
+</ins><del data-operation-index="0">  auth -- yes</del><ins data-operation-index="0">  limit</ins> --&gt; orders[Orders service]
+  orders --&gt; db[(Orders DB)]
+  orders --&gt; <del data-operation-index="1">legacy[Legacy billing bridge]</del><ins data-operation-index="1">queue[Events queue]</ins>
+</code></pre>
+</div>
+<h2 data-oldline="17" data-newline="18" data-align="5" id="order-lifecycle">Order lifecycle</h2>
+<div data-oldline="19" data-newline="20" data-align="6" class="mddiff-mermaid" data-mmo="stateDiagram-v2
+  [*] --&gt; Pending
+  Pending --&gt; Paid: payment ok
+  Paid --&gt; Shipped: label printed
+  Shipped --&gt; [*]" data-mmn="stateDiagram-v2
+  [*] --&gt; Pending
+  Pending --&gt; Paid: payment ok
+  Pending --&gt; Cancelled: timeout
+  Paid --&gt; Shipped: label printed
+  Shipped --&gt; Refunded: return accepted
+  Shipped --&gt; [*]
+  Cancelled --&gt; [*]"><pre><code class="language-mermaid">stateDiagram-v2
+  [*] --&gt; Pending
+  Pending --&gt; Paid: payment ok
+<ins>  Pending --&gt; Cancelled: timeout
+</ins>  Paid --&gt; Shipped: label printed
+<ins>  Shipped --&gt; Refunded: return accepted
+</ins>  Shipped --&gt; [*]
+<ins>  Cancelled --&gt; [*]
+</ins></code></pre>
+</div>
+<h2 data-oldline="27" data-newline="31" data-align="7" id="domain-model">Domain model</h2>
+<div data-oldline="29" data-newline="33" data-align="8" class="mddiff-mermaid" data-mmo="classDiagram
+  class Order {
+    +String id
+    +Money total
+    +submit()
+  }
+  class LineItem {
+    +String sku
+    +int qty
+  }
+  Order &quot;1&quot; --&gt; &quot;*&quot; LineItem" data-mmn="classDiagram
+  class Order {
+    +String id
+    +Money total
+    +String currency
+    +place()
+  }
+  class LineItem {
+    +String sku
+    +int qty
+  }
+  Order &quot;1&quot; --&gt; &quot;*&quot; LineItem"><pre><code class="language-mermaid">classDiagram
+  class Order {
+    +String id
+    +Money total
+<del>    +submit()
+</del><ins>    +String currency
+</ins><ins>    +place()
+</ins>  }
+  class LineItem {
+    +String sku
+    +int qty
+  }
+  Order &quot;1&quot; --&gt; &quot;*&quot; LineItem
+</code></pre>
+</div>
+<h2 data-oldline="43" data-newline="48" data-align="9" id="schema">Schema</h2>
+<div data-oldline="45" data-newline="50" data-align="10" class="mddiff-mermaid" data-mmo="erDiagram
+  CUSTOMER ||--o{ ORDER : places
+  ORDER ||--|{ LINE_ITEM : contains
+  CUSTOMER {
+    string id
+    string email
+  }
+  ORDER {
+    string id
+    date created
+  }" data-mmn="erDiagram
+  CUSTOMER ||--o{ ORDER : places
+  ORDER ||--|{ LINE_ITEM : contains
+  ORDER ||--o| SHIPMENT : ships
+  CUSTOMER {
+    string id
+    string email
+    string phone
+  }
+  ORDER {
+    string id
+    date created
+  }
+  SHIPMENT {
+    string tracking
+  }"><pre><code class="language-mermaid">erDiagram
+  CUSTOMER ||--o{ ORDER : places
+  ORDER ||--|{ LINE_ITEM : contains
+<ins>  ORDER ||--o| SHIPMENT : ships
+</ins>  CUSTOMER {
+    string id
+    string email
+<ins>    string phone
+</ins>  }
+  ORDER {
+    string id
+    date created
+  }
+<ins>  SHIPMENT {
+</ins><ins>    string tracking
+</ins><ins>  }
+</ins></code></pre>
+</div>
+<h2 data-oldline="59" data-newline="69" data-align="11" id="checkout-handshake">Checkout handshake</h2>
+<div data-oldline="61" data-newline="71" data-align="12" class="mddiff-mermaid" data-mmo="sequenceDiagram
+  participant C as Client
+  participant O as Orders
+  participant P as Payments
+  C-&gt;&gt;O: POST /checkout
+  O-&gt;&gt;P: charge(card)
+  P--&gt;&gt;O: ok
+  O--&gt;&gt;C: 201 Created" data-mmn="sequenceDiagram
+  participant C as Client
+  participant O as Orders
+  participant P as Payments
+  C-&gt;&gt;O: POST /checkout
+  O-&gt;&gt;P: charge(card)
+  P--&gt;&gt;O: ok
+  O-&gt;&gt;O: emit OrderPaid
+  O--&gt;&gt;C: 201 Created"><pre><code class="language-mermaid">sequenceDiagram
+  participant C as Client
+  participant O as Orders
+  participant P as Payments
+  C-&gt;&gt;O: POST /checkout
+  O-&gt;&gt;P: charge(card)
+  P--&gt;&gt;O: ok
+<ins>  O-&gt;&gt;O: emit OrderPaid
+</ins>  O--&gt;&gt;C: 201 Created
+</code></pre>
+</div>
+<h2 data-oldline="72" data-newline="83" data-align="13" id="deploy-pipeline">Deploy pipeline</h2>
+<div data-oldline="74" data-newline="85" data-align="14" class="mddiff-mermaid" data-mmo="flowchart TD
+  build[Build image] --&gt; test[Run tests]
+  test --&gt; stage[Deploy to staging]
+  stage --&gt; prod[Deploy to production]" data-mmn="flowchart TD
+  %% staging soak is 30 min — see the runbook
+  build[Build image]   --&gt;   test[Run tests]
+  test  --&gt;  stage[Deploy to staging]
+  stage --&gt;  prod[Deploy to production]"><pre><code class="language-mermaid">flowchart TD
+<ins>  %% staging soak is 30 min — see the runbook
+</ins>  build[Build image] <del>--&gt;</del><ins>  --&gt;  </ins> test[Run tests]
+  test <del>--&gt;</del><ins> --&gt; </ins> stage[Deploy to staging]
+  stage --&gt; <ins> </ins>prod[Deploy to production]
+</code></pre>
+</div>
+<del data-oldline="81" class="mdblock"><h2 id="nightly-batch-retired">Nightly batch (retired)</h2>
+</del><del data-oldline="83" class="mdblock"><div class="mddiff-mermaid" data-mm="flowchart LR
+  cron[Nightly cron] --&gt; export[Export CSV] --&gt; ftp[Upload to FTP]"><pre><code class="language-mermaid">flowchart LR
+  cron[Nightly cron] --&gt; export[Export CSV] --&gt; ftp[Upload to FTP]
+</code></pre>
+</div>
+</del><ins data-newline="93" class="mdblock"><h2 id="event-consumers-new">Event consumers (new)</h2>
+</ins><ins data-newline="95" class="mdblock"><div class="mddiff-mermaid" data-mm="flowchart LR
+  queue[Events queue] --&gt; email[Email receipts]
+  queue --&gt; analytics[Analytics sink]"><pre><code class="language-mermaid">flowchart LR
+  queue[Events queue] --&gt; email[Email receipts]
+  queue --&gt; analytics[Analytics sink]
+</code></pre>
+</div>
+</ins></div>
+<div id="split-view" class="view">
+  <div class="col col-old"><div class="col-head"><b>before</b></div><h1 data-oldline="1" data-newline="1" data-align="1" id="orders-service-architecture-notes">Orders service — architecture notes</h1>
+<p data-oldline="3" data-newline="3" data-align="2">How an order moves through the system, and the data behind it.</p>
+<h2 data-oldline="5" data-newline="5" data-align="3" id="request-flow">Request flow</h2>
+<div data-oldline="7" data-newline="7" data-align="4" class="mddiff-mermaid" data-mmo="flowchart TD
+  client[Web client] --&gt; gw[API gateway]
+  gw --&gt; auth{Authenticated?}
+  auth -- no --&gt; reject[Return 401]
+  auth -- yes --&gt; orders[Orders service]
+  orders --&gt; db[(Orders DB)]
+  orders --&gt; legacy[Legacy billing bridge]" data-mmn="flowchart TD
+  client[Web or mobile client] --&gt; gw[API gateway]
+  gw --&gt; auth{Authenticated?}
+  auth -- no --&gt; reject[Return 401]
+  auth -- yes --&gt; limit[Rate limiter]
+  limit --&gt; orders[Orders service]
+  orders --&gt; db[(Orders DB)]
+  orders --&gt; queue[Events queue]"><pre><code class="language-mermaid">flowchart TD
+  client[Web<ins data-operation-index="1"> or mobile</ins> client] --&gt; gw[API gateway]
+  gw --&gt; auth{Authenticated?}
+  auth -- no --&gt; reject[Return 401]
+<ins>  auth -- yes --&gt; limit[Rate limiter]
+</ins><del data-operation-index="0">  auth -- yes</del><ins data-operation-index="0">  limit</ins> --&gt; orders[Orders service]
+  orders --&gt; db[(Orders DB)]
+  orders --&gt; <del data-operation-index="1">legacy[Legacy billing bridge]</del><ins data-operation-index="1">queue[Events queue]</ins>
+</code></pre>
+</div>
+<h2 data-oldline="17" data-newline="18" data-align="5" id="order-lifecycle">Order lifecycle</h2>
+<div data-oldline="19" data-newline="20" data-align="6" class="mddiff-mermaid" data-mmo="stateDiagram-v2
+  [*] --&gt; Pending
+  Pending --&gt; Paid: payment ok
+  Paid --&gt; Shipped: label printed
+  Shipped --&gt; [*]" data-mmn="stateDiagram-v2
+  [*] --&gt; Pending
+  Pending --&gt; Paid: payment ok
+  Pending --&gt; Cancelled: timeout
+  Paid --&gt; Shipped: label printed
+  Shipped --&gt; Refunded: return accepted
+  Shipped --&gt; [*]
+  Cancelled --&gt; [*]"><pre><code class="language-mermaid">stateDiagram-v2
+  [*] --&gt; Pending
+  Pending --&gt; Paid: payment ok
+<ins>  Pending --&gt; Cancelled: timeout
+</ins>  Paid --&gt; Shipped: label printed
+<ins>  Shipped --&gt; Refunded: return accepted
+</ins>  Shipped --&gt; [*]
+<ins>  Cancelled --&gt; [*]
+</ins></code></pre>
+</div>
+<h2 data-oldline="27" data-newline="31" data-align="7" id="domain-model">Domain model</h2>
+<div data-oldline="29" data-newline="33" data-align="8" class="mddiff-mermaid" data-mmo="classDiagram
+  class Order {
+    +String id
+    +Money total
+    +submit()
+  }
+  class LineItem {
+    +String sku
+    +int qty
+  }
+  Order &quot;1&quot; --&gt; &quot;*&quot; LineItem" data-mmn="classDiagram
+  class Order {
+    +String id
+    +Money total
+    +String currency
+    +place()
+  }
+  class LineItem {
+    +String sku
+    +int qty
+  }
+  Order &quot;1&quot; --&gt; &quot;*&quot; LineItem"><pre><code class="language-mermaid">classDiagram
+  class Order {
+    +String id
+    +Money total
+<del>    +submit()
+</del><ins>    +String currency
+</ins><ins>    +place()
+</ins>  }
+  class LineItem {
+    +String sku
+    +int qty
+  }
+  Order &quot;1&quot; --&gt; &quot;*&quot; LineItem
+</code></pre>
+</div>
+<h2 data-oldline="43" data-newline="48" data-align="9" id="schema">Schema</h2>
+<div data-oldline="45" data-newline="50" data-align="10" class="mddiff-mermaid" data-mmo="erDiagram
+  CUSTOMER ||--o{ ORDER : places
+  ORDER ||--|{ LINE_ITEM : contains
+  CUSTOMER {
+    string id
+    string email
+  }
+  ORDER {
+    string id
+    date created
+  }" data-mmn="erDiagram
+  CUSTOMER ||--o{ ORDER : places
+  ORDER ||--|{ LINE_ITEM : contains
+  ORDER ||--o| SHIPMENT : ships
+  CUSTOMER {
+    string id
+    string email
+    string phone
+  }
+  ORDER {
+    string id
+    date created
+  }
+  SHIPMENT {
+    string tracking
+  }"><pre><code class="language-mermaid">erDiagram
+  CUSTOMER ||--o{ ORDER : places
+  ORDER ||--|{ LINE_ITEM : contains
+<ins>  ORDER ||--o| SHIPMENT : ships
+</ins>  CUSTOMER {
+    string id
+    string email
+<ins>    string phone
+</ins>  }
+  ORDER {
+    string id
+    date created
+  }
+<ins>  SHIPMENT {
+</ins><ins>    string tracking
+</ins><ins>  }
+</ins></code></pre>
+</div>
+<h2 data-oldline="59" data-newline="69" data-align="11" id="checkout-handshake">Checkout handshake</h2>
+<div data-oldline="61" data-newline="71" data-align="12" class="mddiff-mermaid" data-mmo="sequenceDiagram
+  participant C as Client
+  participant O as Orders
+  participant P as Payments
+  C-&gt;&gt;O: POST /checkout
+  O-&gt;&gt;P: charge(card)
+  P--&gt;&gt;O: ok
+  O--&gt;&gt;C: 201 Created" data-mmn="sequenceDiagram
+  participant C as Client
+  participant O as Orders
+  participant P as Payments
+  C-&gt;&gt;O: POST /checkout
+  O-&gt;&gt;P: charge(card)
+  P--&gt;&gt;O: ok
+  O-&gt;&gt;O: emit OrderPaid
+  O--&gt;&gt;C: 201 Created"><pre><code class="language-mermaid">sequenceDiagram
+  participant C as Client
+  participant O as Orders
+  participant P as Payments
+  C-&gt;&gt;O: POST /checkout
+  O-&gt;&gt;P: charge(card)
+  P--&gt;&gt;O: ok
+<ins>  O-&gt;&gt;O: emit OrderPaid
+</ins>  O--&gt;&gt;C: 201 Created
+</code></pre>
+</div>
+<h2 data-oldline="72" data-newline="83" data-align="13" id="deploy-pipeline">Deploy pipeline</h2>
+<div data-oldline="74" data-newline="85" data-align="14" class="mddiff-mermaid" data-mmo="flowchart TD
+  build[Build image] --&gt; test[Run tests]
+  test --&gt; stage[Deploy to staging]
+  stage --&gt; prod[Deploy to production]" data-mmn="flowchart TD
+  %% staging soak is 30 min — see the runbook
+  build[Build image]   --&gt;   test[Run tests]
+  test  --&gt;  stage[Deploy to staging]
+  stage --&gt;  prod[Deploy to production]"><pre><code class="language-mermaid">flowchart TD
+<ins>  %% staging soak is 30 min — see the runbook
+</ins>  build[Build image] <del>--&gt;</del><ins>  --&gt;  </ins> test[Run tests]
+  test <del>--&gt;</del><ins> --&gt; </ins> stage[Deploy to staging]
+  stage --&gt; <ins> </ins>prod[Deploy to production]
+</code></pre>
+</div>
+<del data-oldline="81" class="mdblock"><h2 id="nightly-batch-retired">Nightly batch (retired)</h2>
+</del><del data-oldline="83" class="mdblock"><div class="mddiff-mermaid" data-mm="flowchart LR
+  cron[Nightly cron] --&gt; export[Export CSV] --&gt; ftp[Upload to FTP]"><pre><code class="language-mermaid">flowchart LR
+  cron[Nightly cron] --&gt; export[Export CSV] --&gt; ftp[Upload to FTP]
+</code></pre>
+</div>
+</del><ins data-newline="93" class="mdblock"><h2 id="event-consumers-new">Event consumers (new)</h2>
+</ins><ins data-newline="95" class="mdblock"><div class="mddiff-mermaid" data-mm="flowchart LR
+  queue[Events queue] --&gt; email[Email receipts]
+  queue --&gt; analytics[Analytics sink]"><pre><code class="language-mermaid">flowchart LR
+  queue[Events queue] --&gt; email[Email receipts]
+  queue --&gt; analytics[Analytics sink]
+</code></pre>
+</div>
+</ins></div>
+  <div class="col col-new"><div class="col-head"><b>after</b></div><h1 data-oldline="1" data-newline="1" data-align="1" id="orders-service-architecture-notes">Orders service — architecture notes</h1>
+<p data-oldline="3" data-newline="3" data-align="2">How an order moves through the system, and the data behind it.</p>
+<h2 data-oldline="5" data-newline="5" data-align="3" id="request-flow">Request flow</h2>
+<div data-oldline="7" data-newline="7" data-align="4" class="mddiff-mermaid" data-mmo="flowchart TD
+  client[Web client] --&gt; gw[API gateway]
+  gw --&gt; auth{Authenticated?}
+  auth -- no --&gt; reject[Return 401]
+  auth -- yes --&gt; orders[Orders service]
+  orders --&gt; db[(Orders DB)]
+  orders --&gt; legacy[Legacy billing bridge]" data-mmn="flowchart TD
+  client[Web or mobile client] --&gt; gw[API gateway]
+  gw --&gt; auth{Authenticated?}
+  auth -- no --&gt; reject[Return 401]
+  auth -- yes --&gt; limit[Rate limiter]
+  limit --&gt; orders[Orders service]
+  orders --&gt; db[(Orders DB)]
+  orders --&gt; queue[Events queue]"><pre><code class="language-mermaid">flowchart TD
+  client[Web<ins data-operation-index="1"> or mobile</ins> client] --&gt; gw[API gateway]
+  gw --&gt; auth{Authenticated?}
+  auth -- no --&gt; reject[Return 401]
+<ins>  auth -- yes --&gt; limit[Rate limiter]
+</ins><del data-operation-index="0">  auth -- yes</del><ins data-operation-index="0">  limit</ins> --&gt; orders[Orders service]
+  orders --&gt; db[(Orders DB)]
+  orders --&gt; <del data-operation-index="1">legacy[Legacy billing bridge]</del><ins data-operation-index="1">queue[Events queue]</ins>
+</code></pre>
+</div>
+<h2 data-oldline="17" data-newline="18" data-align="5" id="order-lifecycle">Order lifecycle</h2>
+<div data-oldline="19" data-newline="20" data-align="6" class="mddiff-mermaid" data-mmo="stateDiagram-v2
+  [*] --&gt; Pending
+  Pending --&gt; Paid: payment ok
+  Paid --&gt; Shipped: label printed
+  Shipped --&gt; [*]" data-mmn="stateDiagram-v2
+  [*] --&gt; Pending
+  Pending --&gt; Paid: payment ok
+  Pending --&gt; Cancelled: timeout
+  Paid --&gt; Shipped: label printed
+  Shipped --&gt; Refunded: return accepted
+  Shipped --&gt; [*]
+  Cancelled --&gt; [*]"><pre><code class="language-mermaid">stateDiagram-v2
+  [*] --&gt; Pending
+  Pending --&gt; Paid: payment ok
+<ins>  Pending --&gt; Cancelled: timeout
+</ins>  Paid --&gt; Shipped: label printed
+<ins>  Shipped --&gt; Refunded: return accepted
+</ins>  Shipped --&gt; [*]
+<ins>  Cancelled --&gt; [*]
+</ins></code></pre>
+</div>
+<h2 data-oldline="27" data-newline="31" data-align="7" id="domain-model">Domain model</h2>
+<div data-oldline="29" data-newline="33" data-align="8" class="mddiff-mermaid" data-mmo="classDiagram
+  class Order {
+    +String id
+    +Money total
+    +submit()
+  }
+  class LineItem {
+    +String sku
+    +int qty
+  }
+  Order &quot;1&quot; --&gt; &quot;*&quot; LineItem" data-mmn="classDiagram
+  class Order {
+    +String id
+    +Money total
+    +String currency
+    +place()
+  }
+  class LineItem {
+    +String sku
+    +int qty
+  }
+  Order &quot;1&quot; --&gt; &quot;*&quot; LineItem"><pre><code class="language-mermaid">classDiagram
+  class Order {
+    +String id
+    +Money total
+<del>    +submit()
+</del><ins>    +String currency
+</ins><ins>    +place()
+</ins>  }
+  class LineItem {
+    +String sku
+    +int qty
+  }
+  Order &quot;1&quot; --&gt; &quot;*&quot; LineItem
+</code></pre>
+</div>
+<h2 data-oldline="43" data-newline="48" data-align="9" id="schema">Schema</h2>
+<div data-oldline="45" data-newline="50" data-align="10" class="mddiff-mermaid" data-mmo="erDiagram
+  CUSTOMER ||--o{ ORDER : places
+  ORDER ||--|{ LINE_ITEM : contains
+  CUSTOMER {
+    string id
+    string email
+  }
+  ORDER {
+    string id
+    date created
+  }" data-mmn="erDiagram
+  CUSTOMER ||--o{ ORDER : places
+  ORDER ||--|{ LINE_ITEM : contains
+  ORDER ||--o| SHIPMENT : ships
+  CUSTOMER {
+    string id
+    string email
+    string phone
+  }
+  ORDER {
+    string id
+    date created
+  }
+  SHIPMENT {
+    string tracking
+  }"><pre><code class="language-mermaid">erDiagram
+  CUSTOMER ||--o{ ORDER : places
+  ORDER ||--|{ LINE_ITEM : contains
+<ins>  ORDER ||--o| SHIPMENT : ships
+</ins>  CUSTOMER {
+    string id
+    string email
+<ins>    string phone
+</ins>  }
+  ORDER {
+    string id
+    date created
+  }
+<ins>  SHIPMENT {
+</ins><ins>    string tracking
+</ins><ins>  }
+</ins></code></pre>
+</div>
+<h2 data-oldline="59" data-newline="69" data-align="11" id="checkout-handshake">Checkout handshake</h2>
+<div data-oldline="61" data-newline="71" data-align="12" class="mddiff-mermaid" data-mmo="sequenceDiagram
+  participant C as Client
+  participant O as Orders
+  participant P as Payments
+  C-&gt;&gt;O: POST /checkout
+  O-&gt;&gt;P: charge(card)
+  P--&gt;&gt;O: ok
+  O--&gt;&gt;C: 201 Created" data-mmn="sequenceDiagram
+  participant C as Client
+  participant O as Orders
+  participant P as Payments
+  C-&gt;&gt;O: POST /checkout
+  O-&gt;&gt;P: charge(card)
+  P--&gt;&gt;O: ok
+  O-&gt;&gt;O: emit OrderPaid
+  O--&gt;&gt;C: 201 Created"><pre><code class="language-mermaid">sequenceDiagram
+  participant C as Client
+  participant O as Orders
+  participant P as Payments
+  C-&gt;&gt;O: POST /checkout
+  O-&gt;&gt;P: charge(card)
+  P--&gt;&gt;O: ok
+<ins>  O-&gt;&gt;O: emit OrderPaid
+</ins>  O--&gt;&gt;C: 201 Created
+</code></pre>
+</div>
+<h2 data-oldline="72" data-newline="83" data-align="13" id="deploy-pipeline">Deploy pipeline</h2>
+<div data-oldline="74" data-newline="85" data-align="14" class="mddiff-mermaid" data-mmo="flowchart TD
+  build[Build image] --&gt; test[Run tests]
+  test --&gt; stage[Deploy to staging]
+  stage --&gt; prod[Deploy to production]" data-mmn="flowchart TD
+  %% staging soak is 30 min — see the runbook
+  build[Build image]   --&gt;   test[Run tests]
+  test  --&gt;  stage[Deploy to staging]
+  stage --&gt;  prod[Deploy to production]"><pre><code class="language-mermaid">flowchart TD
+<ins>  %% staging soak is 30 min — see the runbook
+</ins>  build[Build image] <del>--&gt;</del><ins>  --&gt;  </ins> test[Run tests]
+  test <del>--&gt;</del><ins> --&gt; </ins> stage[Deploy to staging]
+  stage --&gt; <ins> </ins>prod[Deploy to production]
+</code></pre>
+</div>
+<del data-oldline="81" class="mdblock"><h2 id="nightly-batch-retired">Nightly batch (retired)</h2>
+</del><del data-oldline="83" class="mdblock"><div class="mddiff-mermaid" data-mm="flowchart LR
+  cron[Nightly cron] --&gt; export[Export CSV] --&gt; ftp[Upload to FTP]"><pre><code class="language-mermaid">flowchart LR
+  cron[Nightly cron] --&gt; export[Export CSV] --&gt; ftp[Upload to FTP]
+</code></pre>
+</div>
+</del><ins data-newline="93" class="mdblock"><h2 id="event-consumers-new">Event consumers (new)</h2>
+</ins><ins data-newline="95" class="mdblock"><div class="mddiff-mermaid" data-mm="flowchart LR
+  queue[Events queue] --&gt; email[Email receipts]
+  queue --&gt; analytics[Analytics sink]"><pre><code class="language-mermaid">flowchart LR
+  queue[Events queue] --&gt; email[Email receipts]
+  queue --&gt; analytics[Analytics sink]
+</code></pre>
+</div>
+</ins></div>
+</div>
+<div id="mddiff-minimap" title="diff overview — click to jump, drag to scrub"><div id="mddiff-vp"></div></div>
+<nav id="mddiff-toc" aria-label="Table of contents"></nav>
+<div id="mddiff-toc-handle" title="Table of contents">☰</div>
+<script>
+(function () {
+  var views = { inline: document.getElementById('inline-view'),
+                split:  document.getElementById('split-view') };
+  var btns  = { inline: document.getElementById('btn-inline'),
+                split:  document.getElementById('btn-split'),
+                left:   document.getElementById('btn-left'),
+                right:  document.getElementById('btn-right') };
+  // The four view modes. inline + split each own a view element; left/right reuse
+  // the split element (showing one of its two columns), so element activation is
+  // handled explicitly in set() — a for..in over a shared element would race.
+  var ALL_VIEWS = ['inline', 'split', 'left', 'right'];
+  function isView(v) { return ALL_VIEWS.indexOf(v) >= 0; }
+  var curView;   // the mode set() last applied; read by the swap/refresh re-render
+  var split = views.split;
+  var colOld = split.querySelector('.col-old');
+  var colNew = split.querySelector('.col-new');
+
+  // Inline ordered lists are renumbered by a CSS counter (mddiff-li — see the
+  // stylesheet) so an edited item's removed+added halves share one number. That
+  // counter starts from 0, so a list whose start attribute is non-1 needs its
+  // counter seeded to start-1; CSS counters can't read the attribute, so do it
+  // here. Only the inline copy uses the counter (split keeps native numbering).
+  // A function (not inline) so the live-refresh swap can re-seed: an innerHTML
+  // replacement drops this style, which would renumber a start!=1 list from 1.
+  function seedInlineOls() {
+    var startedOls = views.inline.querySelectorAll('ol[start]');
+    for (var oi = 0; oi < startedOls.length; oi++)
+      startedOls[oi].style.counterReset = 'mddiff-li ' + (parseInt(startedOls[oi].getAttribute('start'), 10) - 1);
+  }
+  seedInlineOls();
+
+  // Keep the sticky column labels flush below the top bar: publish the bar's
+  // real rendered height as --bar-h, which .col-head / the minimap stick to via
+  // top: var(--bar-h). A hard-coded offset truncated the labels whenever the
+  // bar was taller than the guess (and it grows when the bar wraps on a narrow
+  // window), so measure it instead of guessing.
+  var bar = document.querySelector('.mddiff-bar');
+  function syncBarH() {
+    if (bar) document.documentElement.style.setProperty('--bar-h', bar.offsetHeight + 'px');
+  }
+  syncBarH();
+
+  // Row alignment: for each anchor present in both columns, push the higher
+  // side down so the pair sits at the same vertical position.
+  function visAnchor(col, k) {
+    var els = col.querySelectorAll('[data-align="' + k + '"]');
+    for (var i = 0; i < els.length; i++) if (els[i].offsetParent !== null) return els[i];
+    return null;
+  }
+  function clearAlign(col) {
+    var els = col.querySelectorAll('[data-align]');
+    for (var i = 0; i < els.length; i++) { els[i].style.marginTop = ''; els[i].style.marginBottom = ''; }
+  }
+  // Un-pin one table: drop the frozen colgroup + the fixed table-layout/width so it
+  // re-lays-out at its natural auto width. Shared by the split re-sync (which
+  // re-measures from scratch each frame) and the solo reset below.
+  function unpinTable(t) {
+    var cg = t.querySelector('colgroup.mddiff-cols'); if (cg) cg.remove();
+    t.style.tableLayout = ''; t.style.width = '';
+    // ALSO clear any full-bleed break-out styles left by fitInlineTables/
+    // fitSoloTables — on the table AND its shade-box (mdblock) parent. Without this,
+    // switching Left/Right -> Side-by-side kept the table's solo break-out
+    // (max-content width + marginLeft:50% + translateX(-50%)), so it stayed
+    // ~full-window, overflowed its half-column, overlapped the other column, and
+    // clipped off-screen. This fn is the shared reset for the split re-sync and the
+    // solo reset, so fixing it here covers both.
+    var p = t.parentNode, target = (p && p.nodeType === 1 && p.classList.contains('mdblock')) ? p : t;
+    target.style.maxWidth = ''; target.style.marginLeft = ''; target.style.transform = ''; target.style.boxSizing = '';
+    if (target !== t) { target.style.width = ''; t.style.maxWidth = ''; }
+  }
+  // Drop any table column/row pinning left by a prior split-view align() so a
+  // solo (Left/Right) view lays its tables out naturally within the capped
+  // column — a pin sized to a split half-window would otherwise overflow the cap.
+  function resetSoloTables() {
+    [colOld, colNew].forEach(function (col) {
+      var ts = col.querySelectorAll('table');
+      for (var i = 0; i < ts.length; i++) unpinTable(ts[i]);
+      var rows = col.querySelectorAll('tr');
+      for (var j = 0; j < rows.length; j++) rows[j].style.height = '';
+    });
+  }
+  // Push an element down by ADDING to its effective (computed) margin — not
+  // replacing it, so an anchor's natural margin (e.g. a heading's) is kept.
+  function pushDown(el, extra) {
+    var cur = parseFloat(getComputedStyle(el).marginTop) || 0;
+    el.style.marginTop = (cur + extra) + 'px';
+  }
+  // The bottom counterpart: grow an anchor's bottom margin so a matched block that
+  // renders SHORTER on its side doesn't pull everything below it out of line.
+  function padBottom(el, extra) {
+    var cur = parseFloat(getComputedStyle(el).marginBottom) || 0;
+    el.style.marginBottom = (cur + extra) + 'px';
+  }
+  // Per-column header widths of a table in its current layout. Read twice per
+  // sync: once for the natural (max-content) widths, once under width:min-content
+  // for the per-column floor below which a cell's longest unbreakable token would
+  // overflow. Scoped to the table's OWN header row (:scope >) so a nested table's
+  // headers never leak in and inflate the count.
+  function colW(t) {
+    var a = [], ths = t.querySelectorAll(':scope > thead > tr > th');
+    for (var x = 0; x < ths.length; x++) a.push(ths[x].getBoundingClientRect().width);
+    return a;
+  }
+  // Scale natural column widths down to fit 'avail', never below each per-column
+  // floor (min-content): shrink each column's slack-above-floor proportionally so
+  // we never INTRODUCE a scrollbar. Returns { w, sum }; null when even the floors
+  // overflow 'avail' (caller leaves the table unpinned → its own horizontal
+  // scrollbar, the last resort). Shared by the split sync and the inline pin.
+  //
+  // PIN_EPS cushion: pinTable re-applies these widths under table-layout:fixed, but
+  // a th's BORDER-box width (what colW measures via getBoundingClientRect) does NOT
+  // round-trip through a fixed <col> + border-collapse — the resulting cell content
+  // box comes back ~1px narrower than under auto layout. So a cell whose content
+  // sits EXACTLY at its column's max-content width (a hyphen-breakable UUID, a
+  // multi-word header) wraps once pinned, even though auto layout fit it on one
+  // line. Give every column a 1px cushion so the pinned content box is never under
+  // what was measured. It's folded INTO the fit — 'avail' reserves the whole
+  // cushion up front (budget = avail − cushion) and we scale against that — so the
+  // added pixels can never push the table past 'avail' into a scrollbar.
+  var PIN_EPS = 1;
+  function fitColumns(w, floor, avail) {
+    var n = w.length, cushion = PIN_EPS * n, budget = avail - cushion;
+    var sum = 0, floorSum = 0, i;
+    for (i = 0; i < n; i++) { sum += w[i]; floorSum += floor[i]; }
+    if (sum > budget && sum > 0) {
+      if (floorSum >= budget) return null;
+      var slack = sum - floorSum, need = sum - budget;
+      for (i = 0; i < n; i++) w[i] -= need * (w[i] - floor[i]) / slack;
+      sum = budget;
+    }
+    for (i = 0; i < n; i++) w[i] += PIN_EPS;
+    return { w: w, sum: sum + cushion };
+  }
+  // Freeze a table to exact column widths — an inserted <col> per width + fixed
+  // layout — so every cell (prose, a nested table) wraps to its column instead of
+  // widening it. Caller has already removed any prior pin before re-measuring.
+  function pinTable(t, w, sum) {
+    var cg = document.createElement('colgroup'); cg.className = 'mddiff-cols';
+    for (var c = 0; c < w.length; c++) {
+      var col = document.createElement('col'); col.style.width = w[c] + 'px'; cg.appendChild(col);
+    }
+    t.insertBefore(cg, t.firstChild);
+    t.style.tableLayout = 'fixed'; t.style.width = sum + 'px';
+  }
+  // Side-by-side tables size independently: each column lays out its OWN copy of
+  // the merged table with auto layout (table { width: max-content }), and the CSS
+  // hides the opposite side per cell (.col-old ins / .col-new del). Because the two
+  // sides show different cell content — the whole point of a diff — the auto layout
+  // hands each copy DIFFERENT column widths, so the two tables don't line up and the
+  // squeezed side wraps badly (most visibly a cell that turned bold or grew on one
+  // side). Pin matched tables to a SHARED column geometry: measure each column's
+  // natural width on both sides, take the per-column max, scale to fit the column if
+  // the union would overflow it, and freeze it with table-layout:fixed so both
+  // copies are identical. Runs first in align() because it changes row heights.
+  function syncTableColumns() {
+    var containerW = colOld.clientWidth;
+    var oldTables = colOld.querySelectorAll('table[data-align]');
+    for (var ti = 0; ti < oldTables.length; ti++) {
+      var to = oldTables[ti];
+      var tn = colNew.querySelector('table[data-align="' + to.getAttribute('data-align') + '"]');
+      if (!tn) continue;
+      // Skip add/remove-COLUMN tables: such a table has a column that is display:none
+      // on one side (.col-old .col-ins / .col-new .col-del). Pinning a fixed <col>
+      // width to it would reserve a phantom empty column on the hidden side, breaking
+      // the rectangular projection. Auto layout already collapses the hidden column
+      // to zero, so leave them alone. (Row add/remove keeps the same columns — synced.)
+      if (to.querySelector('.col-ins, .col-del')) continue;
+      // Skip UNCHANGED tables (no cell or row diff anywhere). Their two side
+      // copies are byte-identical, so auto layout already gives them identical
+      // column widths — there is nothing to sync. Pinning them to table-layout:
+      // fixed gains nothing and can only HURT: a fixed column does not grow to
+      // its content the way auto does, so a cell whose content sits near its
+      // intrinsic width (a hyphen-breakable UUID, a multi-word header) wraps even
+      // when an auto column of the same width would not. That is the asymmetry
+      // where an unchanged table next to a column-added one (which is skipped
+      // above) wrapped oddly while the wider neighbour did not. Only a table that
+      // actually differs between the sides needs the shared-geometry pin.
+      if (!to.querySelector('ins, del, .tr-ins, .tr-del')) continue;
+      var pair = [to, tn];
+      // Drop any prior pinning so we re-measure the NATURAL auto-layout widths — a
+      // resize must re-sync from scratch, never compound the last frozen widths.
+      pair.forEach(unpinTable);
+      var natO = colW(to), natN = colW(tn);
+      var n = Math.min(natO.length, natN.length); if (!n) continue;
+      // Per column, the natural width is the WIDER side (the union both copies must
+      // fit); the floor is the per-side min-content, below which a cell's longest
+      // unbreakable token (a code path, a long word) would overflow horizontally.
+      pair.forEach(function (t) { t.style.width = 'min-content'; });
+      var minO = colW(to), minN = colW(tn);
+      pair.forEach(function (t) { t.style.width = ''; });
+      var w = [], floor = [];
+      for (var i = 0; i < n; i++) { w.push(Math.max(natO[i], natN[i])); floor.push(Math.max(minO[i], minN[i])); }
+      // Fit the union into the column. If even the floors don't fit (a very narrow
+      // column), leave the tables as auto — same as before this sync existed —
+      // rather than pin a fixed layout that would overflow and, on a display:block
+      // table, no longer be honoured exactly. Only pin when it fits.
+      var fit = fitColumns(w, floor, containerW);
+      if (!fit) continue;
+      pair.forEach(function (t) { pinTable(t, fit.w, fit.sum); });
+    }
+  }
+  // After the columns are pinned (so wrapping — hence row heights — has settled),
+  // equalize each row's height across the two side copies. Each column holds its
+  // OWN full copy of the merged table, so when a cell wraps to a different height
+  // per side (a diff cell that grew, a cell that gained a nested table) every row
+  // below it drifts apart — align() only aligns whole tables (one anchor), never
+  // interior rows. Level every row PRESENT ON BOTH SIDES up to the taller side, so
+  // matching rows line up. A row added/removed on one side (tr-ins/tr-del,
+  // display:none on the other → offsetHeight 0) has no counterpart to align to; it
+  // stays a gap — the row-level analogue of a block gap, unfixable without a spacer.
+  function syncTableRows() {
+    var oldTables = colOld.querySelectorAll('table[data-align]');
+    for (var ti = 0; ti < oldTables.length; ti++) {
+      var to = oldTables[ti];
+      var tn = colNew.querySelector('table[data-align="' + to.getAttribute('data-align') + '"]');
+      if (!tn) continue;
+      var ro = to.querySelectorAll(':scope > tbody > tr'), rn = tn.querySelectorAll(':scope > tbody > tr');
+      var n = Math.min(ro.length, rn.length), i;
+      for (i = 0; i < n; i++) { ro[i].style.height = ''; rn[i].style.height = ''; }   // drop prior pin → re-measure natural
+      for (i = 0; i < n; i++) {
+        var ho = ro[i].offsetHeight, hn = rn[i].offsetHeight;
+        if (ho > 0 && hn > 0 && ho !== hn) {            // both present, unequal → level to the taller
+          var h = Math.max(ho, hn) + 'px'; ro[i].style.height = h; rn[i].style.height = h;
+        }
+      }
+    }
+  }
+  function align() {
+    if (!split.classList.contains('active')) return;
+    // A solo (Left/Right) view shows one column only — there is no opposite side
+    // to line up with, so skip alignment entirely (set() clears any prior margins).
+    if (document.body.classList.contains('left-only') || document.body.classList.contains('right-only')) return;
+    syncTableColumns();
+    syncTableRows();
+    clearAlign(colOld); clearAlign(colNew);
+    var maxK = 0;
+    colOld.querySelectorAll('[data-align]').forEach(function (e) {
+      var k = +e.getAttribute('data-align'); if (k > maxK) maxK = k;
+    });
+    // Pass 0 — equalize each matched anchor's HEIGHT. The same block can render
+    // taller on one side (a table that gained/lost a row, a paragraph whose
+    // per-side text wraps to a different number of lines); left uncorrected, that
+    // height gap shoves whatever follows out of alignment — most visibly a section
+    // removed on one side sitting beside a different section added on the other
+    // (Observability vs Deprecations). Pad the shorter side's bottom so the next
+    // block starts on the same row. offsetHeight excludes margins, so the pad is
+    // stable across the top-alignment passes below. Anchors that carry their OWN
+    // inner anchors (a list, whose items align individually with gap alignment) are
+    // skipped — their item-level anchors already do this, finer.
+    for (var k = 1; k <= maxK; k++) {
+      var bl = visAnchor(colOld, k), br = visAnchor(colNew, k);
+      if (!bl || !br) continue;
+      if (bl.querySelector('[data-align]') || br.querySelector('[data-align]')) continue;
+      var dh = bl.offsetHeight - br.offsetHeight;
+      if (dh > 0.5)       padBottom(br, dh);
+      else if (dh < -0.5) padBottom(bl, -dh);
+    }
+    // Then align the TOP of every anchor. Two passes top-to-bottom: pass 1 does
+    // the bulk, pass 2 mops up the residual left by margin-collapsing so headings
+    // land exactly. These run AFTER the height-equalize so they measure the padded
+    // layout and only add the leftover offset from unmatched (gap) content.
+    for (var pass = 0; pass < 2; pass++) {
+      for (var k = 1; k <= maxK; k++) {
+        var l = visAnchor(colOld, k), r = visAnchor(colNew, k);
+        if (!l || !r) continue;
+        var d = (l.getBoundingClientRect().top - colOld.getBoundingClientRect().top)
+              - (r.getBoundingClientRect().top - colNew.getBoundingClientRect().top);
+        if (d > 0.5)       pushDown(r, d);
+        else if (d < -0.5) pushDown(l, -d);
+      }
+    }
+  }
+
+  // Break ONE wide table out of a capped, centred readable column so it isn't
+  // trapped scrolling to read a single row. Shared by the inline view
+  // (fitInlineTables) and the solo Left/Right views (fitSoloTables) — both cap
+  // prose to a ~900px measure and centre it, so a table wider than that needs the
+  // more room. 'columnW' is the table's in-flow room, 'fullW' the width it may break out
+  // to (breakoutRoom below). The break-out is ALWAYS centred on the readable column — one
+  // rule at every width, in every view. A wholly-added / -removed table is wrapped in its
+  // ins/del.mdblock SHADE box — break THAT out so the highlight grows with the table; the
+  // inner table (max-width:100%) then fills the box. A plain table (unchanged, or a
+  // row/column diff) is its own target.
+  function breakoutTable(t, columnW, fullW) {
+    if (t.closest('td')) return;             // a nested table wraps in its cell — never broken out on its own
+    var p = t.parentNode;
+    var target = (p && p.nodeType === 1 && p.classList.contains('mdblock')) ? p : t;
+    // Reset target + table to the CSS default (width:max-content, max-width:100%)
+    // first, so a resize / re-run re-measures rather than compounding the last fit.
+    var oldCg = t.querySelector('colgroup.mddiff-cols'); if (oldCg) oldCg.remove();
+    t.style.tableLayout = '';
+    target.style.maxWidth = ''; target.style.width = ''; target.style.marginLeft = ''; target.style.transform = ''; target.style.boxSizing = '';
+    if (target !== t) { t.style.maxWidth = ''; t.style.width = ''; }
+    if (fullW <= columnW) return;            // window too narrow to gain anything
+    t.style.maxWidth = 'none';               // measure the unconstrained table width
+    var natural = t.offsetWidth;
+    // While still uncapped, capture the per-column natural + min-content widths —
+    // needed only when the table can't fit even at full-bleed (the pin below).
+    var nat = null, floor = null;
+    if (natural > fullW + 1) {
+      nat = colW(t);
+      if (nat.length) { t.style.width = 'min-content'; floor = colW(t); t.style.width = ''; }
+    }
+    t.style.maxWidth = '';
+    if (natural > columnW + 1) {
+      // width:max-content shrink-wraps the target to its content (the table, plus
+      // the shade box's padding), capped at fullW. box-sizing:border-box makes the
+      // cap apply to the VISIBLE box — a shade box's 12px padding + 3px border would
+      // otherwise push its border edge fullW+27px wide, eating the gutter.
+      target.style.width = 'max-content';
+      target.style.maxWidth = fullW + 'px';
+      target.style.boxSizing = 'border-box';
+      // CENTRE it on the readable column it grew out of — marginLeft 50% of the column,
+      // then translateX(-50%) of the target's own width. This is the ONLY placement:
+      // 'fullW' is the SYMMETRIC room about that same axis (breakoutRoom), so a centred
+      // break-out provably cannot reach either margin at any width, which is what lets
+      // the alignment be one unconditional rule. Never pin a break-out to a side to
+      // "make room" — that is the bug this replaced (see breakoutRoom).
+      target.style.marginLeft = '50%'; target.style.transform = 'translateX(-50%)';
+      // If the content can't fit even at full-bleed — a column that won't wrap, e.g.
+      // a nested table — the max-content cap just lets the table scroll sideways AND
+      // drags every prose row off-screen with it (all rows share the column widths).
+      // Pin the columns to a fitted geometry instead, so every cell wraps to its
+      // column. The single-table analogue of syncTableColumns; floors that overflow
+      // fullW fall through to the scrollbar, the last resort.
+      if (nat && nat.length) {
+        var fit = fitColumns(nat, floor, fullW);
+        if (fit) pinTable(t, fit.w, fit.sum);
+      }
+    }
+  }
+
+  var GUT = 36;   // page margin a break-out must leave clear on the right (the 24px minimap)
+  // How much room a break-out may take, measured about the CENTRE of the readable
+  // column — the axis breakoutTable centres on. The answer is the SYMMETRIC band about
+  // that axis: twice the SMALLER of the two side gaps.
+  //
+  // That symmetry is the whole design, and its absence was the root cause of two bugs.
+  // The page's margins are NOT symmetric about the column's centre: the right reserves
+  // the minimap (GUT), and with the line-number gutter on the LEFT additionally reserves
+  // the number rail — which is wider, and which the centred column knows nothing about.
+  // Spend that raw asymmetric width on a centred table and its left edge lands under the
+  // numbers. Both previous fixes patched the collision at placement time (0.2.43 let the
+  // table float over the numbers; 0.2.44 pinned every break-out flush to the rail, which
+  // stranded a barely-over-width table at the page edge) — but a table that is never
+  // ALLOWED to be wider than the symmetric band cannot collide in the first place, so
+  // placement stays one unconditional "centre it" with no side-pinning and no width
+  // threshold that flips the alignment. The cost is the only honest one: the very widest
+  // table gives up the sliver of extra room on its roomier side (~50px of 1788 at a
+  // 1900px window) to buy a layout that reads the same at every width.
+  //
+  // 'minLeft' is the leftmost page x a table may occupy: the plain gutter, or the number
+  // rail's right edge when the gutter is on. Everything else is measured, not assumed.
+  function breakoutRoom(el, minLeft) {
+    var cs = getComputedStyle(el);
+    var padL = parseFloat(cs.paddingLeft) || 0, padR = parseFloat(cs.paddingRight) || 0;
+    var columnW = el.clientWidth - padL - padR;                        // the table's in-flow room
+    var axis = el.getBoundingClientRect().left + padL + columnW / 2;   // what marginLeft:50% centres on
+    return { columnW: columnW,
+             fullW: 2 * Math.min(axis - minLeft, window.innerWidth - GUT - axis) };
+  }
+
+  // Inline view: let a WIDE table break out of the readable column. Prose reads
+  // best at a capped measure (body max-width: 900px), so the inline view stays
+  // narrow and centred — but that traps a wide table (a big parameter reference,
+  // say) in the column and forces it to scroll horizontally to read one row. So
+  // for any table whose natural content is wider than the column, break it out:
+  // keep it centred on the column and let it grow to the widest it can be while
+  // still clearing both page margins (breakoutRoom), so the PAGE never scrolls
+  // sideways — a table wider even than that keeps its own overflow scrollbar, the
+  // intended last resort. Narrow tables that already fit are left untouched, in
+  // normal flow (left-aligned with the prose). Measured, not hard-coded, so it
+  // tracks the real table widths (the --bar-h "measure, don't guess" idiom);
+  // self-gates on the inline view being active so it's a no-op in split mode.
+  //
+  // A wholly-added / -removed table is wrapped in its SHADE box (ins.mdblock /
+  // del.mdblock — the green/red highlight). Break THAT box out, not the bare
+  // table, so the highlight grows with the table instead of being left behind at
+  // the column width; the table inside (max-width: 100%) then fills the box. A
+  // plain table (unchanged, or a row/column diff) is its own breakout target.
+  function fitInlineTables() {
+    var iv = views.inline;
+    if (!iv.classList.contains('active')) return;
+    // The left margin to clear: the plain gutter, or — with the numbers on — the far-left
+    // number rail they occupy. breakoutRoom turns it into a symmetric, centre-safe width.
+    var minLeft = GUT;
+    if (document.body.classList.contains('show-lines')) minLeft = 76;   // right edge of the two-number (old+new) inline rail
+    var room = breakoutRoom(iv, minLeft);
+    var tables = iv.querySelectorAll('table');
+    for (var i = 0; i < tables.length; i++) breakoutTable(tables[i], room.columnW, room.fullW);
+  }
+  // Solo Left/Right views: the single visible column is capped to the same ~900px
+  // measure and centred (body.left-only / right-only CSS), so a wide table is
+  // trapped scrolling exactly as in the inline view above — the reported "table not
+  // fully displayed in Left/Right" bug. Break it out full-bleed too. Self-gates on a
+  // solo view being active (a no-op in inline / split).
+  //
+  // With the line-number gutter ON the solo column stays CENTRED and the numbers become
+  // a detached far-left RAIL (--gnum-solo). Same treatment as the inline view: the rail
+  // is just a bigger left margin handed to breakoutRoom, and the table stays centred.
+  function fitSoloTables() {
+    var solo = document.body.classList.contains('left-only') ? colOld
+             : document.body.classList.contains('right-only') ? colNew : null;
+    if (!solo) return;
+    var minLeft = GUT;
+    if (document.body.classList.contains('show-lines')) minLeft = 44;   // right edge of the single-number solo rail
+    var room = breakoutRoom(solo, minLeft);
+    var tables = solo.querySelectorAll('table');
+    for (var i = 0; i < tables.length; i++) breakoutTable(tables[i], room.columnW, room.fullW);
+  }
+  // Position the gutter numbers as a fixed far-left RAIL while the content stays centred
+  // (inline + solo, gutter on). The number pseudo-elements are absolute-positioned inside
+  // each block (block-relative), so a fixed page-left position needs the runtime distance
+  // from the centred column's content-left to the page edge — measured here and published
+  // as a CSS var the ::before/::after 'left' reads. Re-run whenever the layout moves.
+  function placeGutter() {
+    var iv = views.inline;
+    if (iv.classList.contains('active') && document.body.classList.contains('show-lines')) {
+      var ivLeft = iv.getBoundingClientRect().left + (parseFloat(getComputedStyle(iv).paddingLeft) || 0);
+      iv.style.setProperty('--gnum-old', (8 - ivLeft) + 'px');    // old number box → page x=8
+      iv.style.setProperty('--gnum-new', (42 - ivLeft) + 'px');   // new number box → page x=42
+    }
+    // solo: set --gnum-solo ONLY on the active solo column; clear it otherwise so split
+    // (the same .col elements) falls back to the -35px column hug.
+    colOld.style.removeProperty('--gnum-solo'); colNew.style.removeProperty('--gnum-solo');
+    var solo = document.body.classList.contains('left-only') ? colOld
+             : document.body.classList.contains('right-only') ? colNew : null;
+    if (solo && document.body.classList.contains('show-lines')) {
+      var padL = parseFloat(getComputedStyle(solo).paddingLeft) || 0;
+      var colLeft = solo.getBoundingClientRect().left + padL;
+      solo.style.setProperty('--gnum-solo', (8 - colLeft) + 'px');
+    }
+  }
+
+  // Diff overview minimap: one bar per change, positioned AND sized in
+  // proportion to the change's rendered height (a whole-block diff reads as a
+  // tall bar, a one-word diff as a short one), plus a box tracking the viewport
+  // and click to jump, drag to scrub.
+  var mm = document.getElementById('mddiff-minimap');
+  var vp = document.getElementById('mddiff-vp');
+  function docH() { return document.documentElement.scrollHeight || 1; }
+  function updateViewport() {
+    if (!mm || !vp) return;
+    var mh = mm.clientHeight, dh = docH();
+    vp.style.top = (window.scrollY / dh * mh) + 'px';
+    vp.style.height = Math.max(14, window.innerHeight / dh * mh) + 'px';
+  }
+  function buildMinimap() {
+    if (!mm) return;
+    var old = mm.querySelectorAll('.tick');
+    for (var i = 0; i < old.length; i++) old[i].remove();
+    var active = document.querySelector('.view.active');
+    var count = 0;
+    if (active) {
+      var mh = mm.clientHeight, dh = docH(), sy = window.scrollY;
+      // Inline marks are <ins>/<del> tags, but a whole-block change can instead
+      // be a class-marked element with no inner <ins>/<del> — a rewritten list
+      // item (li-ins/li-del). Include those, or a diff made only of such blocks
+      // leaves the ruler empty. (Table row/column changes wrap their cell text
+      // in <ins>/<del>, so they're already covered by the tag selector.)
+      var els = active.querySelectorAll('ins, del, li.li-ins, li.li-del');
+      // Map each visible change to a [top, bottom] band on the ruler, scaled
+      // from its real rendered height so the bar size mirrors the change size.
+      var bands = [];
+      for (var j = 0; j < els.length; j++) {
+        var el = els[j];
+        if (el.offsetParent === null) continue; // hidden (the inactive split column)
+        var r = el.getBoundingClientRect();
+        if (r.height === 0) continue;
+        var kind = (el.tagName === 'INS' || el.className.indexOf('-ins') >= 0) ? 'ins' : 'del';
+        bands.push({ kind: kind, top: (r.top + sy) / dh * mh, bottom: (r.bottom + sy) / dh * mh });
+      }
+      // Merge same-kind bands that touch/overlap so the several marks inside one
+      // rewritten block collapse into a single proportional bar (del and ins sit
+      // on opposite halves, so opposite kinds never merge into each other).
+      bands.sort(function (a, b) { return a.top - b.top; });
+      var merged = [], lastByKind = {};
+      for (var k = 0; k < bands.length; k++) {
+        var b = bands[k], last = lastByKind[b.kind];
+        if (last && b.top <= last.bottom + 1) {
+          if (b.bottom > last.bottom) last.bottom = b.bottom;
+        } else {
+          last = { kind: b.kind, top: b.top, bottom: b.bottom };
+          lastByKind[b.kind] = last; merged.push(last);
+        }
+      }
+      var frag = document.createDocumentFragment();
+      for (var m = 0; m < merged.length; m++) {
+        var g = merged[m];
+        var t = document.createElement('div'); t.className = 'tick ' + g.kind;
+        t.style.top = g.top + 'px'; t.style.height = Math.max(2, g.bottom - g.top) + 'px';
+        frag.appendChild(t); count++;
+      }
+      mm.appendChild(frag);
+    }
+    mm.style.display = count > 0 ? '' : 'none'; // no changes -> no ruler at all
+    if (count > 0) updateViewport();
+  }
+  function scrubTo(clientY) {
+    var r = mm.getBoundingClientRect();
+    var y = Math.min(Math.max(clientY - r.top, 0), mm.clientHeight);
+    window.scrollTo(0, y / mm.clientHeight * docH() - window.innerHeight / 2);
+  }
+  if (mm) {
+    var scrubbing = false;
+    mm.addEventListener('mousedown', function (e) { scrubbing = true; scrubTo(e.clientY); e.preventDefault(); });
+    window.addEventListener('mousemove', function (e) { if (scrubbing) scrubTo(e.clientY); });
+    window.addEventListener('mouseup', function () { scrubbing = false; });
+    window.addEventListener('scroll', updateViewport, { passive: true });
+    // Ticks are absolute positions measured at build time, so ANY later reflow
+    // (a late font, a table refit, the panel laid out before it was visible)
+    // leaves them pointing at where a change USED to be — the viewport box then
+    // sits on a green tick while the change is off-screen. Rebuild whenever the
+    // document's height (body) or the ruler's own height (mm) changes. Building
+    // only repositions fixed-ruler children, so it can't feed back into the
+    // observed sizes.
+    if (window.ResizeObserver) {
+      var mmRo;
+      var ro = new ResizeObserver(function () { clearTimeout(mmRo); mmRo = setTimeout(buildMinimap, 80); });
+      ro.observe(document.body); ro.observe(mm);
+    }
+  }
+
+  // Floating table-of-contents: a heading outline that slides out to the left of
+  // the diff minimap when you hover the right edge. Available regardless of scroll
+  // position — there is NO in-viewport gate (that boundary was fiddly and mis-fired,
+  // leaving the panel disarmed even when the TOC was off-screen). Entries are built
+  // from the ACTIVE view's headings (each already carries an id from diff.js's
+  // addHeadingIds); clicking one rides the same #-link handler below. Rebuilt on
+  // every view switch, like the minimap.
+  var toc = document.getElementById('mddiff-toc');
+  var tocReady = false, tocHeads = [];
+  // The single body copy to read from — the body is rendered 3× (inline + 2 cols),
+  // so scope to one: the inline view, or in split the canonical "after" column.
+  function tocScope() {
+    var active = document.querySelector('.view.active');
+    if (!active) return null;
+    if (active.id !== 'split-view') return active;
+    // In Left view the new column is hidden, so read from the OLD column; otherwise
+    // (split / Right) the new column is the canonical "after" side.
+    var side = document.body.classList.contains('left-only') ? '.col-old' : '.col-new';
+    return active.querySelector(side) || active;
+  }
+  // A heading's SHOWN-side text — the label must match the heading actually on
+  // screen. An edited heading renders both sides ("Deploying a <del>change</del>
+  // <ins>release</ins>"); each side's column hides the other via CSS, so drop the
+  // HIDDEN side here too or the label leaks the invisible words (a concatenated
+  // "Deploying a changerelease"). The shown side depends on which column tocScope
+  // read: Left shows the OLD column (ins hidden) so drop <ins> and keep <del>;
+  // split / Right show the NEW column (del hidden) so drop <del> — the usual case,
+  // the after-text as the outline's source of truth.
+  function headingText(h) {
+    var c = h.cloneNode(true);
+    var drop = document.body.classList.contains('left-only') ? 'ins' : 'del';
+    var gone = c.querySelectorAll(drop);
+    for (var i = 0; i < gone.length; i++) gone[i].parentNode.removeChild(gone[i]);
+    // NB: \s, not s — this whole script is inside buildPage's template literal,
+    // where s would collapse to a bare "s" and the regex would eat every letter s.
+    return (c.textContent || '').replace(/\s+/g, ' ').trim();
+  }
+  function buildToc() {
+    if (!toc) return;
+    toc.textContent = '';
+    tocHeads = [];
+    var scope = tocScope();
+    if (scope) {
+      var hs = scope.querySelectorAll('h1,h2,h3,h4,h5,h6'), frag = document.createDocumentFragment();
+      for (var i = 0; i < hs.length; i++) {
+        var h = hs[i];
+        if (!h.id || h.offsetParent === null) continue; // no slug, or the opposite side's hidden copy
+        var label = headingText(h);
+        if (!label) continue;                           // wholly-removed heading: the new side has no entry
+        var a = document.createElement('a');
+        a.href = '#' + h.id;
+        a.className = 'lvl-' + h.tagName.charAt(1);
+        a.textContent = label;
+        frag.appendChild(a);
+        tocHeads.push({ el: h, link: a });
+      }
+      toc.appendChild(frag);
+    }
+    tocReady = tocHeads.length > 0;            // nothing to reveal for a doc with no headings
+    document.body.classList.toggle('toc-ready', tocReady);
+    updateTocState();
+  }
+  // Scroll-spy: highlight the current section = the last heading whose top has
+  // scrolled above a reading line ~30% down the viewport. Using the very top (the
+  // bar) instead lagged a whole section behind — a heading only became "current"
+  // once it reached the bar, so the section filling the screen wasn't yet marked.
+  // Live rects (cheap, like align()), so resize/relayout needs no rebuild.
+  function updateTocState() {
+    if (!toc) return;
+    var line = (bar ? bar.offsetHeight : 0) + 12 + window.innerHeight * 0.3, curLink = null;
+    for (var i = 0; i < tocHeads.length; i++)
+      if (tocHeads[i].el.getBoundingClientRect().top <= line) curLink = tocHeads[i].link; else break;
+    for (var j = 0; j < tocHeads.length; j++) tocHeads[j].link.classList.toggle('cur', tocHeads[j].link === curLink);
+  }
+  // Reveal logic. The trigger is a GENEROUS band at the right edge (the minimap
+  // plus a margin) — not just the 24px ruler, which was a sliver to hit. The panel
+  // opens once, centred on the cursor's height (clamped to the viewport), then
+  // HOLDS that position so it isn't a moving target. It stays up while the cursor
+  // is over it, and only hides after a forgiving delay once the cursor has left
+  // BOTH the rail and the panel. Armed only when there's a TOC to show (tocReady)
+  // and never mid-scrub (scrubbing is the minimap's own drag flag).
+  var TOC_RAIL = 44, TOC_HIDE_MS = 450;   // px-from-right trigger band; close grace
+  var tocHideTimer = null, tocRaf = 0, tocMX = 0, tocMY = 0;
+  function positionToc(y) { // centre on the cursor, kept within the viewport
+    var h = toc.offsetHeight || 0, barH = bar ? bar.offsetHeight : 50;
+    var minTop = barH + 8, maxTop = Math.max(minTop, window.innerHeight - h - 8);
+    toc.style.top = Math.max(minTop, Math.min(y - h / 2, maxTop)) + 'px';
+  }
+  function tocIsOpen() { return document.body.classList.contains('toc-open'); }
+  function closeToc() { document.body.classList.remove('toc-open'); }
+  function cancelHide() { if (tocHideTimer) { clearTimeout(tocHideTimer); tocHideTimer = null; } }
+  // schedule once — don't reset on every mousemove, or a moving cursor never lets
+  // the timer fire and the panel can't close while the mouse is in motion.
+  function scheduleHide() { if (!tocHideTimer) tocHideTimer = setTimeout(function () { tocHideTimer = null; closeToc(); }, TOC_HIDE_MS); }
+  function overPanel(x, y) {
+    if (!tocIsOpen()) return false;
+    var r = toc.getBoundingClientRect(), pad = 14; // a forgiving margin around the panel
+    return x >= r.left - pad && x <= r.right + pad && y >= r.top - pad && y <= r.bottom + pad;
+  }
+  function onPointer(x, y) {
+    if (!toc || !tocReady || scrubbing) return;
+    var barH = bar ? bar.offsetHeight : 50;
+    if (x >= window.innerWidth - TOC_RAIL && y >= barH) {       // on the right-edge rail
+      cancelHide();
+      if (!tocIsOpen()) { positionToc(y); document.body.classList.add('toc-open'); } // open once, then hold
+    } else if (overPanel(x, y)) {
+      cancelHide();                                             // hovering the panel itself
+    } else if (tocIsOpen()) {
+      scheduleHide();                                           // left both → hide after the grace delay
+    }
+  }
+  window.addEventListener('mousemove', function (e) {
+    tocMX = e.clientX; tocMY = e.clientY;
+    if (tocRaf) return;
+    tocRaf = requestAnimationFrame(function () { tocRaf = 0; onPointer(tocMX, tocMY); });
+  });
+  // Clicking an entry jumps there (handled below); get the panel out of the way.
+  if (toc) toc.addEventListener('click', function () { cancelHide(); closeToc(); });
+  // A click anywhere outside the panel dismisses it at once, rather than waiting out
+  // the hover grace delay — a faster, more deliberate opt-out than moving the cursor
+  // off the rail. mousedown (not click) so a text-selection drag started elsewhere
+  // also closes it; clicks inside the panel are left to the entry handler above.
+  window.addEventListener('mousedown', function (e) {
+    if (tocIsOpen() && toc && !toc.contains(e.target)) { cancelHide(); closeToc(); }
+  });
+  window.addEventListener('scroll', updateTocState, { passive: true });
+
+  // In-page anchor jumps (a TOC entry, or any [text](#heading) link). The core
+  // now stamps heading ids (see diff.js), but the diff BODY is rendered three
+  // times — the inline view + the two columns — so each slug exists up to 3×.
+  // Native hash navigation jumps to the FIRST copy, which is the hidden inline
+  // view while side-by-side is showing. So intercept #-link clicks and scroll to
+  // the target WITHIN the same view as the link, clearing the sticky bar (and,
+  // in split, the sticky column header) by hand.
+  function decodeId(s) { try { return decodeURIComponent(s); } catch (e) { return s; } }
+  function anchorFrom(node) {
+    while (node && node !== document) { if (node.tagName === 'A') return node; node = node.parentNode; }
+    return null;
+  }
+  function jumpScope(node) { // the view the link lives in: a split column, or the inline view
+    while (node && node !== document) {
+      if (node.id === 'inline-view' || (node.classList && node.classList.contains('col'))) return node;
+      node = node.parentNode;
+    }
+    return null;
+  }
+
+  function anchorNormKey(s) { return String(s).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ''); }
+  function resolveAnchor(targetId, candidates) {
+    var want = anchorNormKey(targetId), fuzzy = null;
+    for (var i = 0; i < candidates.length; i++) {
+      var c = candidates[i];
+      if (c.id === targetId) return c;                          // exact id wins
+      if (fuzzy === null && anchorNormKey(c.text) === want) fuzzy = c; // first text match
+    }
+    return fuzzy;
+  }
+  function findById(scope, id) { // scan THIS copy only — ids repeat across the three copies.
+    // Build candidates from the VISIBLE headings (a del/ins heading is
+    // display:none in the column for its opposite side; offsetParent===null ⇒
+    // hidden, and scrolling to a zero-box element would jump to the top), then
+    // resolve: exact id first, else the normalized-text fallback (see ANCHOR_JS).
+    //
+    // Use innerText, NOT textContent, for the fallback text: a CHANGED heading
+    // carries the opposite side's words in display:none <del>/<ins>, which
+    // textContent still includes — so "Translating ⟨del⟩ratio→derived⟨/del⟩…"
+    // would compare with the removed words baked in and never match the new-side
+    // TOC fragment. innerText is the RENDERED (visible) text, i.e. this side's
+    // words only — exactly what the heading was slugged from and what the
+    // fragment points at. (This is also why exact-id alone is insufficient: our
+    // slug collapses a "→"/"×"'s double space to one hyphen while GitHub keeps
+    // both, so the fragment has "m--required" vs our id's "m-required".)
+    //
+    // Non-removed headings go FIRST: in the inline view a REMOVED heading (inside
+    // <del> / li-del) is visible too and may share its old-side slug with the
+    // current heading (a moved section, a deleted duplicate — see diff.js
+    // addHeadingIds), so `#setup` must land on the current Setup, not its struck
+    // old copy. A removed heading stays reachable when nothing current matches.
+    // The OLD column (side-by-side left / Left-only) IS the old document, where a
+    // removed heading is simply part of it — plain document order there.
+    var els = scope.querySelectorAll('[id]'), cands = [], gone = [];
+    var oldDoc = scope.classList && scope.classList.contains('col-old');
+    for (var i = 0; i < els.length; i++)
+      if (els[i].offsetParent !== null)
+        (!oldDoc && els[i].closest('del, li.li-del') ? gone : cands).push({ id: els[i].id, text: els[i].innerText, el: els[i] });
+    cands = cands.concat(gone);
+    var hit = resolveAnchor(id, cands);
+    return hit ? hit.el : null;
+  }
+  function scrollToTarget(scope, el, smooth) {
+    var off = (bar ? bar.offsetHeight : 0) + 12;
+    if (document.body.classList.contains('split-mode')) {
+      var head = scope.querySelector ? scope.querySelector('.col-head') : null;
+      if (head) off += head.offsetHeight; // also clear the sticky filename row
+    }
+    var top = el.getBoundingClientRect().top + window.scrollY - off;
+    window.scrollTo({ top: top < 0 ? 0 : top, behavior: smooth ? 'smooth' : 'auto' });
+  }
+  document.addEventListener('click', function (e) {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    var a = anchorFrom(e.target);
+    if (!a) return;
+    var href = a.getAttribute('href') || '';
+    if (href.charAt(0) !== '#' || href.length < 2) return; // external link / bare "#": leave to the browser
+    // A link inside a view scopes to that view; a floating-TOC/nav link (outside
+    // any view) falls back to the active view's canonical side (col-new in split),
+    // matching the deep-link jump below — so it lands in the right column copy.
+    var scope = jumpScope(a) || tocScope();
+    if (!scope) return;
+    var target = findById(scope, decodeId(href.slice(1)));
+    if (target) { e.preventDefault(); scrollToTarget(scope, target, true); }
+  });
+  // A deep link (URL ending in #heading) must also land in the ACTIVE view, not
+  // the hidden first copy — redo the jump once layout has settled.
+  // A host with no navigable URL (the VS Code webview following a cross-file
+  // `other.md#heading` link) passes the fragment as `hash`; it stands in for
+  // location.hash. Omitted (the CLI/daemon, whose URL carries the real #) ⇒
+  // location.hash only, exactly as before.
+  function jumpToHash() {
+    if (!location.hash || location.hash.length < 2) return;
+    var h = location.hash.slice(1);
+    var scope = tocScope();   // solo-aware: the visible column in Left/Right
+    if (!scope) return;
+    var target = findById(scope, decodeId(h));
+    if (target) scrollToTarget(scope, target, false);
+  }
+
+  var MM_SRC = "https://cdn.jsdelivr.net/npm/mermaid@12.2.0/dist/mermaid.min.js", MM_NONCE = "";
+  var MM_SEL = '.mddiff-mermaid', MM_MIN_SCALE = 0.75, mmSeq = 0, mmCache = {}, mmDiffs = {}, mmBusy = false, mmAgain = false, mmTimer = 0, mmLoad = null, mmDead = false;
+  function mmLib(cb) {
+    if (window.mermaid) return cb();
+    if (!MM_SRC || mmDead) return;
+    if (mmLoad) { mmLoad.push(cb); return; }
+    mmLoad = [cb];
+    var s = document.createElement('script');
+    if (MM_NONCE) s.setAttribute('nonce', MM_NONCE);
+    s.src = MM_SRC;
+    s.onload = function () { var q = mmLoad; mmLoad = null; q.forEach(function (f) { f(); }); };
+    s.onerror = function () { mmLoad = null; mmDead = true; };   // no library: the code blocks stay
+    document.head.appendChild(s);
+  }
+  // A nonce-only CSP (the VS Code webview) blocks every style="" attribute and every
+  // un-nonced <style> — and mermaid builds its SVG with both, MEASURING text while it
+  // does, so a blocked style doesn't just look wrong, it mis-sizes every node and drops
+  // the edges. Rather than loosen the policy, route those writes through what the CSP
+  // permits for the length of a render: a style attribute becomes CSSOM (style.cssText),
+  // a created <style> gets the nonce, and an innerHTML string is parsed inertly and
+  // fixed up the same way before it is adopted. Uninstalled straight after, so the rest
+  // of the page never runs under it. Not needed (MM_NONCE '') without a CSP.
+  function mmShim() {
+    var EP = Element.prototype, DP = Document.prototype;
+    var sa = EP.setAttribute, sans = EP.setAttributeNS, ce = DP.createElement, cens = DP.createElementNS;
+    var ih = Object.getOwnPropertyDescriptor(EP, 'innerHTML');
+    function nonced(e, t) { if (String(t).toLowerCase() === 'style') sa.call(e, 'nonce', MM_NONCE); return e; }
+    EP.setAttribute = function (k, v) { if (String(k).toLowerCase() === 'style') { this.style.cssText = v; return; } return sa.call(this, k, v); };
+    EP.setAttributeNS = function (ns, k, v) { if (String(k).toLowerCase() === 'style') { this.style.cssText = v; return; } return sans.call(this, ns, k, v); };
+    DP.createElement = function (t) { return nonced(ce.apply(this, arguments), t); };
+    DP.createElementNS = function (ns, t) { return nonced(cens.apply(this, arguments), t); };
+    Object.defineProperty(EP, 'innerHTML', { configurable: true, get: ih.get, set: function (v) {
+      if (typeof v !== 'string' || !/style/i.test(v)) return ih.set.call(this, v);
+      var svg = this.namespaceURI === 'http://www.w3.org/2000/svg';
+      var doc = svg ? new DOMParser().parseFromString('<svg xmlns="http://www.w3.org/2000/svg">' + v + '</svg>', 'image/svg+xml')
+                    : new DOMParser().parseFromString('<body>' + v + '<\/body>', 'text/html');   // escaped: front-ends splice at the page's first body-close tag
+      if (svg && doc.querySelector('parsererror')) return ih.set.call(this, v);
+      var host = svg ? doc.documentElement : doc.body, st = [], i;
+      var withStyle = host.querySelectorAll('[style]');
+      for (i = 0; i < withStyle.length; i++) { st.push(withStyle[i].getAttribute('style')); withStyle[i].removeAttribute('style'); sa.call(withStyle[i], 'data-mmst', String(i)); }
+      var styles = host.querySelectorAll('style');
+      for (i = 0; i < styles.length; i++) sa.call(styles[i], 'nonce', MM_NONCE);
+      while (this.firstChild) this.removeChild(this.firstChild);
+      var kids = [].slice.call(host.childNodes);
+      for (i = 0; i < kids.length; i++) this.appendChild(document.importNode(kids[i], true));
+      var back = this.querySelectorAll('[data-mmst]');
+      for (i = 0; i < back.length; i++) { back[i].style.cssText = st[+back[i].getAttribute('data-mmst')]; back[i].removeAttribute('data-mmst'); }
+    } });
+    return function () { EP.setAttribute = sa; EP.setAttributeNS = sans; DP.createElement = ce; DP.createElementNS = cens; Object.defineProperty(EP, 'innerHTML', ih); };
+  }
+  function mmTheme() { return document.body.classList.contains('light') ? 'default' : 'dark'; }
+  // Which diagram(s) one copy of a box draws: an unchanged / added / removed fence its
+  // one source; a changed fence the old source in the old column, the new in the new,
+  // and both (before, after) in the inline view.
+  function mmJobs(w) {
+    var one = w.getAttribute('data-mm');
+    if (one != null) return [[one, '']];
+    var o = w.getAttribute('data-mmo'), n = w.getAttribute('data-mmn'), jobs = [];
+    var side = w.closest('.col-old') ? 'old' : w.closest('.col-new') ? 'new' : 'both';
+    if (o != null && side !== 'new') jobs.push([o, 'mm-del']);
+    if (n != null && side !== 'old') jobs.push([n, 'mm-ins']);
+    return jobs;
+  }
+  // Render one source to SVG markup, once per (theme, source) — the body is emitted
+  // three times, so the other copies reuse it. Each insertion re-ids the SVG, since
+  // mermaid scopes its stylesheet and arrow markers by the root id and duplicate ids
+  // would cross-wire the copies.
+  function mmSvg(src, theme) {
+    var key = theme + '\u0001' + src;
+    if (!mmCache[key]) {
+      var id = 'mddiff-mm-' + (++mmSeq);
+      mmCache[key] = window.mermaid.render(id, src).then(function (r) { return { id: id, svg: r.svg }; })
+        .catch(function (e) {
+          var junk = document.getElementById('d' + id); if (junk) junk.remove();
+          throw e;
+        });
+    }
+    return mmCache[key];
+  }
+  // Element-level diff of a CHANGED diagram: which nodes, edges and groups were
+  // removed / added / changed, from mermaid's own parse of each side (never from the
+  // SVG or the source lines — a moved line or a re-layout is not a change). Read from
+  // db.getData(), the node/edge model mermaid's unified layout draws from, so one
+  // comparison serves every type that has it AND keeps its ids stable: flowcharts,
+  // state, class, ER and requirement diagrams (MM_EL_TYPES). Nodes match by id (an
+  // ER entity by its name — its id embeds a counter that shifts); a node whose id
+  // was renamed but whose content is the same, and unique, still matches. Edges match
+  // by (start, end, nth such edge), through that rename. Returns { old: {domId: st},
+  // new: {domId: st} } (st = del|ins|mod), or null — another type (sequence, gantt,
+  // mindmap…), a type change, a parse error, or nothing to mark — and the box then
+  // keeps its whole-chart frame.
+  var MM_EL_TYPES = { flowchart: 1, stateDiagram: 1, classDiagram: 1, er: 1, requirement: 1 };
+  // the fields that are a node's CONTENT (not its styling or layout), per type
+  var MM_NODE_SIG = ['shape', 'label', 'text', 'description', 'members', 'methods', 'annotations',
+    'attributes', 'requirementId', 'risk', 'verifyMethod'];
+  function mmModel(dg) {
+    var db = dg && dg.db, fam = dg && String(dg.type).split('-')[0];
+    if (!db || typeof db.getData !== 'function' || !MM_EL_TYPES[fam]) return null;
+    var d = db.getData(), f = { fam: fam, nodes: {}, edges: [] }, key = {};
+    var str = function (v) { return v == null ? '' : typeof v === 'string' ? v : JSON.stringify(v); };
+    d.nodes.forEach(function (v) { key[v.id] = fam === 'er' ? str(v.label) : v.id; });
+    d.nodes.forEach(function (v) {
+      f.nodes[key[v.id]] = { dom: v.domId || v.id, parent: v.parentId ? key[v.parentId] || v.parentId : '',
+        shape: str(v.shape), look: MM_NODE_SIG.map(function (k) { return str(v[k]); }).join('|') };
+    });
+    d.edges.forEach(function (e) {
+      var rest = [e.type, e.arrowTypeStart, e.arrowTypeEnd, e.pattern, e.thickness].map(str).join('|');
+      f.edges.push({ s: key[e.start] || e.start, e: key[e.end] || e.end, dom: e.id, rest: rest, sig: str(e.label) + '|' + rest });
+    });
+    return f;
+  }
+  function mmCompare(o, n) {
+    // pair: for each changed element, its counterpart on the other side, and keep —
+    // whether ONLY its text can have changed (same shape and group / same arrow), so a
+    // successful word diff of its label is the whole story (mmPaint).
+    var m = { old: {}, new: {}, pair: { old: {}, new: {} } }, ren = {}, k, lo = {}, ln = {};
+    function cmp(a, b, sa, sb, keep, edge) {
+      if (!b) m.old[a.dom] = 'del';
+      else if (sa !== sb) {
+        m.old[a.dom] = 'mod'; m.new[b.dom] = 'mod';
+        m.pair.old[a.dom] = { other: b.dom, keep: keep, edge: edge };
+        m.pair.new[b.dom] = { other: a.dom, keep: keep, edge: edge };
+      }
+    }
+    // renamed ids: an unmatched node on each side with the same unique look
+    for (k in o.nodes) if (!n.nodes[k]) (lo[o.nodes[k].look] = lo[o.nodes[k].look] ? [] : [k]);
+    for (k in n.nodes) if (!o.nodes[k]) (ln[n.nodes[k].look] = ln[n.nodes[k].look] ? [] : [k]);
+    for (k in lo) if (lo[k].length === 1 && ln[k] && ln[k].length === 1) ren[lo[k][0]] = ln[k][0];
+    var to = function (id) { return ren[id] || id; }, taken = {};
+    for (k in o.nodes) {
+      var a = o.nodes[k], b = n.nodes[to(k)];
+      cmp(a, b, a.look + '|' + to(a.parent), b && b.look + '|' + b.parent, b && a.shape === b.shape && to(a.parent) === b.parent, false);
+      if (b) taken[to(k)] = 1;
+    }
+    for (k in n.nodes) if (!taken[k]) m.new[n.nodes[k].dom] = 'ins';
+    function keyed(list, map) {
+      var out = {}, seen = {};
+      list.forEach(function (e) { var p = map(e.s) + '>' + map(e.e); seen[p] = (seen[p] || 0) + 1; out[p + '#' + seen[p]] = e; });
+      return out;
+    }
+    var oe = keyed(o.edges, to), ne = keyed(n.edges, function (id) { return id; });
+    for (k in oe) cmp(oe[k], ne[k], oe[k].sig, ne[k] && ne[k].sig, ne[k] && oe[k].rest === ne[k].rest, true);
+    for (k in ne) if (!oe[k]) m.new[ne[k].dom] = 'ins';
+    return Object.keys(m.old).length || Object.keys(m.new).length ? m : null;
+  }
+  // What a CHANGED box can show beyond its two drawings: { marks } (element-level, see
+  // mmCompare), or { note } — why it is compared as a whole: 'type' (no element model
+  // for this diagram type; m.type names it), 'kind' (the diagram type itself changed) or
+  // 'none' (an element type, but nothing to mark — mmBox then tells a source-only edit
+  // from a styling-only one). null: not a changed box, or a side doesn't parse (the
+  // error note already explains that).
+  function mmMarks(w) {
+    var o = w.getAttribute('data-mmo'), n = w.getAttribute('data-mmn');
+    if (o == null || n == null) return Promise.resolve(null);
+    var key = o + '\u0001' + n, api = window.mermaid.mermaidAPI;
+    if (!(key in mmDiffs)) {
+      mmDiffs[key] = !api || !api.getDiagramFromText ? Promise.resolve(null)
+        : api.getDiagramFromText(o).then(function (od) {
+          return api.getDiagramFromText(n).then(function (nd) {
+            var a = mmModel(od), b = mmModel(nd), fo = mmFam(od), fn = mmFam(nd);
+            if (fo !== fn) return { note: 'kind' };
+            if (!a || !b) return { note: 'type', type: fn };
+            var m = mmCompare(a, b);
+            return m ? { marks: m } : { note: 'none' };
+          });
+        }).catch(function () { return null; });
+    }
+    return mmDiffs[key];
+  }
+  function mmFam(dg) { return String(dg && dg.type).split('-')[0]; }
+  // Whether both sides DRAW the same (each render's own root id blanked out) — an edit
+  // that only touched whitespace, a comment or the line layout of the source.
+  function mmSame(w, theme) {
+    return Promise.all([mmSvg(w.getAttribute('data-mmo'), theme), mmSvg(w.getAttribute('data-mmn'), theme)])
+      .then(function (r) { return r[0].svg.split(r[0].id).join('') === r[1].svg.split(r[1].id).join(''); },
+        function () { return false; });
+  }
+  var MM_TYPE_NAMES = { sequence: 'sequence diagrams', gantt: 'Gantt charts', pie: 'pie charts',
+    mindmap: 'mindmaps', journey: 'user journeys', timeline: 'timelines', gitGraph: 'git graphs',
+    quadrantChart: 'quadrant charts', xychart: 'XY charts', sankey: 'Sankey diagrams',
+    block: 'block diagrams', c4: 'C4 diagrams', kanban: 'kanban boards', packet: 'packet diagrams',
+    architecture: 'architecture diagrams', radar: 'radar charts', treemap: 'treemaps' };
+  function mmNoteText(m) {
+    return m.note === 'type'
+      ? 'Changes aren\u2019t highlighted per element for ' + (MM_TYPE_NAMES[m.type] || 'this diagram type')
+        + ' \u2014 compare the two drawings, or click Source for the line diff.'
+      : m.note === 'kind' ? 'The diagram type changed, so the two drawings are compared as a whole.'
+      : m.note === 'same' ? 'The drawing didn\u2019t change \u2014 the edit is only in the source (click Source).'
+      : 'Only styling changed \u2014 nothing was added, removed or relabelled (click Source for the edit).';
+  }
+  // A domId's trailing counter can differ between the parse above and the render
+  // (class diagrams number boxes per db call), so an element is found by its exact
+  // id first, else by the id minus that counter when that is unique in the drawing.
+  function mmBare(k) { var j = k.lastIndexOf('-'); return j > 0 && /^\d+$/.test(k.slice(j + 1)) ? k.slice(0, j) : k; }
+  function mmIndex(svg, root) {
+    var ix = {}, bare = {}, els = svg.querySelectorAll('[id]'), p = root + '-';
+    for (var i = 0; i < els.length; i++) {
+      var id = els[i].id;
+      if (id.indexOf(p) !== 0) continue;
+      id = id.slice(p.length);
+      if (!(id in ix)) ix[id] = els[i];
+      var b = mmBare(id);
+      bare[b] = b in bare && bare[b] !== els[i] ? null : els[i];
+    }
+    return function (d) { return ix[d] || bare[mmBare(d)] || null; };
+  }
+  // Paint one drawn copy: each marked element is found by the id mermaid gave it
+  // (root id + '-' + domId; an edge's label by its data-id). A marked edge gets its
+  // own copy of its arrowhead marker, so the head takes the edge's colour too.
+  //
+  // A CHANGED element is word-diffed against its counterpart in the OTHER side's drawing
+  // (other = that render, parsed): its label's text pieces pair up by position, and only
+  // the words that differ are marked, like the prose diff. When that works and nothing
+  // else about it changed (pair.keep), it is a text-only change ('txt': no amber
+  // outline, and an arrow stays as drawn — only its label's words are marked).
+  function mmPaint(fig, root, marks, pairs, other, wcls) {
+    var svg = fig.querySelector('svg'), find = mmIndex(svg, root), d, n = 0;
+    for (d in marks) {
+      var st = marks[d], el = find(d), p = pairs && pairs[d];
+      if (st === 'mod' && p && other && mmWords(svg, el, d, other, p, wcls) && p.keep) st = 'txt';
+      st = 'mmd-' + st;
+      if (el) {
+        n++;
+        var path = el.tagName.toLowerCase() === 'path';
+        if (!(path && st === 'mmd-txt')) el.classList.add(st);
+        if (path && st !== 'mmd-txt') mmMarker(svg, el, st);
+      }
+      var ls = svg.querySelectorAll('.edgeLabels [data-id="' + CSS.escape(d) + '"]');
+      for (var i = 0; i < ls.length; i++) (ls[i].closest('g.edgeLabel') || ls[i]).classList.add(st);
+    }
+    if (n) fig.classList.add('mm-dim');
+  }
+  // The visible text pieces of a drawn element (HTML labels or SVG <text>), in order.
+  function mmTexts(el) {
+    var out = [];
+    if (!el) return out;
+    var tw = el.ownerDocument.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    while (tw.nextNode()) if (/\S/.test(tw.currentNode.nodeValue)) out.push(tw.currentNode);
+    return out;
+  }
+  function mmWords(svg, el, d, other, p, wcls) {
+    var lab = function (s, id) { return s.querySelector('.edgeLabels [data-id="' + CSS.escape(id) + '"]'); };
+    var mine = mmTexts(p.edge ? lab(svg, d) : el), theirs = mmTexts(p.edge ? lab(other.svg, p.other) : other.find(p.other));
+    if (!mine.length || mine.length !== theirs.length) return false;
+    var any = false;
+    for (var i = 0; i < mine.length; i++) {
+      var a = mine[i].nodeValue, b = theirs[i].nodeValue;
+      // the caret on the OLD side marks where words were added; on the NEW side, removed
+      if (a !== b) { any = true; mmWrap(mine[i], mmWordDiff(a, b), wcls, 'mmd-gap ' + (wcls === 'mmd-wdel' ? 'mmd-gapins' : 'mmd-gapdel')); }
+    }
+    return any;
+  }
+  // a's tokens flagged same / changed against b — an LCS. A token is a run of letters /
+  // digits, a run of whitespace, or ONE punctuation mark, so code-like labels diff at the
+  // right grain: renderRecipe(recipe) → renderRecipe(recipe, cwd) marks just ", cwd".
+  // A pure insertion on b's side — words b has between two of a's UNCHANGED tokens, with
+  // nothing of a's removed there — leaves a GAP entry ['', null] at that spot, so a's
+  // drawing can point at where the other side's text went in.
+  function mmWordDiff(a, b) {
+    var tok = function (x) { return x.split(/(\s+|[^\p{L}\p{N}_\s])/u).filter(function (t) { return t !== ''; }); };
+    var A = tok(a), B = tok(b), i, j, L = [], gap = false;
+    for (i = A.length; i >= 0; i--) { L[i] = []; for (j = B.length; j >= 0; j--)
+      L[i][j] = i === A.length || j === B.length ? 0 : A[i] === B[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]); }
+    var out = [];
+    for (i = 0, j = 0; i < A.length;) {
+      if (j < B.length && A[i] === B[j]) {
+        if (gap) out.push(['', null]);
+        gap = false; out.push([A[i], true]); i++; j++;
+      }
+      else if (j < B.length && L[i][j + 1] >= L[i + 1][j]) { if (/\S/.test(B[j])) gap = true; j++; }
+      else { gap = false; out.push([A[i], false]); i++; }
+    }
+    for (; j < B.length; j++) if (/\S/.test(B[j])) gap = true;
+    if (gap) out.push(['', null]);
+    return out;
+  }
+  // Replace text node t with its tokens, the changed ones wrapped in cls; a GAP becomes a
+  // zero-width caret (gcls) — an HTML label only, since SVG <text> has no such box. No
+  // wrapper adds width (no padding / borders), so mermaid's sized label never re-wraps.
+  function mmWrap(t, toks, cls, gcls) {
+    var svgNs = 'http://www.w3.org/2000/svg', inSvg = t.parentNode.namespaceURI === svgNs, doc = t.ownerDocument;
+    var frag = doc.createDocumentFragment(), run = null, k;
+    // Whitespace counts as changed only BETWEEN two changed tokens, so one edit is ONE
+    // mark (", cwd"), never a mark per token with plain gaps between.
+    var T = toks.map(function (x) { return x.slice(); });
+    for (k = 0; k < T.length; k++) if (T[k][1] !== null && !/\S/.test(T[k][0]))
+      T[k][1] = !(k > 0 && T[k - 1][1] === false && k + 1 < T.length && T[k + 1][1] === false);
+    T.forEach(function (x) {
+      if (x[1] === null) {
+        run = null;
+        if (inSvg) return;
+        var g = doc.createElement('span'); g.setAttribute('class', gcls); frag.appendChild(g); return;
+      }
+      if (x[1]) { run = null; frag.appendChild(doc.createTextNode(x[0])); return; }
+      if (!run) {
+        run = inSvg ? doc.createElementNS(svgNs, 'tspan') : doc.createElement('span');
+        run.setAttribute('class', cls); frag.appendChild(run);
+      }
+      run.appendChild(doc.createTextNode(x[0]));
+    });
+    t.parentNode.replaceChild(frag, t);
+  }
+  // The other side's render, parsed (inert) so mmWords can read its labels.
+  // (mermaid.render always yields an <svg> — the drawing itself is built from it.)
+  function mmDoc(r) {
+    var s = new DOMParser().parseFromString(r.svg, 'text/html').querySelector('svg');
+    return { svg: s, find: mmIndex(s, r.id) };
+  }
+  function mmMarker(svg, path, st) {
+    ['marker-start', 'marker-end'].forEach(function (a) {
+      var v = path.getAttribute(a) || '', id = v.slice(v.indexOf('#') + 1, v.lastIndexOf(')'));
+      var mk = id && svg.querySelector('#' + CSS.escape(id));
+      if (!mk) return;
+      var cid = id + '-' + st, c = svg.querySelector('#' + CSS.escape(cid));
+      if (!c) {
+        c = mk.cloneNode(true); c.id = cid; c.classList.add(st); mk.parentNode.appendChild(c);
+        // a closed path is a solid arrowhead (fill it); an open one — an ER crow's
+        // foot, a cardinality bar — is drawn by its stroke only and must stay unfilled
+        var ps = c.querySelectorAll('path');
+        for (var i = 0; i < ps.length; i++) if (/z\s*$/i.test(ps[i].getAttribute('d'))) ps[i].classList.add('mm-solid');
+      }
+      path.setAttribute(a, 'url(#' + cid + ')');
+    });
+  }
+  function mmBox(w) {
+    var out = document.createElement('div'); out.className = 'mm-out';
+    var jobs = mmJobs(w), theme = mmTheme(), marks = null, note = null;
+    var docs = null;
+    return mmMarks(w).then(function (m) {
+      marks = m && m.marks;
+      return Promise.all(jobs.map(function (j) { return mmSvg(j[0], theme); })).then(function (rs) {
+        if (marks) return Promise.all([mmSvg(w.getAttribute('data-mmo'), theme), mmSvg(w.getAttribute('data-mmn'), theme)])
+          .then(function (b) { docs = { old: mmDoc(b[0]), new: mmDoc(b[1]) }; return rs; });
+        if (!m) return rs;
+        return mmSame(w, theme).then(function (same) {
+          note = same ? { note: 'same' } : m;
+          if (note.note === 'none') note = { note: 'style' };
+          return rs;
+        });
+      });
+    }).then(function (rs) {
+      rs.forEach(function (r, i) {
+        var fig = document.createElement('div'); fig.className = 'mm-fig' + (jobs[i][1] ? ' ' + jobs[i][1] : '');
+        var root = r.id + 'x' + (++mmSeq);
+        fig.innerHTML = r.svg.split(r.id).join(root);
+        // Element-diffed: BOTH sides drop the whole-chart tint (mm-el), even a side with
+        // nothing of its own to mark (a diagram that only gained elements); only a side
+        // with marks fades its unchanged elements (mm-dim).
+        if (marks) {
+          var old = jobs[i][1] === 'mm-del';
+          fig.classList.add('mm-el');
+          mmPaint(fig, root, old ? marks.old : marks.new, old ? marks.pair.old : marks.pair.new,
+            docs && (old ? docs.new : docs.old), old ? 'mmd-wdel' : 'mmd-wins');
+        }
+        else if (note && note.note === 'same') fig.classList.add('mm-el');   // nothing to compare: no tint
+        // mermaid sizes the SVG to fit its box; a wide flowchart in a half column would
+        // shrink to unreadable text, so it shrinks to MM_MIN_SCALE at most and then
+        // scrolls sideways inside its figure instead.
+        var svgEl = fig.querySelector('svg'), vb = svgEl && svgEl.viewBox && svgEl.viewBox.baseVal;
+        if (vb && vb.width) svgEl.style.minWidth = Math.round(vb.width * MM_MIN_SCALE) + 'px';
+        out.appendChild(fig);
+      });
+      w.insertBefore(out, w.firstChild);
+      w.classList.add('mm-on');
+    }, function (e) {
+      var err = document.createElement('div'); err.className = 'mm-err';
+      var msg = String((e && e.message) || e).split('\n').filter(function (l) { return /\S/.test(l); });
+      err.textContent = '\u26a0 Mermaid could not render this diagram: ' + msg[0] + (msg.length > 1 ? ' ' + msg[msg.length - 1] : '');
+      err.title = msg.join('\n');
+      w.insertBefore(err, w.firstChild);
+    }).then(function () {
+      var ctl = document.createElement('div'); ctl.className = 'mm-ctl';
+      // why a CHANGED diagram is compared whole: a chip in the controls (UI chrome, so it
+      // can't be read as the document's own text), the full reason in its tooltip
+      if (note && w.classList.contains('mm-on')) {
+        var chip = document.createElement('span'); chip.className = 'mm-chip';
+        chip.textContent = '\u24d8 ' + (note.note === 'same' ? 'no visual change' : 'whole-diagram diff');
+        chip.title = mmNoteText(note);
+        chip.setAttribute('aria-label', chip.title);
+        ctl.appendChild(chip);
+      }
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'mm-tog';
+      ctl.appendChild(b);
+      w.insertBefore(ctl, w.firstChild);
+      mmLabel(w);
+    });
+  }
+  function mmLabel(w) {
+    var b = w.querySelector(':scope > .mm-ctl > .mm-tog');
+    if (b) { b.hidden = !w.classList.contains('mm-on'); b.textContent = w.classList.contains('mm-src') ? 'Diagram' : 'Source'; }
+  }
+  function mmRender() {
+    mmTimer = 0;
+    var todo = [].slice.call(document.querySelectorAll(MM_SEL + ':not([data-mm-done])'));
+    if (!todo.length) return;
+    if (mmBusy) { mmAgain = true; return; }
+    mmLib(function () {
+      if (mmBusy) { mmAgain = true; return; }
+      mmBusy = true;
+      try {
+        window.mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: mmTheme(),
+          suppressErrorRendering: true, fontFamily: getComputedStyle(document.body).fontFamily });
+      } catch (e) {}
+      var off = MM_NONCE ? mmShim() : null;
+      todo = [].slice.call(document.querySelectorAll(MM_SEL + ':not([data-mm-done])'));
+      todo.forEach(function (w) { w.setAttribute('data-mm-done', ''); });
+      var chain = Promise.resolve();
+      todo.forEach(function (w) { chain = chain.then(function () { return mmBox(w); }); });
+      chain.then(function () {
+        if (off) off();
+        mmBusy = false;
+        align(); placeGutter(); fitInlineTables(); fitSoloTables(); buildMinimap();
+        if (mmAgain) { mmAgain = false; mmSchedule(); }
+      });
+    });
+  }
+  function mmSchedule() { if (!mmTimer) mmTimer = setTimeout(mmRender, 0); }
+  // A theme switch re-draws every diagram in the new mermaid theme (the cache is keyed
+  // by theme, so switching back is instant). The Source/Diagram choice is kept.
+  function mmRetheme() {
+    var ws = document.querySelectorAll(MM_SEL + '[data-mm-done]');
+    for (var i = 0; i < ws.length; i++) {
+      var w = ws[i], x = w.querySelectorAll(':scope > .mm-out, :scope > .mm-err, :scope > .mm-ctl');
+      for (var j = 0; j < x.length; j++) x[j].remove();
+      w.classList.remove('mm-on'); w.removeAttribute('data-mm-done');
+    }
+    mmSchedule();
+  }
+  // The Source / Diagram toggle flips the SAME diagram in all three copies of the body
+  // (the inline view and both columns emit the boxes in the same order), so the two
+  // columns stay comparable and row-aligned.
+  document.addEventListener('click', function (e) {
+    var b = e.target && e.target.closest && e.target.closest('.mm-tog');
+    if (!b) return;
+    var w = b.closest(MM_SEL), scope = w.closest('.col-old, .col-new, #inline-view');
+    var k = [].indexOf.call(scope.querySelectorAll(MM_SEL), w), src = !w.classList.contains('mm-src');
+    [views.inline, colOld, colNew].forEach(function (c) {
+      var t = c.querySelectorAll(MM_SEL)[k];
+      if (t) { t.classList.toggle('mm-src', src); mmLabel(t); }
+    });
+    align(); placeGutter(); fitInlineTables(); fitSoloTables(); buildMinimap();
+  });
+  function set(v) {
+    syncBarH();
+    if (!isView(v)) v = initialView;
+    curView = v;
+    // inline shows the inline-view element; split / left / right all show the
+    // split-view element (left/right just hide one of its columns via body class).
+    var onSplit = v !== 'inline';
+    views.inline.classList.toggle('active', v === 'inline');
+    views.split.classList.toggle('active', onSplit);
+    for (var i = 0; i < ALL_VIEWS.length; i++) btns[ALL_VIEWS[i]].classList.toggle('active', ALL_VIEWS[i] === v);
+    // split-mode = "a column view with a sticky filename header" (split OR solo), so
+    // an in-page anchor jump clears that header too (scrollToTarget). left-only /
+    // right-only pick which single column the solo CSS above reveals.
+    document.body.classList.toggle('split-mode', onSplit);
+    document.body.classList.toggle('left-only', v === 'left');
+    document.body.classList.toggle('right-only', v === 'right');
+    // Remember the chosen view so a reload (Cmd+R re-renders the page from disk)
+    // and the next diff keep it, instead of snapping back to the launch view.
+    try { localStorage.setItem('mddiff-view', v); } catch (e) {}
+    if (v === 'split') requestAnimationFrame(function () { placeGutter(); resetSoloTables(); align(); buildMinimap(); buildToc(); });
+    else if (v === 'left' || v === 'right') requestAnimationFrame(function () { clearAlign(colOld); clearAlign(colNew); placeGutter(); resetSoloTables(); fitSoloTables(); buildMinimap(); buildToc(); });
+    else requestAnimationFrame(function () { placeGutter(); fitInlineTables(); buildMinimap(); buildToc(); });
+    mmSchedule();   // draw any diagram not drawn yet (first load, a live refresh, a swap)
+  }
+  
+  btns.inline.onclick = function () { set('inline'); };
+  btns.split.onclick  = function () { set('split'); };
+  btns.left.onclick   = function () { set('left'); };
+  btns.right.onclick  = function () { set('right'); };
+
+  var rz;
+  window.addEventListener('resize', function () { syncBarH(); clearTimeout(rz); rz = setTimeout(function () { align(); placeGutter(); fitInlineTables(); fitSoloTables(); buildMinimap(); }, 120); });
+  window.addEventListener('load', function () { syncBarH(); if (split.classList.contains('active')) align(); placeGutter(); fitInlineTables(); fitSoloTables(); buildMinimap(); buildToc(); requestAnimationFrame(jumpToHash); });
+
+  // Restore the last chosen view; fall back to the launch view ("split")
+  // when nothing's stored. This is what keeps a reload from reverting the toggle.
+  var initialView = "split";
+  
+  try {
+    var savedView = localStorage.getItem('mddiff-view');
+    if (isView(savedView)) initialView = savedView;
+  } catch (e) {}
+  
+  set(initialView);
+
+  // Light/dark theme. Default dark (black); the choice persists in localStorage
+  // so a reload / the next diff keeps it. The button shows the theme you'd switch
+  // TO. Colours only — body.light flips the palette, and the root color-scheme is
+  // flipped so the scrollbars match; no relayout needed.
+  var TH_SUN = "☀︎", TH_MOON = "☾";
+  var themeBtn = document.getElementById('btn-theme');
+  function setTheme(t) {
+    var lightOn = t === 'light';
+    document.body.classList.toggle('light', lightOn);
+    document.documentElement.style.colorScheme = lightOn ? 'light' : 'dark';
+    if (themeBtn) {
+      themeBtn.textContent = lightOn ? TH_MOON : TH_SUN;
+      themeBtn.title = lightOn ? 'Switch to dark theme' : 'Switch to light theme';
+    }
+    try { localStorage.setItem('mddiff-theme', t); } catch (e) {}
+    mmRetheme();
+  }
+  if (themeBtn) themeBtn.onclick = function () {
+    setTheme(document.body.classList.contains('light') ? 'dark' : 'light');
+  };
+  var savedTheme = 'dark';
+  try { var st = localStorage.getItem('mddiff-theme'); if (st === 'light' || st === 'dark') savedTheme = st; } catch (e) {}
+  setTheme(savedTheme);
+
+  // Source line-number gutter toggle (the # button). Off by default; the choice
+  // persists like the view / theme toggles. The content stays CENTRED in inline + solo
+  // with the gutter on; the numbers become a fixed far-left RAIL (placeGutter measures the
+  // offset), and a broken-out wide table then fills to the right of the rail — so toggling
+  // the gutter re-runs placeGutter + both table fitters to (re)position everything. Each
+  // self-gates on its view being active, so only the current view's does anything (no-op
+  // in split, where the numbers hug each column and no rail is used).
+  var linesBtn = document.getElementById('btn-lines');
+  function setLines(on) {
+    document.body.classList.toggle('show-lines', on);
+    if (linesBtn) linesBtn.classList.toggle('active', on);
+    try { localStorage.setItem('mddiff-lines', on ? '1' : '0'); } catch (e) {}
+    placeGutter(); fitInlineTables(); fitSoloTables();
+  }
+  if (linesBtn) linesBtn.onclick = function () { setLines(!document.body.classList.contains('show-lines')); };
+  var savedLines = false;
+  try { savedLines = localStorage.getItem('mddiff-lines') === '1'; } catch (e) {}
+  setLines(savedLines);
+
+  // ---- Customize panel. Two control kinds on ONE seam: FONT <select>s
+  // (--mddiff-font / --mddiff-mono) and DIFF-COLOUR <input type=color>s — the two
+  // accent hues --mddiff-add / --mddiff-del, from which every tint / text / border
+  // shade is derived in CSS. Each writes its CSS custom property on <body> (on
+  // body, NOT :root, so a custom accent overrides the body.light theme default)
+  // and remembers it: localStorage in the browser (one shared origin ⇒ tabs sync),
+  // or the CZ_SEED host seed + the pref bridge in the VS Code webview, exactly like
+  // the theme / line-number toggles. A null CZ_SEED means "browser: use localStorage".
+  var CZ_SEED = null;
+  var czPanel = document.getElementById('mddiff-customize');
+  var czBtn = document.getElementById('btn-customize');
+  function czApply(prop, val) {
+    if (val) document.body.style.setProperty(prop, val);
+    else document.body.style.removeProperty(prop);
+  }
+  function czRead(storeKey, prefKey) {
+    // Authoritative host seed — and WRITE IT THROUGH to the panel's localStorage,
+    // so a later seedless re-render (webview auto-refresh / ⇄ swap passes custom=null)
+    // restores it instead of snapping back to defaults. Mirrors setTheme/setLines.
+    if (CZ_SEED) { var v = String(CZ_SEED[prefKey] || ''); try { localStorage.setItem(storeKey, v); } catch (e) {} return v; }
+    try { return localStorage.getItem(storeKey) || ''; } catch (e) { return ''; }
+  }
+  function czSave(storeKey, prefKey, val) {
+    try { localStorage.setItem(storeKey, val); } catch (e) {}
+    
+  }
+  // A colour swatch reflects the EFFECTIVE colour, read from the CSS vars (one
+  // source of truth, so it is theme-correct): the custom override if set, else the
+  // theme default var. Avoids hardcoding dark-only hexes that misrepresent — and,
+  // on first touch, mis-apply — in light theme.
+  function czHex(v) { return getComputedStyle(document.body).getPropertyValue(v).trim(); }
+  function czSwatch(c) {
+    var inp = document.getElementById(c[1]);
+    if (!inp) return;
+    var eff = czHex(c[0]) || czHex(c[5]);        // custom override, else theme default
+    if (/^#[0-9a-fA-F]{6}$/.test(eff)) inp.value = eff;
+  }
+  // Fonts: [cssProp, <select> id, localStorage key, host-pref key]
+  var CZ_FONTS = [['--mddiff-font', 'cz-font', 'mddiff-font', 'font'],
+                  ['--mddiff-mono', 'cz-mono', 'mddiff-mono', 'mono']];
+  CZ_FONTS.forEach(function (c) {
+    var sel = document.getElementById(c[1]);
+    if (!sel) return;
+    var v = czRead(c[2], c[3]);
+    sel.value = v;
+    czApply(c[0], v);   // applied even if v isn't a preset, so the page reflects it
+    // A font change re-flows cell text, so re-run the table fitters / alignment /
+    // minimap — split column pins + wide-table break-outs were measured under the
+    // OLD font and would otherwise go stale until a resize (setLines re-runs these
+    // for the same reason). Colours don't change metrics, so their inputs don't.
+    sel.onchange = function () { czApply(c[0], sel.value); czSave(c[2], c[3], sel.value); align(); placeGutter(); fitInlineTables(); fitSoloTables(); buildMinimap(); };
+  });
+  // Diff/element colours: [customVar, <input> id, reset-btn id, localStorage key,
+  // host-pref key, DEFAULT var]. The default var is read for the swatch when no
+  // custom override is set (add/del hold their default in the accent var itself;
+  // inline-code's default lives in --mddiff-code-default).
+  var CZ_COLORS = [['--mddiff-add', 'cz-add', 'cz-add-x', 'mddiff-add', 'add', '--mddiff-add'],
+                   ['--mddiff-del', 'cz-del', 'cz-del-x', 'mddiff-del', 'del', '--mddiff-del'],
+                   ['--mddiff-code', 'cz-code', 'cz-code-x', 'mddiff-code', 'code', '--mddiff-code-default']];
+  CZ_COLORS.forEach(function (c) {
+    var inp = document.getElementById(c[1]), rst = document.getElementById(c[2]);
+    if (!inp) return;
+    var v = czRead(c[3], c[4]);
+    if (v) czApply(c[0], v);          // apply the stored/seeded override
+    czSwatch(c);                       // then show the effective colour (theme-correct)
+    inp.oninput = function () { czApply(c[0], inp.value); czSave(c[3], c[4], inp.value); };
+    if (rst) rst.onclick = function () { czApply(c[0], ''); czSave(c[3], c[4], ''); czSwatch(c); };
+  });
+  // Dark-background darkness slider: 0–100 = % mixed toward black, written as
+  // --mddiff-bg-dark on <body>. Dark theme only — body.light pins --mddiff-bg, so
+  // the value is inert there, and its row is hidden (.cz-dark-only).
+  (function () {
+    var inp = document.getElementById('cz-bgdark'), rst = document.getElementById('cz-bgdark-x');
+    if (!inp) return;
+    function set(v) { czApply('--mddiff-bg-dark', +v > 0 ? v + '%' : ''); }
+    var v = czRead('mddiff-bgdark', 'bgdark');
+    if (/^\d+$/.test(v)) { inp.value = v; set(v); }
+    inp.oninput = function () { set(inp.value); czSave('mddiff-bgdark', 'bgdark', inp.value === '0' ? '' : inp.value); };
+    if (rst) rst.onclick = function () { inp.value = '0'; set('0'); czSave('mddiff-bgdark', 'bgdark', ''); };
+  })();
+  if (czBtn && czPanel) {
+    czBtn.onclick = function (e) {
+      e.stopPropagation();
+      if (czPanel.hidden) CZ_COLORS.forEach(czSwatch);   // re-sync to the CURRENT theme before opening
+      czPanel.hidden = !czPanel.hidden;
+    };
+    document.addEventListener('click', function (e) {
+      if (!czPanel.hidden && !czPanel.contains(e.target) && e.target !== czBtn) czPanel.hidden = true;
+    });
+  }
+})();
+</script>
+</body></html>
